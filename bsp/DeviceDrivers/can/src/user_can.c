@@ -59,6 +59,7 @@ void CAN_GPIO_Config(void)
 	GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);
 	/* Remap CAN1 GPIOs */
 	GPIO_ConfigPinRemap(GPIO_RMP2_CAN1, ENABLE);
+	//GPIO_ConfigPinRemap(GPIO_RMP3_CAN2, ENABLE);
 }
 /**
  * @brief  Configures CAN Filer.
@@ -80,6 +81,47 @@ void CAN_Filter_Init(CAN_Module* CANx)
 	CAN1_InitFilter(&CAN_FilterInitStructure);
 	CAN_INTConfig(CANx, CAN_INT_FMP0, ENABLE);
 }
+
+/**
+ * @brief  Configures CAN Filer.
+ */
+void CAN1_Filter_Init(void)
+{
+    CAN_FilterInitType CAN_FilterInitStructure;
+    /* CAN filter init */
+    CAN_FilterInitStructure.Filter_Num            = CAN_FILTERNUM0;
+    CAN_FilterInitStructure.Filter_Mode           = CAN_Filter_IdMaskMode;
+    CAN_FilterInitStructure.Filter_Scale          = CAN_Filter_32bitScale;
+    CAN_FilterInitStructure.Filter_HighId         = CAN_STD_ID_L_MASK_DONT_CARE;
+    CAN_FilterInitStructure.Filter_LowId          = CAN_STD_ID_L_MASK_DONT_CARE;
+    CAN_FilterInitStructure.FilterMask_HighId     = CAN_STD_ID_H_MASK_DONT_CARE;
+    CAN_FilterInitStructure.FilterMask_LowId      = CAN_STD_ID_L_MASK_DONT_CARE;
+    CAN_FilterInitStructure.Filter_FIFOAssignment = CAN_FIFO0;
+    CAN_FilterInitStructure.Filter_Act            = ENABLE;
+    CAN1_InitFilter(&CAN_FilterInitStructure);
+    CAN_INTConfig(CAN1, CAN_INT_FMP0, ENABLE);
+}
+
+
+/**
+ * @brief  Configures CAN Filer.
+ */
+void CAN2_Filter_Init(void)
+{
+    CAN_FilterInitType CAN_FilterInitStructure;
+    /* CAN filter init */
+    CAN_FilterInitStructure.Filter_Num            = CAN_FILTERNUM0;
+    CAN_FilterInitStructure.Filter_Mode           = CAN_Filter_IdMaskMode;
+    CAN_FilterInitStructure.Filter_Scale          = CAN_Filter_32bitScale;
+    CAN_FilterInitStructure.Filter_HighId         = CAN_STD_ID_L_MASK_DONT_CARE;
+    CAN_FilterInitStructure.Filter_LowId          = CAN_STD_ID_L_MASK_DONT_CARE;
+    CAN_FilterInitStructure.FilterMask_HighId     = CAN_STD_ID_H_MASK_DONT_CARE;
+    CAN_FilterInitStructure.FilterMask_LowId      = CAN_STD_ID_L_MASK_DONT_CARE;
+    CAN_FilterInitStructure.Filter_FIFOAssignment = CAN_FIFO0;
+    CAN_FilterInitStructure.Filter_Act            = ENABLE;
+    CAN2_InitFilter(&CAN_FilterInitStructure);
+    CAN_INTConfig(CAN2, CAN_INT_FMP0, ENABLE);
+}
 /**
  * @brief  Configures the NVIC for CAN.
  */
@@ -96,7 +138,6 @@ void CAN_NVIC_Config(void)
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x2;
 	NVIC_Init(&NVIC_InitStructure);
 }
-#if(1)
 /**
  * @brief  Configures CAN1 and CAN2.
  * @param CAN_BaudRate 10Kbit/s ~ 1Mbit/s
@@ -119,72 +160,16 @@ void CAN_Config(void)
 	CAN_InitStructure.RFLM = DISABLE;
 	CAN_InitStructure.TXFP = DISABLE;
 	CAN_InitStructure.OperatingMode = CAN_Normal_Mode;
-	CAN_InitStructure.RSJW = CAN_RSJW_2tq;
-	CAN_InitStructure.TBS1 = CAN_TBS1_14tq;
-	CAN_InitStructure.TBS2 = CAN_TBS2_3tq;
-	CAN_InitStructure.BaudRatePrescaler = CAN_BAUDRATE_1M;
+	CAN_InitStructure.RSJW = CAN_BIT_RSJW;
+	CAN_InitStructure.TBS1 = CAN_BIT_BS1;
+	CAN_InitStructure.TBS2 = CAN_BIT_BS2;
+	CAN_InitStructure.BaudRatePrescaler = CAN_BAUDRATEPRESCALER;
 	/*Initializes the CAN1  and CAN2 */
 	CAN_Init(CAN1, &CAN_InitStructure);
 	CAN_Init(CAN2, &CAN_InitStructure);
-	CAN_Filter_Init(CAN1);
-	CAN_Filter_Init(CAN2);
+	CAN1_Filter_Init();
+	CAN2_Filter_Init();
 }
-#else
-/**
- * @brief  Configures CAN.
- * @param CAN_BaudRate 10Kbit/s ~ 1Mbit/s
- */
-void CAN_Config(void)
-{
-	CAN_InitType CAN_InitStructure;
-	/* Configure CAN1 */
-	RCC_EnableAPB1PeriphClk(RCC_APB1_PERIPH_CAN1, ENABLE);
-	/* CAN1 register init */
-	CAN_DeInit(CAN1);
-	/* Struct init*/
-	CAN_InitStruct(&CAN_InitStructure);
-	/* CAN1 cell init */
-	CAN_InitStructure.TTCM = DISABLE;
-	CAN_InitStructure.ABOM = ENABLE;
-	CAN_InitStructure.AWKUM = ENABLE;
-	CAN_InitStructure.NART = ENABLE;
-	CAN_InitStructure.RFLM = DISABLE;
-	CAN_InitStructure.TXFP = DISABLE;
-	CAN_InitStructure.OperatingMode = CAN_Normal_Mode;
-	CAN_InitStructure.RSJW = CAN_RSJW_2tq;
-	CAN_InitStructure.TBS1 = CAN_TBS1_14tq;
-	CAN_InitStructure.TBS2 = CAN_TBS2_3tq;
-	CAN_InitStructure.BaudRatePrescaler = CAN_BAUDRATE_1M;
-	/*Initializes the CAN1 */
-	CAN_Init(CAN1, &CAN_InitStructure);
-	CAN_Filter_Init(CAN1);
-
-
-	/* Configure CAN2 */
-	RCC_EnableAPB1PeriphClk(RCC_APB1_PERIPH_CAN2, ENABLE);
-	/* CAN2 register init */
-	CAN_DeInit(CAN2);
-	/* Struct init*/
-	CAN_InitStruct(&CAN_InitStructure);
-	/* CAN1 cell init */
-	CAN_InitStructure.TTCM = DISABLE;
-	CAN_InitStructure.ABOM = ENABLE;
-	CAN_InitStructure.AWKUM = ENABLE;
-	CAN_InitStructure.NART = ENABLE;
-	CAN_InitStructure.RFLM = DISABLE;
-	CAN_InitStructure.TXFP = DISABLE;
-	CAN_InitStructure.OperatingMode = CAN_Normal_Mode;
-	CAN_InitStructure.RSJW = CAN_RSJW_2tq;
-	CAN_InitStructure.TBS1 = CAN_TBS1_14tq;
-	CAN_InitStructure.TBS2 = CAN_TBS2_3tq;
-	CAN_InitStructure.BaudRatePrescaler = CAN_BAUDRATE_1M;
-	/*Initializes the CAN2 */
-	CAN_Init(CAN2, &CAN_InitStructure);
-	CAN_Filter_Init(CAN2);
-}
-#endif
-
-
 /**********************************************************
 * 函数功能： stm32底层的can通信协议初始化。
 * 参数：     无
@@ -478,8 +463,9 @@ void Can_task(void* pvParameters)
 	while (1)
 	{
 		rt_thread_delay(10);   //< 1ms
+		CAN_SDOSend(CAN2);
 		CAN_SDOSend(CAN1);
-		CAN_PDOSend(Motor_Number,CAN1);
+		CAN_PDOSend(Motor_Number, CAN2);
 	}
 
 }

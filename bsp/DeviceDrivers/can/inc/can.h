@@ -49,10 +49,33 @@
 
 
 #define CAN_RX0_INT_ENABLE 1   //使用中断标识符
-#define  CAN_BAUDRATE_1M                 2
-#define  CAN_BAUDRATE_500K               4
-#define  CAN_BAUDRATE_250K               8
-#define  CAN_BAUDRATE_125K               16
+#define  CAN_BAUDRATE_1M            1
+#define  CAN_BAUDRATE_500K          2
+#define  CAN_BAUDRATE_250K          3
+#define  CAN_BAUDRATE_125K          4
+#define  CAN_BAUDRATE               CAN_BAUDRATE_1M
+
+#if(CAN_BAUDRATE==CAN_BAUDRATE_1M)
+#define   CAN_BIT_RSJW              CAN_RSJW_1tq
+#define   CAN_BIT_BS1               CAN_TBS1_5tq
+#define   CAN_BIT_BS2               CAN_TBS2_3tq
+#define   CAN_BAUDRATEPRESCALER     4
+#elif(CAN_BAUDRATE==CAN_BAUDRATE_500K)
+#define   CAN_BIT_RSJW              CAN_RSJW_1tq
+#define   CAN_BIT_BS1               CAN_TBS1_5tq
+#define   CAN_BIT_BS2               CAN_TBS2_2tq
+#define   CAN_BAUDRATEPRESCALER     9 
+#elif(CAN_BAUDRATE==CAN_BAUDRATE_250K)
+#define   CAN_BIT_RSJW              CAN_RSJW_1tq
+#define   CAN_BIT_BS1               CAN_TBS1_4tq
+#define   CAN_BIT_BS2               CAN_TBS2_3tq
+#define   CAN_BAUDRATEPRESCALER     18
+#elif(CAN_BAUDRATE==CAN_BAUDRATE_125K)
+#define   CAN_BIT_RSJW              CAN_RSJW_1tq
+#define   CAN_BIT_BS1               CAN_TBS1_13tq
+#define   CAN_BIT_BS2               CAN_TBS2_4tq
+#define   CAN_BAUDRATEPRESCALER     16
+#endif
 
 
 #define  CAN_FILTERNUM0                 ((uint8_t)0)
