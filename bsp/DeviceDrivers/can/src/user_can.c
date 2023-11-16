@@ -63,27 +63,6 @@ void CAN_GPIO_Config(void)
 }
 /**
  * @brief  Configures CAN Filer.
- * @param CAN_BaudRate 10Kbit/s ~ 1Mbit/s
- */
-void CAN_Filter_Init(CAN_Module* CANx)
-{
-	CAN_FilterInitType CAN_FilterInitStructure;
-	/* CAN filter init */
-	CAN_FilterInitStructure.Filter_Num = CAN_FILTERNUM0;
-	CAN_FilterInitStructure.Filter_Mode = CAN_Filter_IdMaskMode;
-	CAN_FilterInitStructure.Filter_Scale = CAN_Filter_32bitScale;
-	CAN_FilterInitStructure.Filter_HighId = 0x0000;
-	CAN_FilterInitStructure.Filter_LowId = 0x0000;
-	CAN_FilterInitStructure.FilterMask_HighId = 0x0000;
-	CAN_FilterInitStructure.FilterMask_LowId = 0x0000;
-	CAN_FilterInitStructure.Filter_FIFOAssignment = CAN_FIFO0;
-	CAN_FilterInitStructure.Filter_Act = ENABLE;
-	CAN1_InitFilter(&CAN_FilterInitStructure);
-	CAN_INTConfig(CANx, CAN_INT_FMP0, ENABLE);
-}
-
-/**
- * @brief  Configures CAN Filer.
  */
 void CAN1_Filter_Init(void)
 {
@@ -170,6 +149,7 @@ void CAN_Config(void)
 	CAN1_Filter_Init();
 	CAN2_Filter_Init();
 }
+
 /**********************************************************
 * 函数功能： stm32底层的can通信协议初始化。
 * 参数：     无
@@ -387,9 +367,11 @@ uint8_t CAN_SDOSend(CAN_Module* CANx)
 		{
 			pTxMessage.Data[nIndex] = sdo_head->data[nIndex];
 		}
+		nIndex = 0;
 		do
 		{
-			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
+			nIndex++;
+			nReturn = CAN_TransmitMessage(CAN2, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
 		} while (nReturn == 0x04);
 		struct SdoFrame* next_sdo = sdo_head->next;
 		rt_free(sdo_head);
@@ -464,7 +446,7 @@ void Can_task(void* pvParameters)
 	{
 		rt_thread_delay(10);   //< 1ms
 		CAN_SDOSend(CAN2);
-		CAN_SDOSend(CAN1);
+		//CAN_SDOSend(CAN1);
 		CAN_PDOSend(Motor_Number, CAN2);
 	}
 
