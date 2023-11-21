@@ -1161,9 +1161,9 @@ void DMA1_Channel4_IRQHandler(void)
 		DMA_EnableChannel(USARTy_Tx_DMA_Channel, DISABLE);    // 关闭 DMA1 通道4, UART1_TX
 
 		// 发送完成恢复接收
-		DMA_EnableChannel(USARTy_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
-		DMA_SetCurrDataCounter(USARTy_Rx_DMA_Channel, USART1_RX_MAXBUFF);
-		DMA_EnableChannel(USARTy_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
+		//DMA_EnableChannel(USARTy_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
+		//DMA_SetCurrDataCounter(USARTy_Rx_DMA_Channel, USART1_RX_MAXBUFF);
+		//DMA_EnableChannel(USARTy_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
 	}
 }
 
@@ -1194,6 +1194,10 @@ void ModBUS_task(void* pvParameters)
 			DMA_EnableChannel(DMA1_CH4, DISABLE);    // 关闭 DMA1 通道4, UART1_TX
 			DMA_SetCurrDataCounter(DMA1_CH4, uart1_send_len);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
 			DMA_EnableChannel(DMA1_CH4, ENABLE);    // 开启 DMA1 通道4, UART1_TX
+		// 发送完成恢复接收
+			DMA_EnableChannel(USARTy_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
+			DMA_SetCurrDataCounter(USARTy_Rx_DMA_Channel, USART1_RX_MAXBUFF);
+			DMA_EnableChannel(USARTy_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
 		}
 	}
 }
