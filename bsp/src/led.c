@@ -110,6 +110,7 @@ void LED_Init(void)
     GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
     rt_thread_delay(5000);   //< 500ms
 }
+
 /**
  * @brief  Toggles the selected Led.
  * @param GPIOx x can be A to G to select the GPIO port.
@@ -119,39 +120,4 @@ void LedBlink(GPIO_Module* GPIOx, uint16_t Pin)
 {
     GPIOx->POD ^= Pin;
 }
-/**
- * @brief  open led
- * @param  n: led num
- */
-void rt_hw_led_on(rt_uint32_t n)
-{
-    switch (n)
-    {
-    case 0:
-        GPIO_SetBits(LED1_PORT, LED1_PIN);
-        break;
-    case 1:
-        GPIO_SetBits(LED2_PORT, LED2_PIN);
-        break;
-    default:
-        break;
-    }
-}
-/**
- * @brief  close led
- * @param  n: led num
- */
-void rt_hw_led_off(rt_uint32_t n)
-{
-    switch (n)
-    {
-    case 0:
-        GPIO_ResetBits(LED1_PORT, LED1_PIN);
-        break;
-    case 1:
-        GPIO_ResetBits(LED2_PORT, LED2_PIN);
-        break;
-    default:
-        break;
-    }
-}
+

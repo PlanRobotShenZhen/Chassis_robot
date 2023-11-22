@@ -39,24 +39,24 @@ void CAN_GPIO_Config(void)
 	/* Configures CAN1 IOs */
 	RCC_EnableAPB2PeriphClk(RCC_APB2_PERIPH_AFIO | RCC_APB2_PERIPH_GPIOB, ENABLE);
 	/* Configure CAN1 RX pin */
-	GPIO_InitStructure.Pin = GPIO_PIN_8;
+	GPIO_InitStructure.Pin = CANa_RxPin;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-	GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);
+	GPIO_InitPeripheral(CANa_GPIO, &GPIO_InitStructure);
 	/* Configure CAN1 TX pin */
-	GPIO_InitStructure.Pin = GPIO_PIN_9;
+	GPIO_InitStructure.Pin = CANa_TxPin;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);
+	GPIO_InitPeripheral(CANa_GPIO, &GPIO_InitStructure);
 
 	/* Configure CAN2 RX pin */
-	GPIO_InitStructure.Pin = GPIO_PIN_12;
+	GPIO_InitStructure.Pin = CANb_RxPin;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-	GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);
+	GPIO_InitPeripheral(CANb_GPIO, &GPIO_InitStructure);
 	/* Configure CAN2 TX pin */
-	GPIO_InitStructure.Pin = GPIO_PIN_13;
+	GPIO_InitStructure.Pin = CANb_TxPin;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);
+	GPIO_InitPeripheral(CANb_GPIO, &GPIO_InitStructure);
 	/* Remap CAN1 GPIOs */
 	GPIO_ConfigPinRemap(GPIO_RMP2_CAN1, ENABLE);
 	//GPIO_ConfigPinRemap(GPIO_RMP3_CAN2, ENABLE);

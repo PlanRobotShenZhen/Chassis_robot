@@ -8,20 +8,7 @@ Usart3是与上位机ROS通信的。
 
 #include "stdio.h"
 #include "n32g45x_conf.h"
-#define USARTy            USART1
-#define USARTy_GPIO       GPIOA
-#define USARTy_CLK        RCC_APB2_PERIPH_USART1
-#define USARTy_GPIO_CLK   RCC_APB2_PERIPH_GPIOA
-#define USARTy_RxPin      GPIO_PIN_10
-#define USARTy_TxPin      GPIO_PIN_9
-#define USARTy_DMAx_CLK       RCC_AHB_PERIPH_DMA1
-#define USARTy_APBxClkCmd RCC_EnableAPB2PeriphClk
-#define USARTy_IRQHandler USART1_IRQHandler
-#define USARTy_IRQn           USART1_IRQn
-#define USARTy_Tx_DMA_Channel DMA1_CH4
-#define USARTy_Rx_DMA_Channel DMA1_CH5
-#define USARTy_DR_Base        (USART1_BASE + 0x04)
-#define USARTy_Tx_DMA_FLAG    DMA1_FLAG_TC4
+#include "bsp.h"
 
 
 
@@ -33,20 +20,6 @@ Usart3是与上位机ROS通信的。
 #define USART1_TX_MAXBUFF   256 		// 接收数据最大缓冲区
 
 
-#define USARTz					USART3
-#define USARTz_GPIO				GPIOB
-#define USARTz_CLK				RCC_APB1_PERIPH_USART3
-#define USARTz_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
-#define USARTz_RxPin			GPIO_PIN_11
-#define USARTz_TxPin			GPIO_PIN_10
-#define USARTz_DMAx_CLK			RCC_AHB_PERIPH_DMA1
-#define USARTz_APBxClkCmd		RCC_EnableAPB2PeriphClk
-#define USARTz_IRQHandler		USART3_IRQHandler
-#define USARTz_IRQn				USART3_IRQn
-#define USARTz_Tx_DMA_Channel	DMA1_CH2
-#define USARTz_Rx_DMA_Channel	DMA1_CH3
-#define USARTz_DR_Base			(USART3_BASE + 0x04)
-#define USARTz_Tx_DMA_FLAG		DMA1_FLAG_TC2
 /*-------任务堆栈大小------*/
 #define DATA_STK_SIZE   512 
 #define DATA_TASK_PRIO  4   

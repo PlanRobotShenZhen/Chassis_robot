@@ -38,26 +38,9 @@
 
 #include <rtthread.h>
 #include "n32g45x.h"
+#include "bsp.h"
 
-#define LED1_PIN    GPIO_PIN_5
-#define LED2_PIN    GPIO_PIN_8
 
-#define LED1_PORT   GPIOB
-#define LED2_PORT   GPIOA
-
-#define LED_PORT_RCC     RCC_APB2_PERIPH_GPIOA
-#define LED_PORT     GPIOA
-#define LED_R        GPIO_PIN_3
-#define LED_G        GPIO_PIN_4
-#define LED_B        GPIO_PIN_5
-#define LED_Battery  GPIO_PIN_6
-#define RUN1         GPIO_PIN_1
-#define RUN2         GPIO_PIN_2
-
-#define JDQ_PORT_RCC  RCC_APB2_PERIPH_GPIOC
-#define JDQ_PORT     GPIOC   
-#define JDQ1_PIN    GPIO_PIN_13
-#define JDQ2_PIN    GPIO_PIN_14
 
 void rt_hw_led_on(rt_uint32_t led);
 void rt_hw_led_off(rt_uint32_t led);

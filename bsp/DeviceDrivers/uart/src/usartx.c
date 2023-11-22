@@ -4,6 +4,7 @@
 #include "mb.h"
 #include "robot_select_init.h"
 #include "balance.h"
+#include "bsp.h"
 #include "led.h"
 
 
@@ -101,10 +102,10 @@ void DATA_task(void *pvParameters)
 void uart5_dma_config(void)
 {
 	DMA_InitType DMA_InitStruct;
-	DMA_DeInit(DMA1_CH8);  // DMA1 通道8, UART5_RX
+	DMA_DeInit(USARTe_Rx_DMA_Channel);  // DMA1 通道8, UART5_RX
 	DMA_StructInit(&DMA_InitStruct);
 	// 配置 DMA1 通道8, UART5_RX
-	DMA_InitStruct.PeriphAddr = (UART5_BASE + 0x04);   // 数据寄存器(USART_DR) 地址偏移：0x04
+	DMA_InitStruct.PeriphAddr = USARTe_DR_Base;   // 数据寄存器(USART_DR) 地址偏移：0x04
 	DMA_InitStruct.MemAddr = (uint32_t)Uart5_Buffer;  // 内存地址
 	DMA_InitStruct.Direction = DMA_DIR_PERIPH_SRC;                 // 外设到内存
 	DMA_InitStruct.BufSize = Max_BUFF_Len;
@@ -115,11 +116,11 @@ void uart5_dma_config(void)
 	DMA_InitStruct.CircularMode = DMA_MODE_NORMAL;
 	DMA_InitStruct.Priority = DMA_PRIORITY_HIGH;
 	DMA_InitStruct.Mem2Mem = DMA_M2M_DISABLE;
-	DMA_Init(DMA1_CH8, &DMA_InitStruct);
-	DMA_RequestRemap(DMA1_REMAP_UART5_RX, DMA1, DMA1_CH8, ENABLE);
+	DMA_Init(USARTe_Rx_DMA_Channel, &DMA_InitStruct);
+	DMA_RequestRemap(DMA1_REMAP_UART5_RX, DMA1, USARTe_Rx_DMA_Channel, ENABLE);
 	/* Enable UART5 DMA Rx request */
-	USART_EnableDMA(UART5, USART_DMAREQ_RX, ENABLE);
-	DMA_EnableChannel(DMA1_CH8, ENABLE);     // 开启接收
+	USART_EnableDMA(USARTe, USART_DMAREQ_RX, ENABLE);
+	DMA_EnableChannel(USARTe_Rx_DMA_Channel, ENABLE);     // 开启接收
 }
 /**************************************************
 * 函数功能：	串口5初始化函数，作为航模信号接收
@@ -133,15 +134,15 @@ void Usart5_Init(unsigned int unBound)
     GPIO_InitType GPIO_InitStructure;
 	USART_InitType USART_InitStructure;
 	NVIC_InitType NVIC_InitStructure;	
-	RCC_EnableAPB1PeriphClk(RCC_APB1_PERIPH_UART5, ENABLE);	//使能USART5，GPIOA时钟
-    RCC_EnableAPB2PeriphClk(RCC_APB2_PERIPH_GPIOB, ENABLE);
+	RCC_EnableAPB1PeriphClk(USARTe_CLK, ENABLE);	//使能USART5，GPIOA时钟
+    RCC_EnableAPB2PeriphClk(USARTe_GPIO_CLK, ENABLE);
   //USART5_RX	  GPIOB.14初始化
-    GPIO_InitStructure.Pin = GPIO_PIN_14;//PB14
+    GPIO_InitStructure.Pin = USARTe_RxPin;//PB14
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;//浮空输入
-    GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);//初始化GPIOB.14  
+    GPIO_InitPeripheral(USARTe_GPIO, &GPIO_InitStructure);//初始化GPIOB.14  
 	GPIO_ConfigPinRemap(GPIO_RMP1_UART5, ENABLE);
   //USART5 NVIC 配置
-    NVIC_InitStructure.NVIC_IRQChannel = UART5_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannel = USARTe_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=1 ;//抢占优先级3
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;		//子优先级3
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
@@ -153,15 +154,15 @@ void Usart5_Init(unsigned int unBound)
 	USART_InitStructure.Parity = USART_PE_NO;//偶校验位
 	USART_InitStructure.HardwareFlowControl = USART_HFCTRL_NONE;//无硬件数据流控制
 	USART_InitStructure.Mode = USART_MODE_RX;	//收模式
-    USART_Init(UART5, &USART_InitStructure); //初始化串口5
+    USART_Init(USARTe, &USART_InitStructure); //初始化串口5
 	uart5_dma_config();     // DMA配置
 	//USART_ConfigInt(UART5, USART_INT_RXDNE, DISABLE);//关闭串口接收中断
-	USART_ConfigInt(UART5, USART_INT_IDLEF, ENABLE);//开启串口空闲中断
-	USART_ConfigInt(UART5, USART_INT_OREF, ENABLE);//开启串口溢出中断
-	USART_ConfigInt(UART5, USART_INT_ERRF, ENABLE);//开启串口错误中断
-	USART_ConfigInt(UART5, USART_INT_NEF, ENABLE);//开启串口错误中断
-	USART_ConfigInt(UART5, USART_INT_FEF, ENABLE);//开启串口错误中断
-	USART_Enable(UART5, ENABLE);                    //使能串口5 
+	USART_ConfigInt(USARTe, USART_INT_IDLEF, ENABLE);//开启串口空闲中断
+	USART_ConfigInt(USARTe, USART_INT_OREF, ENABLE);//开启串口溢出中断
+	USART_ConfigInt(USARTe, USART_INT_ERRF, ENABLE);//开启串口错误中断
+	USART_ConfigInt(USARTe, USART_INT_NEF, ENABLE);//开启串口错误中断
+	USART_ConfigInt(USARTe, USART_INT_FEF, ENABLE);//开启串口错误中断
+	USART_Enable(USARTe, ENABLE);                    //使能串口5 
 }
 
 /**
@@ -342,39 +343,39 @@ unsigned char Update_sbus(unsigned char* ucBuf)
 * 入口参数：  无
 * 返 回 值：  无
 **************************************************/
-void UART5_IRQHandler() 
+void USARTe_IRQHandler() 
 {
-	if (USART_GetIntStatus(UART5, USART_INT_ERRF) != RESET)
+	if (USART_GetIntStatus(USARTe, USART_INT_ERRF) != RESET)
 	{// USART_FLAG_ERRF
-		USART_ClrFlag(UART5, USART_INT_ERRF);
-		USART_ReceiveData(UART5);
+		USART_ClrFlag(USARTe, USART_INT_ERRF);
+		USART_ReceiveData(USARTe);
 	}
-	else if (USART_GetIntStatus(UART5, USART_INT_OREF) != RESET)
+	else if (USART_GetIntStatus(USARTe, USART_INT_OREF) != RESET)
 	{// USART_FLAG_ORE
-		USART_ClrFlag(UART5, USART_INT_OREF);
-		USART_ReceiveData(UART5);
+		USART_ClrFlag(USARTe, USART_INT_OREF);
+		USART_ReceiveData(USARTe);
 	}
-	else if (USART_GetIntStatus(UART5, USART_INT_IDLEF) != RESET) //中断产生 
+	else if (USART_GetIntStatus(USARTe, USART_INT_IDLEF) != RESET) //中断产生 
 	{
-		UART5->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
-		UART5->DAT; // 清除空闲中断
+		USARTe->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
+		USARTe->DAT; // 清除空闲中断
 		ucRcvReady = 1;                // 接收标志置1
 		g_eControl_Mode = CONTROL_MODE_REMOTE; //航模遥控方式选择
 		// 统计收到的数据的长度
-		ucRcvCount = Max_BUFF_Len - DMA_GetCurrDataCounter(DMA1_CH8);
-		DMA_EnableChannel(DMA1_CH8, DISABLE);    // DMA1 通道3, UART3_RX
-		DMA_SetCurrDataCounter(DMA1_CH8, Max_BUFF_Len);
-		DMA_EnableChannel(DMA1_CH8, ENABLE);     // DMA1 通道3, UART3_RX
+		ucRcvCount = Max_BUFF_Len - DMA_GetCurrDataCounter(USARTe_Rx_DMA_Channel);
+		DMA_EnableChannel(USARTe_Rx_DMA_Channel, DISABLE);    // DMA1 通道3, UART3_RX
+		DMA_SetCurrDataCounter(USARTe_Rx_DMA_Channel, Max_BUFF_Len);
+		DMA_EnableChannel(USARTe_Rx_DMA_Channel, ENABLE);     // DMA1 通道3, UART3_RX
 	}
-	else if (USART_GetIntStatus(UART5, USART_INT_NEF) != RESET)
+	else if (USART_GetIntStatus(USARTe, USART_INT_NEF) != RESET)
 	{
-		UART5->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
-		UART5->DAT; // 清除空闲中断
+		USARTe->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
+		USARTe->DAT; // 清除空闲中断
 	}
-	else if (USART_GetIntStatus(UART5, USART_INT_FEF) != RESET)
+	else if (USART_GetIntStatus(USARTe, USART_INT_FEF) != RESET)
 	{
-		UART5->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
-		UART5->DAT; // 清除空闲中断
+		USARTe->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
+		USARTe->DAT; // 清除空闲中断
 	}
 
 }
