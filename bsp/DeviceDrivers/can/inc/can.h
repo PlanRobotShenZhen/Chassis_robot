@@ -56,10 +56,10 @@
 #define  CAN_BAUDRATE               CAN_BAUDRATE_1M
 
 #if(CAN_BAUDRATE==CAN_BAUDRATE_1M)
-#define   CAN_BIT_RSJW              CAN_RSJW_1tq
-#define   CAN_BIT_BS1               CAN_TBS1_5tq
+#define   CAN_BIT_RSJW              CAN_RSJW_2tq
+#define   CAN_BIT_BS1               CAN_TBS1_14tq
 #define   CAN_BIT_BS2               CAN_TBS2_3tq
-#define   CAN_BAUDRATEPRESCALER     4
+#define   CAN_BAUDRATEPRESCALER     2
 #elif(CAN_BAUDRATE==CAN_BAUDRATE_500K)
 #define   CAN_BIT_RSJW              CAN_RSJW_1tq
 #define   CAN_BIT_BS1               CAN_TBS1_5tq

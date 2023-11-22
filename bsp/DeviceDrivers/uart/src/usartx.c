@@ -1184,7 +1184,7 @@ void ModBUS_task(void* pvParameters)
 		rt_thread_delay(10);   //< 1ms
 		if (uart1_recv_flag == 1)
 		{
-			LedBlink(LED_PORT, RUN1);
+			LedBlink(LED1_PORT, RUN1);
 			uart1_recv_flag = 0;
 			pxMBFrameCBByteReceived();
 		}

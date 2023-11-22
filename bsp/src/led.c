@@ -94,14 +94,15 @@ void LED_Init(void)
 {
     GPIO_InitType GPIO_InitStructure;
 
-    RCC_EnableAPB2PeriphClk(LED_PORT_RCC | JDQ_PORT_RCC, ENABLE);
+#if(PLAN_CONTROL_BOARD_V==10)
+    RCC_EnableAPB2PeriphClk(LED1_PORT_RCC | JDQ_PORT_RCC, ENABLE);
 
     GPIO_InitStructure.Pin = LED_R | LED_G | LED_B | LED_Battery | RUN1 | RUN2;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitPeripheral(LED_PORT, &GPIO_InitStructure);
-    GPIO_ResetBits(LED_PORT, LED_Battery);
-    GPIO_SetBits(LED_PORT, LED_R | LED_G | LED_B);
+    GPIO_InitPeripheral(LED1_PORT, &GPIO_InitStructure);
+    GPIO_ResetBits(LED1_PORT, LED_Battery);
+    GPIO_SetBits(LED1_PORT, LED_R | LED_G | LED_B);
 
     GPIO_InitStructure.Pin = JDQ1_PIN | JDQ2_PIN;
     GPIO_InitPeripheral(JDQ_PORT, &GPIO_InitStructure);
@@ -109,6 +110,27 @@ void LED_Init(void)
     rt_thread_delay(20000);   //< 2s
     GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
     rt_thread_delay(5000);   //< 500ms
+#elif(PLAN_CONTROL_BOARD_V==11)
+
+    RCC_EnableAPB2PeriphClk(LED1_PORT_RCC| LED2_PORT_RCC | JDQ_PORT_RCC, ENABLE);
+
+    GPIO_InitStructure.Pin = RUN1;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitPeripheral(LED1_PORT, &GPIO_InitStructure);
+    GPIO_InitStructure.Pin = RUN2;
+    GPIO_InitPeripheral(LED2_PORT, &GPIO_InitStructure);
+    //GPIO_ResetBits(LED_PORT, LED_Battery);
+    //GPIO_SetBits(LED_PORT, LED_R | LED_G | LED_B);
+
+    GPIO_InitStructure.Pin = JDQ1_PIN | JDQ2_PIN;
+    GPIO_InitPeripheral(JDQ_PORT, &GPIO_InitStructure);
+    GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
+    rt_thread_delay(20000);   //< 2s
+    GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
+    rt_thread_delay(5000);   //< 500ms
+
+#endif
 }
 
 /**

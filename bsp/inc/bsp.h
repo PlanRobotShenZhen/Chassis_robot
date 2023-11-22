@@ -42,13 +42,15 @@
 #define N32G45X_SRAM_END            (0x20000000 + N32G45X_SRAM_SIZE * 1024)
 
 
-#define PLAN_CONTROL_BOARD_V 0
-#if(PLAN_CONTROL_BOARD_V==0)
-#define PLAN_CONTROL_BOARD_V 0
+#define PLAN_CONTROL_BOARD_V 10
+#if(PLAN_CONTROL_BOARD_V==10)
 #define PLAN_CONTROL_BOARD_VERSION "V1.0"
 
-#define LED_PORT_RCC     RCC_APB2_PERIPH_GPIOA
-#define LED_PORT     GPIOA
+#define LED1_PORT_RCC     RCC_APB2_PERIPH_GPIOA
+#define LED2_PORT_RCC     RCC_APB2_PERIPH_GPIOA
+#define LED1_PORT     GPIOA
+#define LED2_PORT     GPIOA
+
 #define LED_R        GPIO_PIN_3
 #define LED_G        GPIO_PIN_4
 #define LED_B        GPIO_PIN_5
@@ -120,10 +122,83 @@
 #define CANb_RxPin			GPIO_PIN_12
 #define CANb_TxPin			GPIO_PIN_13
 
-#else if(PLAN_CONTROL_BOARD_V==1)
-
-
+#elif(PLAN_CONTROL_BOARD_V==11)
 #define PLAN_CONTROL_BOARD_VERSION "V1.1"
+#define LED1_PORT_RCC     RCC_APB2_PERIPH_GPIOC
+#define LED2_PORT_RCC     RCC_APB2_PERIPH_GPIOB
+#define LED1_PORT     GPIOC
+#define LED2_PORT     GPIOB
+//#define LED_R        GPIO_PIN_3
+//#define LED_G        GPIO_PIN_4
+//#define LED_B        GPIO_PIN_5
+#define RUN1         GPIO_PIN_15
+#define RUN2         GPIO_PIN_6
+
+#define JDQ_PORT_RCC  RCC_APB2_PERIPH_GPIOC
+#define JDQ_PORT     GPIOC   
+#define JDQ1_PIN    GPIO_PIN_13
+#define JDQ2_PIN    GPIO_PIN_14
+
+
+
+/*USART1 */
+#define USARTy            USART1
+#define USARTy_GPIO       GPIOA
+#define USARTy_CLK        RCC_APB2_PERIPH_USART1
+#define USARTy_GPIO_CLK   RCC_APB2_PERIPH_GPIOA
+#define USARTy_RxPin      GPIO_PIN_10
+#define USARTy_TxPin      GPIO_PIN_9
+#define USARTy_DMAx_CLK       RCC_AHB_PERIPH_DMA1
+#define USARTy_APBxClkCmd RCC_EnableAPB2PeriphClk
+#define USARTy_IRQHandler USART1_IRQHandler
+#define USARTy_IRQn           USART1_IRQn
+#define USARTy_Tx_DMA_Channel DMA1_CH4
+#define USARTy_Rx_DMA_Channel DMA1_CH5
+#define USARTy_DR_Base        (USART1_BASE + 0x04)
+#define USARTy_Tx_DMA_FLAG    DMA1_FLAG_TC4
+
+/*USART3 */
+#define USARTz					USART3
+#define USARTz_GPIO				GPIOB
+#define USARTz_CLK				RCC_APB1_PERIPH_USART3
+#define USARTz_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
+#define USARTz_RxPin			GPIO_PIN_11
+#define USARTz_TxPin			GPIO_PIN_10
+#define USARTz_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define USARTz_APBxClkCmd		RCC_EnableAPB2PeriphClk
+#define USARTz_IRQHandler		USART3_IRQHandler
+#define USARTz_IRQn				USART3_IRQn
+#define USARTz_Tx_DMA_Channel	DMA1_CH2
+#define USARTz_Rx_DMA_Channel	DMA1_CH3
+#define USARTz_DR_Base			(USART3_BASE + 0x04)
+#define USARTz_Tx_DMA_FLAG		DMA1_FLAG_TC2
+/*USART5 */
+#define USARTe					UART5
+#define USARTe_GPIO				GPIOB
+#define USARTe_CLK				RCC_APB1_PERIPH_UART5
+#define USARTe_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
+#define USARTe_RxPin			GPIO_PIN_14
+//#define USARTe_TxPin			GPIO_PIN_10
+#define USARTe_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define USARTe_APBxClkCmd		RCC_EnableAPB2PeriphClk
+#define USARTe_IRQHandler		UART5_IRQHandler
+#define USARTe_IRQn				UART5_IRQn
+//#define USARTe_Tx_DMA_Channel	DMA1_CH2
+#define USARTe_Rx_DMA_Channel	DMA1_CH8
+#define USARTe_DR_Base			(UART5_BASE + 0x04)
+#define USARTe_Tx_DMA_FLAG		DMA1_FLAG_TC2
+
+/*CAN1 */
+
+#define CANa_GPIO		    GPIOB
+#define CANa_RxPin			GPIO_PIN_8
+#define CANa_TxPin			GPIO_PIN_9
+/*CAN2 */
+#define CANb_GPIO		    GPIOB
+#define CANb_RxPin			GPIO_PIN_12
+#define CANb_TxPin			GPIO_PIN_13
+
+
 #endif
 
 

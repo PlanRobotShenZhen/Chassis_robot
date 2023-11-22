@@ -417,11 +417,11 @@ void Balance_task(void* pvParameters)
 		tmp1++;
 		if (tmp1 == 1)
 		{
-			GPIO_SetBits(LED_PORT, RUN2);
+			GPIO_SetBits(LED2_PORT, RUN2);
 		}
 		else if(tmp1==50)
 		{
-			GPIO_ResetBits(LED_PORT, RUN2);
+			GPIO_ResetBits(LED2_PORT, RUN2);
 		}
 		else if(tmp1==99)tmp1=0;
 
