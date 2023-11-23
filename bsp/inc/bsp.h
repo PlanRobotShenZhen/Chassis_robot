@@ -42,7 +42,7 @@
 #define N32G45X_SRAM_END            (0x20000000 + N32G45X_SRAM_SIZE * 1024)
 
 
-#define PLAN_CONTROL_BOARD_V 10
+#define PLAN_CONTROL_BOARD_V 11
 #if(PLAN_CONTROL_BOARD_V==10)
 #define PLAN_CONTROL_BOARD_VERSION "V1.0"
 
@@ -140,6 +140,41 @@
 #define JDQ2_PIN    GPIO_PIN_14
 
 
+typedef union __SPI_IO_INPUT
+{
+	struct {
+		uint8_t X0 : 1;
+		uint8_t X1 : 1;
+		uint8_t X2 : 1;
+		uint8_t X3 : 1;
+		uint8_t X4 : 1;
+		uint8_t X5 : 1;
+		uint8_t X6 : 1;
+		uint8_t X7 : 1;
+	}bit;
+	uint8_t input;
+}EXIO_INPUT;
+
+typedef struct __SPI_IO_OUTPUT
+{
+	struct {
+		uint8_t RGB_G : 1;
+		uint8_t RGB_B : 1;
+		uint8_t RGB_R : 1;
+		uint8_t Light : 1;
+		uint8_t Light_Q : 1;
+		uint8_t Light_Z : 1;
+		uint8_t Light_Y : 1;
+		uint8_t Light_H : 1;
+	}bit;
+	uint8_t output;
+}EXIO_OUTPUT;
+#define SPI1_PORT        GPIOA
+#define SPI1_NSS_PIN     GPIO_PIN_4
+#define SPI1_SCK_PIN     GPIO_PIN_5
+#define SPI1_MISO_PIN    GPIO_PIN_6
+#define SPI1_MOSI_PIN    GPIO_PIN_7
+
 
 /*USART1 */
 #define USARTy            USART1
@@ -189,7 +224,6 @@
 #define USARTe_Tx_DMA_FLAG		DMA1_FLAG_TC2
 
 /*CAN1 */
-
 #define CANa_GPIO		    GPIOB
 #define CANa_RxPin			GPIO_PIN_8
 #define CANa_TxPin			GPIO_PIN_9

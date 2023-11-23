@@ -148,8 +148,10 @@ enum address_485 {
     remote_ch16_value,
     remote_connect_state,
 
-    motor_num = 248
+    motor_num = 248,
 
+    empty_buff_num = 348,
+    receive_buff_num = 349
 };
 
 #endif

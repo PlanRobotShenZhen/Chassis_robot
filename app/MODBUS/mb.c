@@ -143,6 +143,7 @@ void FillBuf(uint16_t* buf, uint8_t Code)
     case FUN_CODE_03H:
     case FUN_CODE_06H:
     case FUN_CODE_10H:
+    case FUN_CODE_11H:
         for (i = 0; i < MB_RTU_DATA_MAX_SIZE; i++)
             buf[i] = 0;
         break;
@@ -175,6 +176,12 @@ uint8_t MB_JudgeNum(uint16_t _RegNum, uint8_t _FunCode, uint16_t _ByteNum)
             Excode = EX_CODE_03H;// 异常码03H
         if (_ByteNum != (_RegNum << 1))
             Excode = EX_CODE_03H;// 异常码03H
+        break;
+    case FUN_CODE_11H:
+        if ((_RegNum < 0x0001) || (_RegNum > 0x04CE))
+            Excode = EX_CODE_03H;// 异常码03H
+        //if (_ByteNum != (_RegNum << 1))
+        //    Excode = EX_CODE_03H;// 异常码03H
         break;
     }
     return Excode;
@@ -255,6 +262,17 @@ uint8_t MB_Analyze_Execute(void)
         break;
         /* ---- 10H 写多个保持寄存器 ---------------------- */
     case FUN_CODE_10H:
+        /* 判断寄存器数量是否正确 */
+        ExCode = MB_JudgeNum(PduData.Num, PduData.Code, PduData.byteNums);
+        if (ExCode != EX_CODE_NONE)
+            return ExCode;
+        /* 判断地址是否正确*/
+        ExCode = MB_JudgeAddr(PduData.Addr, PduData.Num);
+        if (ExCode != EX_CODE_NONE)
+            return ExCode;
+        break;
+        /* ---- 11H 写多个保持寄存器 ---------------------- */
+    case FUN_CODE_11H:
         /* 判断寄存器数量是否正确 */
         ExCode = MB_JudgeNum(PduData.Num, PduData.Code, PduData.byteNums);
         if (ExCode != EX_CODE_NONE)
@@ -705,7 +723,7 @@ static uint8_t MB_RSP_06H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
 
 /**
   * 函数功能: 写多个保持寄存器（读/写）
-  * 输入参数: _TxCount :发送计数器,_AddrOffset地址偏移量,_RegNum:字节数量，_Datebuf:数据
+  * 输入参数: _TxCount :发送计数器,_AddrOffset地址偏移量,_RegNum:寄存器数量，_Datebuf:数据
   * 返 回 值: Tx_Buf的数组元素坐标
   * 说    明: 填充Tx_Buf
   */
@@ -720,6 +738,64 @@ static uint8_t MB_RSP_10H(uint16_t _TxCount, uint16_t  _AddrOffset, uint16_t _Re
             00 寄存器数量高字节
             02 寄存器数量低字节
             04 字节数
+            12 数据1高字节
+            34 数据1低字节
+            02 数据2高字节
+            03 数据2低字节
+            F7 CRC校验高字节
+            74 CRC校验低字节
+
+        从机响应:
+            01 从机地址
+            10 功能码
+            00 寄存器地址高字节
+            10 寄存器地址低字节
+            00 寄存器数量高字节
+            02 寄存器数量低字节
+            40 CRC校验高字节
+            0D CRC校验低字节
+
+        例子:
+            发送：	01 10 00 10 00 02 04 12 34 02 03 F7 74    ----  向0010H~0011H写入12 34 02 03 四个字节数据
+            返回：	01 10 00 10 00 02 40 0D                   ----  返回内容
+
+    */
+    uint16_t i = 0;
+    uint16_t Value = 0;
+    /* 填充地址值 */
+    uart1_send_data[_TxCount++] = _AddrOffset >> 8;
+    uart1_send_data[_TxCount++] = _AddrOffset;
+
+    /* 写入多个保持寄存器 */
+    for (i = 0; i < _RegNum; i++)
+    {
+        Value = (uint16_t)((*_Datebuf << 8) | (*(_Datebuf + 1)));
+        *_AddrAbs++ = Value;
+        _Datebuf += 2;
+    }
+
+    uart1_send_data[_TxCount++] = _RegNum >> 8;
+    uart1_send_data[_TxCount++] = _RegNum;
+    return _TxCount;
+}
+
+/**
+  * 函数功能: 写多个保持寄存器（读/写）
+  * 输入参数: _TxCount :发送计数器,_AddrOffset地址偏移量,_RegNum:寄存器数量，_Datebuf:数据
+  * 返 回 值: Tx_Buf的数组元素坐标
+  * 说    明: 填充Tx_Buf
+  */
+static uint8_t MB_RSP_11H(uint16_t _TxCount, uint16_t  _AddrOffset, uint16_t _RegNum, uint16_t* _AddrAbs, uint8_t* _Datebuf)
+{
+    /*
+        主机发送:
+            01 从机地址
+            10 功能码
+            00 寄存器起始地址高字节
+            10 寄存器起始地址低字节
+            00 寄存器数量高字节
+            02 寄存器数量低字节
+            04 字节数 //《 实际不使用，无效
             12 数据1高字节
             34 数据1低字节
             02 数据2高字节
@@ -827,6 +903,10 @@ void MB_RSP(uint8_t _FunCode)
     case FUN_CODE_10H:
         /* 写多个保持寄存器 */
         uart1_send_len = MB_RSP_10H(uart1_send_len, PduData.Addr, PduData.Num, (uint16_t*)PduData.PtrHoldingOffset, (uint8_t*)PduData.ValueReg);
+        break;
+    case FUN_CODE_11H:
+        /* 写多个保持寄存器 */
+        uart1_send_len = MB_RSP_11H(uart1_send_len, PduData.Addr, PduData.Num, (uint16_t*)PduData.PtrHoldingOffset, (uint8_t*)PduData.ValueReg);
         break;
     }
     crc = usMBCRC16((UCHAR*)&uart1_send_data, uart1_send_len);

@@ -99,6 +99,7 @@ typedef struct
 #define FUN_CODE_05H            0x05  // 功能码05H
 #define FUN_CODE_06H            0x06  // 功能码06H
 #define FUN_CODE_10H            0x10  // 功能码10H
+#define FUN_CODE_11H            0x11  // 功能码11H 数据长度为10H的10倍
 #define FUN_CODE_AAH            0xAA  // 功能码AAH
 /* 本例程所支持的功能码,需要添加新功能码还需要在.c文件里面添加 */
 #define IS_NOT_FUNCODE(code)  (!((code == FUN_CODE_01H)||\
@@ -107,6 +108,7 @@ typedef struct
                                  (code == FUN_CODE_04H)||\
                                  (code == FUN_CODE_05H)||\
                                  (code == FUN_CODE_06H)||\
+                                 (code == FUN_CODE_11H)||\
                                  (code == FUN_CODE_AAH)||\
                                  (code == FUN_CODE_10H)))
 

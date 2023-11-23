@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "rtthread.h"
 #include "n32g45x.h"
+#include "485_address.h"
 
 struct SdoFrame
 {
@@ -371,7 +372,7 @@ uint8_t CAN_SDOSend(CAN_Module* CANx)
 		do
 		{
 			nIndex++;
-			nReturn = CAN_TransmitMessage(CAN2, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
+			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
 		} while (nReturn == 0x04);
 		struct SdoFrame* next_sdo = sdo_head->next;
 		rt_free(sdo_head);
@@ -442,12 +443,26 @@ uint8_t CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 **************************************************************************/
 void Can_task(void* pvParameters)
 {
+	uint16_t* pdu = (uint16_t*)pvParameters;
+	int buff_cnt = 0;//<
 	while (1)
 	{
-		rt_thread_delay(10);   //< 1ms
-		CAN_SDOSend(CAN2);
-		//CAN_SDOSend(CAN1);
-		CAN_PDOSend(Motor_Number, CAN2);
+		rt_thread_delay(20);   //< 1ms
+		CAN_SDOSend(CAN1);
+		if (buff_cnt > 0)
+		{
+			buff_cnt--;
+		}
+		CAN_PDOSend(Motor_Number, CAN1);
+
+		if (pdu[receive_buff_num] != 0)
+		{
+			buff_cnt += pdu[receive_buff_num];
+			//< 数据拷贝过来
+			pdu[receive_buff_num] = 0;
+		}
+
+		pdu[empty_buff_num] = 30 - buff_cnt;
 	}
 
 }

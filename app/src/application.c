@@ -228,7 +228,7 @@ static void InitTask(void* parameter)
         rt_thread_startup(&Motor_thread);
     }
     /* init Can thread */
-    result = rt_thread_init(&Can_thread, "Can", Can_task, RT_NULL, (rt_uint8_t*)&Can_stack[0], sizeof(Can_stack), 3, 5);
+    result = rt_thread_init(&Can_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&Can_stack[0], sizeof(Can_stack), 3, 5);
     if (result == RT_EOK)
     {
         rt_thread_startup(&Can_thread);

@@ -13,16 +13,8 @@ Usart3是与上位机ROS通信的。
 
 
 
-#define MODBUS_STK_SIZE   128 	//任务堆栈大小
-#define MODBUS_TASK_PRIO  4   
-
-#define USART1_RX_MAXBUFF   256 		// 接收数据最大缓冲区
+#define USART1_RX_MAXBUFF   2560 		// 接收数据最大缓冲区
 #define USART1_TX_MAXBUFF   256 		// 接收数据最大缓冲区
-
-
-/*-------任务堆栈大小------*/
-#define DATA_STK_SIZE   512 
-#define DATA_TASK_PRIO  4   
 
 /*—-------------航模模块--------------*/
 #define Max_BUFF_Len      200          //一帧数据的长度，25个字节
