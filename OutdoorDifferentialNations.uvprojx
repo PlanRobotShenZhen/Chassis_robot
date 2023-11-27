@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>N32G45X, USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>.\bsp\inc;.\firmware\CMSIS\core;.\firmware\CMSIS\device;.\firmware\n32g45x_std_periph_driver\inc;.\rt-thread\include;.\app\inc;.\rt-thread\include\libc;.\bsp\DeviceDrivers\inc;.\app\MODBUS;.\app\MODBUS\include;.\app\MOTOR;.\app\BALANCE;.\bsp\DeviceDrivers\uart\inc;.\bsp\DeviceDrivers\can\inc;.\app\MODBUS\rtu</IncludePath>
+              <IncludePath>.\bsp\inc;.\firmware\CMSIS\core;.\firmware\CMSIS\device;.\firmware\n32g45x_std_periph_driver\inc;.\rt-thread\include;.\app\inc;.\rt-thread\include\libc;.\bsp\DeviceDrivers\inc;.\app\MODBUS;.\app\MODBUS\include;.\app\MOTOR;.\app\BALANCE;.\bsp\DeviceDrivers\uart\inc;.\bsp\DeviceDrivers\can\inc;.\app\MODBUS\rtu;.\FLASH</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -703,6 +703,21 @@
               <FileName>robot_select_init.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\app\BALANCE\robot_select_init.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>FLASH</GroupName>
+          <Files>
+            <File>
+              <FileName>FLASH_WR.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FLASH\FLASH_WR.c</FilePath>
+            </File>
+            <File>
+              <FileName>FLASH_WR.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FLASH\FLASH_WR.h</FilePath>
             </File>
           </Files>
         </Group>
