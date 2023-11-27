@@ -20,7 +20,7 @@ void MyFLASH_ErasePage(uint32_t Address)
 }
 
 // –¥»ÎFLASH
-void MyFLASH_ProgramWord(uint32_t Address, uint32_t Data)
+void MyFLASH_ProgramWord(uint32_t Address, uint16_t Data)
 {
     FLASH_Unlock();
     FLASH_ProgramWord(Address, Data);
@@ -34,13 +34,13 @@ void Store_Init(void)
     {
         MyFLASH_ErasePage(FINAL_PAGE_ADDRESS);
         MyFLASH_ProgramWord(FINAL_PAGE_ADDRESS, 0xA5A5);
-        for (uint32_t i=1; i<STORE_COUNT; i++)
+        for (uint16_t i=1; i<STORE_COUNT; i++)
         {
             MyFLASH_ProgramWord(FINAL_PAGE_ADDRESS+i, 0x0000);
         }
     }
     
-    for (uint32_t i=0; i<STORE_COUNT; i++)
+    for (uint16_t i=0; i<STORE_COUNT; i++)
     {
         Store_Data[i] = MyFLASH_ReadHalfWord(FINAL_PAGE_ADDRESS+i);
     }
@@ -50,7 +50,7 @@ void Store_Init(void)
 void Store_Save(void)
 {
     MyFLASH_ErasePage(FINAL_PAGE_ADDRESS);
-    for (uint32_t i=0; i<STORE_COUNT; i++)
+    for (uint16_t i=0; i<STORE_COUNT; i++)
     {
         MyFLASH_ProgramWord(FINAL_PAGE_ADDRESS+i, Store_Data[i]);
     }
@@ -60,7 +60,7 @@ void Store_Save(void)
 void Store_Clear(void)
 {
     MyFLASH_ErasePage(FINAL_PAGE_ADDRESS);
-    for (uint32_t i=1; i<STORE_COUNT; i++)
+    for (uint16_t i=1; i<STORE_COUNT; i++)
     {
         Store_Data[i] = 0x0000;
     }
