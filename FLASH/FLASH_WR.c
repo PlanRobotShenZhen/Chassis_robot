@@ -1,7 +1,5 @@
 #include "n32g45x.h"                    // Device header
-
-#define FINAL_PAGE_ADDRESS 0x0807F800
-#define STORE_COUNT 1024
+#include "FLASH_WR.h"
 
 uint16_t Store_Data[STORE_COUNT];
 
