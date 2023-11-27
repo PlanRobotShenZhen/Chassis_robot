@@ -166,7 +166,7 @@ void Printf_MPU9250_Data(void);     //调试打印imu的信息
 
 void USART1_Init(uint32_t bound);
 
-void modbus_task_init(void);
+void modbus_task_init(uint16_t* _pdu);
 void ModBUS_task(void* pvParameters);
 #endif
 

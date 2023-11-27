@@ -273,7 +273,35 @@ void Smooth_control(float vx,float vy,float vz)
 }
 
 
+#if(PLAN_CONTROL_BOARD_V==11)
+void ExioInit(void)
+{
+	EXIO_INPUT in;
+	EXIO_OUTPUT out;
+	SPI_InitType SPI_InitStructure;
+	NVIC_InitType NVIC_InitStruct;
+	SPI_InitStructure.DataDirection = SPI_DIR_DOUBLELINE_FULLDUPLEX;
+	SPI_InitStructure.SpiMode       = SPI_MODE_MASTER;
+	SPI_InitStructure.DataLen       = SPI_DATA_SIZE_8BITS;
+	SPI_InitStructure.CLKPOL		= SPI_CLKPOL_HIGH;
+	SPI_InitStructure.CLKPHA		= SPI_CLKPHA_FIRST_EDGE;
+	SPI_InitStructure.NSS			= SPI_NSS_SOFT;
+	SPI_InitStructure.BaudRatePres  = SPI_BR_PRESCALER_64;
+	SPI_InitStructure.FirstBit      = SPI_FB_LSB;
+	SPI_InitStructure.CRCPoly       = 7;
+	SPI_Init(SPI1, &SPI_InitStructure);
 
+	NVIC_InitStruct.NVIC_IRQChannel = SPI1_IRQn;
+	NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;  // 抢占优先级
+	NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;         // 子优先级
+	NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStruct);
+
+	SPI_I2S_EnableInt(SPI1, SPI_I2S_INT_RNE, ENABLE);
+	SPI_Enable(SPI1,ENABLE);
+}
+
+#endif
 
 
 /**************************************************************************
@@ -409,6 +437,12 @@ void Balance_task(void* pvParameters)
 	pdu[motor_num] = Motor_Number;
 	pdu[car_mode] = CONTROL_MODE_REMOTE;
 	int tmp1=0;
+
+
+#if(PLAN_CONTROL_BOARD_V==11)
+	ExioInit();
+#endif
+
 	while (1)
 	{
 		rt_thread_delay(100);   //< 10ms
