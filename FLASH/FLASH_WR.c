@@ -6,7 +6,7 @@
 uint16_t Store_Data[STORE_COUNT];
 
 // 读取FLASH
-uint16_t MyFLASH_ReadHalfWord(uint32_t Address)
+uint16_t MyFLASH_ReadWord(uint32_t Address)
 {
     return *((__IO uint16_t *)(Address));
 }
@@ -30,7 +30,7 @@ void MyFLASH_ProgramWord(uint32_t Address, uint16_t Data)
 // 初始化数据
 void Store_Init(void)
 {
-    if (MyFLASH_ReadHalfWord(FINAL_PAGE_ADDRESS) != 0xA5A5)
+    if (MyFLASH_ReadWord(FINAL_PAGE_ADDRESS) != 0xA5A5)
     {
         MyFLASH_ErasePage(FINAL_PAGE_ADDRESS);
         MyFLASH_ProgramWord(FINAL_PAGE_ADDRESS, 0xA5A5);
@@ -42,7 +42,7 @@ void Store_Init(void)
     
     for (uint16_t i=0; i<STORE_COUNT; i++)
     {
-        Store_Data[i] = MyFLASH_ReadHalfWord(FINAL_PAGE_ADDRESS+i);
+        Store_Data[i] = MyFLASH_ReadWord(FINAL_PAGE_ADDRESS+i);
     }
 }
 
