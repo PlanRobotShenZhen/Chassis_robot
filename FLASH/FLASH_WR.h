@@ -1,15 +1,23 @@
 #ifndef __FLASH_WR_H
 #define __FLASH_WR_H
 
-#define FINAL_PAGE_ADDRESS 0x0807F800
-#define STORE_COUNT 1024
 
-uint16_t MyFLASH_ReadWord(uint32_t Address);
-void MyFLASH_ErasePage(uint32_t Address);
-void MyFLASH_ProgramWord(uint32_t Address, uint16_t Data);
+#define FINAL_PAGE_ADDRESS 0x0803F800
+/**************************************************************************
+函数功能：向指定地址写入数据
+入口参数：addr 	写入的FLASH页的首地址
+                    p	  	被写入变量的地址（数组中的必须是uint8_t类型，元素个数必须是偶数）
+                    Count_To_Write 被写入变量的地址数
+返 回 值：无
+**************************************************************************/
+void MyFLASH_WriteHalfWord(unsigned int addr, uint16_t* p, uint16_t Count_To_Write);
 
-extern uint16_t Store_Data[];
-void Store_Init(void);
-void Store_Save(void);
-void Store_Clear(void);
+/**************************************************************************
+函数功能：从指定地址读取数据
+入口参数：addr 从FLASH中读取的地址
+                    p    读取后要存入变量的地址（数组中的必须是uint8_t类型）
+                    Count_To_Write 要读出的字节数
+返 回 值：无
+**************************************************************************/
+void MyFLASH_ReadByte(unsigned int addr, uint16_t* p, uint16_t Count_To_Read);
 #endif

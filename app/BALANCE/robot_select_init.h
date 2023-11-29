@@ -1,10 +1,10 @@
-#ifndef __ROBOTSELECTINIT_H
+ï»¿#ifndef __ROBOTSELECTINIT_H
 #define __ROBOTSELECTINIT_H
 
 #include "stdint.h"
 
-#define CONTROL_DELAY		1000 // »»Ëã³ÉÊµ¼ÊÊ±¼äÊÇ10Ãë,ÎªÁËÏû³ıºóĞø¶ÁÈ¡ÍÓÂİÒÇµÄÁãµã
-#define RATE_1_HZ		  1      // ÆµÂÊ´ú±íµÄÊÇfreeRTOSÖĞÃ¿¸öÈÎÎñµÄÖ´ĞĞÆµÂÊ
+#define CONTROL_DELAY		1000 // æ¢ç®—æˆå®é™…æ—¶é—´æ˜¯10ç§’,ä¸ºäº†æ¶ˆé™¤åç»­è¯»å–é™€èºä»ªçš„é›¶ç‚¹
+#define RATE_1_HZ		  1      // é¢‘ç‡ä»£è¡¨çš„æ˜¯freeRTOSä¸­æ¯ä¸ªä»»åŠ¡çš„æ‰§è¡Œé¢‘ç‡
 #define RATE_5_HZ		  5
 #define RATE_10_HZ		10
 #define RATE_20_HZ		20
@@ -18,39 +18,39 @@
 
 #define ROBOT_Software_VERSION  0x02
 #define ROBOT_Hardware_VERSION  0x02
-// Ã¶¾Ù¶¨Òå¼¸ÖÖĞ¡³µµÄÀàĞÍ
+// æšä¸¾å®šä¹‰å‡ ç§å°è½¦çš„ç±»å‹
 enum CarMode
 {
 	UNKNOW = -1,
-	Mec_Car = 0,        // Âó¿ËÄÇÄ¸ÂÖĞ¡³µ
-	Omni_Car,           // ÂóÂÖĞ¡³µ
-	Akm_Car,            // °¢¿ËÂü
-	Diff_Car,           // ²îËÙ³µ
-	FourWheel_Car,      // ËÄÇı³µ
-	Tank_Car            // Ì¹¿Ë³µ
+	Mec_Car = 0,        // éº¦å…‹é‚£æ¯è½®å°è½¦
+	Omni_Car,           // éº¦è½®å°è½¦
+	Akm_Car,            // é˜¿å…‹æ›¼
+	Diff_Car,           // å·®é€Ÿè½¦
+	FourWheel_Car,      // å››é©±è½¦
+	Tank_Car            // å¦å…‹è½¦
 };
 
 
-// Ã¿¸öµç»úÏà¹Ø²ÎÊı£¬ÓĞÄ¿±êËÙ¶ÈºÍ·´À¡ËÙ¶È
+// æ¯ä¸ªç”µæœºç›¸å…³å‚æ•°ï¼Œæœ‰ç›®æ ‡é€Ÿåº¦å’Œåé¦ˆé€Ÿåº¦
 struct Motor_parameter
 {
-	int nTarget_Velocity;        //µ¥Î»r/min,ÎªÁË±ãÓÚ×öµç»ú¿ØÖÆĞ´ÈëÇı¶¯Æ÷
+	int nTarget_Velocity;        //å•ä½r/min,ä¸ºäº†ä¾¿äºåšç”µæœºæ§åˆ¶å†™å…¥é©±åŠ¨å™¨
 	int nFeedback_Velocity;
-	float fltTarget_velocity;    //×öÉÏÏÂÎ»»úÍ¨ĞÅ£¬´«ÊäµÄÊÇÂÖ×ÓµÄËÙ¶Èm/s
+	float fltTarget_velocity;    //åšä¸Šä¸‹ä½æœºé€šä¿¡ï¼Œä¼ è¾“çš„æ˜¯è½®å­çš„é€Ÿåº¦m/s
 	float fltFeedBack_Velocity;
 };
 
 
-// Ã¶¾Ù¶¨ÒåĞ¡³µµÄ¿ØÖÆ·½Ê½
+// æšä¸¾å®šä¹‰å°è½¦çš„æ§åˆ¶æ–¹å¼
 enum ENUM_CarControl_Mode
 {
-	CONTROL_MODE_UNKNOW = 0,    // Î´Öª¿ØÖÆÄ£Ê½
-	CONTROL_MODE_REMOTE = 1,    // º½Ä£¿ØÖÆ·½Ê½
-	CONTROL_MODE_ROS = 2,    // ÉÏÎ»»ú¿ØÖÆÄ£Ê½
-	CONTROL_MODE_UART = 3,    // ´®¿Ú¿ØÖÆÄ£Ê½
-	CONTROL_MODE_OTHER          // ÆäËû¿ØÖÆÄ£Ê½
+	CONTROL_MODE_UNKNOW = 0,    // æœªçŸ¥æ§åˆ¶æ¨¡å¼
+	CONTROL_MODE_REMOTE = 1,    // èˆªæ¨¡æ§åˆ¶æ–¹å¼
+	CONTROL_MODE_ROS = 2,    // ä¸Šä½æœºæ§åˆ¶æ¨¡å¼
+	CONTROL_MODE_UART = 3,    // ä¸²å£æ§åˆ¶æ¨¡å¼
+	CONTROL_MODE_OTHER          // å…¶ä»–æ§åˆ¶æ¨¡å¼
 };
-//º½Ä£ÉèÖÃ½á¹¹Ìå
+//èˆªæ¨¡è®¾ç½®ç»“æ„ä½“
 typedef struct REMOTE_CONTROL
 {
 	uint16_t turn_off_remote;
@@ -72,9 +72,9 @@ typedef struct REMOTE_CONTROL
 	uint16_t light_max;
 	uint16_t light_min;
 }Remote_Control_struct;
-//º½Ä£²ÎÊı½á¹¹ÌåÖ¸Õë
+//èˆªæ¨¡å‚æ•°ç»“æ„ä½“æŒ‡é’ˆ
 extern Remote_Control_struct* rc_ptr;
-//µç»ú²ÎÊı½á¹¹Ìå
+//ç”µæœºå‚æ•°ç»“æ„ä½“
 typedef struct motor_struct
 {
 	uint16_t motor_state;
@@ -87,38 +87,38 @@ typedef struct motor_struct
 
 typedef struct  
 {
-  float WheelSpacing;      //ÂÖ¾à
-  float AxleSpacing;       //Öá¾à  
-  float GearRatio;         //µç»ú¼õËÙ±È
-  float WheelDiameter;     //ÂÖ¾¶
-	float OmniTurnRadiaus; //È«ÏòÂÖĞı×ª°ë¾¶
+  float WheelSpacing;      //è½®è·
+  float AxleSpacing;       //è½´è·  
+  float GearRatio;         //ç”µæœºå‡é€Ÿæ¯”
+  float WheelDiameter;     //è½®å¾„
+	float OmniTurnRadiaus; //å…¨å‘è½®æ—‹è½¬åŠå¾„
 }Robot_Parament_InitTypeDef;
 
 
 
 //Car_Mode for Mec
-//0:¸ßÅäÂóÂÖÎŞÖá³Ğ×ùSENIOR_MEC_NO  
-//1:¸ßÅäÂóÂÖ°ÚÊ½Ğü¹ÒSENIOR_MEC_BS  
-//2:¸ßÅäÂóÂÖ¶ÀÁ¢Ğü¹ÒSENIOR_MEC_DL
-//3:¶¥ÅäÂóÂÖ°ÚÊ½Ğü¹Ò³£¹æĞÍTOP_MEC_BS_18
-//4:¶¥ÅäÂóÂÖ°ÚÊ½Ğü¹ÒÖØÔØĞÍTOP_MEC_BS_47
-//5:¶¥ÅäÂóÂÖ¶ÀÁ¢Ğü¹Ò³£¹æĞÍTOP_MEC_DL_18
+//0:é«˜é…éº¦è½®æ— è½´æ‰¿åº§SENIOR_MEC_NO  
+//1:é«˜é…éº¦è½®æ‘†å¼æ‚¬æŒ‚SENIOR_MEC_BS  
+//2:é«˜é…éº¦è½®ç‹¬ç«‹æ‚¬æŒ‚SENIOR_MEC_DL
+//3:é¡¶é…éº¦è½®æ‘†å¼æ‚¬æŒ‚å¸¸è§„å‹TOP_MEC_BS_18
+//4:é¡¶é…éº¦è½®æ‘†å¼æ‚¬æŒ‚é‡è½½å‹TOP_MEC_BS_47
+//5:é¡¶é…éº¦è½®ç‹¬ç«‹æ‚¬æŒ‚å¸¸è§„å‹TOP_MEC_DL_18
 
-//Ö÷¶¯ÂÖ°ë¿í¶È ×¢ÒâÊÇÒ»°ë
+//ä¸»åŠ¨è½®åŠå®½åº¦ æ³¨æ„æ˜¯ä¸€åŠ
 #define MEC_wheelspacing         0.109
 #define Akm_wheelspacing         0.155f
 #define Diff_wheelSpacing        0.155f
-#define Four_Mortor_wheelSpacing 0.705f    // ËÄÇı²îËÙ³µÂÖ¾à
+#define Four_Mortor_wheelSpacing 0.705f    // å››é©±å·®é€Ÿè½¦è½®è·
 #define Tank_wheelSpacing     0.235f
 
-//°ëÖá¾à ×¢ÒâÊÇÒ»°ë
+//åŠè½´è· æ³¨æ„æ˜¯ä¸€åŠ
 #define MEC_axlespacing           0.085
 #define Akm_axlespacing           0.155f
 #define Diff_axlespacing          0.155f
-#define Four_Mortor__axlespacing  0.660f   // ËÄÇı²îËÙ³µÖá¾à
+#define Four_Mortor__axlespacing  0.660f   // å››é©±å·®é€Ÿè½¦è½´è·
 #define Tank_axlespacing       0.222f
 
-//µç»ú¼õËÙ±È
+//ç”µæœºå‡é€Ÿæ¯”
 #define   HALL_30F    30
 #define   MD36N_5_18  5.18
 #define   MD36N_27    27
@@ -126,18 +126,18 @@ typedef struct
 #define   MD36N_71    71
 #define   MD60N_18    18
 #define   MD60N_47    47
-#define   REDUCTION_RATE  28             // ËÄÇı²îËÙ³µËùÓÃµç»ú¼õËÙÆ÷µÄ¼õËÙ±È1£º28
+#define   REDUCTION_RATE  28             // å››é©±å·®é€Ÿè½¦æ‰€ç”¨ç”µæœºå‡é€Ÿå™¨çš„å‡é€Ÿæ¯”1ï¼š28
 
 
 
-//ÂóÂÖÂÖÌ¥Ö±¾¶
+//éº¦è½®è½®èƒç›´å¾„
 #define		Mecanum_60  0.060f
 #define		Mecanum_75  0.075f
 #define		Mecanum_100 0.100f
 #define		Mecanum_127 0.127f
 #define		Mecanum_152 0.152f
  
-//ÂÖ¾¶È«ÏòÂÖÖ±¾¶ÏµÁĞ
+//è½®å¾„å…¨å‘è½®ç›´å¾„ç³»åˆ—
 #define	  FullDirecion_60  0.060
 #define	  FullDirecion_75  0.075
 #define	  FullDirecion_127 0.127
@@ -145,22 +145,24 @@ typedef struct
 #define	  FullDirecion_203 0.203
 #define	  FullDirecion_217 0.217
 
-//ºÚÉ«ÂÖÌ¥¡¢ÂÄ´ø³µÂÖ¾¶
+//é»‘è‰²è½®èƒã€å±¥å¸¦è½¦è½®å¾„
 #define	  Black_WheelDiameter   0.065
 #define	  Tank_WheelDiameter 0.047
 
-//È«ÏòÂÖĞ¡³µĞı×ª°ë¾¶
+//å…¨å‘è½®å°è½¦æ—‹è½¬åŠå¾„
 #define   Omni_Turn_Radiaus_109 0.109
 #define   Omni_Turn_Radiaus_164 0.164
 #define   Omni_Turn_Radiaus_180 0.180
 #define   Omni_Turn_Radiaus_290 0.290
 
-#define FourWheer_Radiaus       0.165f     // ËÄÇı²îËÙ³µ¶¨ÒåÂÖÌ¥°ë¾¶
-extern float FourWheer_Perimeter;     // ËÄÇı²îËÙ³µÂÖÌ¥ÖÜ³¤
-
+#define FourWheer_Radiaus       0.165f     // å››é©±å·®é€Ÿè½¦å®šä¹‰è½®èƒåŠå¾„
+extern float FourWheer_Perimeter;     // å››é©±å·®é€Ÿè½¦è½®èƒå‘¨é•¿
+extern float FourWheer_Conversion;
+extern float VelocityToRpmConversion;
+extern float AngularVelocityConversion;
 
 #define CONTROL_FREQUENCY 100
-#define PI 3.1415f  //Ô²ÖÜÂÊ
+#define PI 3.1415f  //åœ†å‘¨ç‡
 
 
 extern Motor_struct* motorA_ptr;
@@ -168,19 +170,19 @@ extern Motor_struct* motorB_ptr;
 extern Motor_struct* motorC_ptr;
 extern Motor_struct* motorD_ptr;
 
-/*--------------- Ğ¡³µ»úĞµ½á¹¹²ÎÊı-----------------------*/
-extern float Wheel_perimeter; //ÂÖ×ÓÖÜ³¤£¨µ¥Î»£ºÃ×£©
-extern float Wheel_spacing;   //Ö÷¶¯ÂÖÂÖ¾à £¨µ¥Î»£ºÃ×£©
-extern float Axle_spacing;    //ÂóÂÖÇ°ºóÖáÖá¾à
-extern float Omni_turn_radiaus; //È«ÏòÂÖ×ªÍä°ë¾¶
+/*--------------- å°è½¦æœºæ¢°ç»“æ„å‚æ•°-----------------------*/
+extern float Wheel_perimeter; //è½®å­å‘¨é•¿ï¼ˆå•ä½ï¼šç±³ï¼‰
+extern float Wheel_spacing;   //ä¸»åŠ¨è½®è½®è· ï¼ˆå•ä½ï¼šç±³ï¼‰
+extern float Axle_spacing;    //éº¦è½®å‰åè½´è½´è·
+extern float Omni_turn_radiaus; //å…¨å‘è½®è½¬å¼¯åŠå¾„
 
 
-/*--------------- ³õÊ¼»¯Ê±µÄÏà¹Ø±êÖ¾Î»-----------------------*/
-extern enum CarMode g_emCarMode;                   //»úÆ÷ÈËÑ¡ĞÍ±êÖ¾Î»
-extern unsigned char Flag_Stop;                    //»úÆ÷ÈËÊ¹ÄÜ±êÖ¾Î»£¬1´ú±í¹Ø±Õµç»ú
-extern enum ENUM_CarControl_Mode g_eControl_Mode;  //»úÆ÷ÈËµÄ¿ØÖÆ·½Ê½
-extern unsigned char g_ucRemote_Flag;              //º½Ä£¿ªÆô±êÖ¾Î»
-extern unsigned char g_ucRos_Flag;                 // ROSÉÏÎ»»ú½øÈë±êÖ¾Î» 
+/*--------------- åˆå§‹åŒ–æ—¶çš„ç›¸å…³æ ‡å¿—ä½-----------------------*/
+extern enum CarMode g_emCarMode;                   //æœºå™¨äººé€‰å‹æ ‡å¿—ä½
+extern unsigned char Flag_Stop;                    //æœºå™¨äººä½¿èƒ½æ ‡å¿—ä½ï¼Œ1ä»£è¡¨å…³é—­ç”µæœº
+extern enum ENUM_CarControl_Mode g_eControl_Mode;  //æœºå™¨äººçš„æ§åˆ¶æ–¹å¼
+extern unsigned char g_ucRemote_Flag;              //èˆªæ¨¡å¼€å¯æ ‡å¿—ä½
+extern unsigned char g_ucRos_Flag;                 // ROSä¸Šä½æœºè¿›å…¥æ ‡å¿—ä½ 
 
 
 extern struct Motor_parameter  MOTOR_A, MOTOR_B, MOTOR_C, MOTOR_D;
@@ -188,7 +190,7 @@ extern struct Motor_parameter  MOTOR_A, MOTOR_B, MOTOR_C, MOTOR_D;
 void Robot_Select(void);
 
 void Robot_Init(float wheelspacing, float axlespacing, float omni_turn_radiaus, int gearratio,float tyre_diameter);
-void Soft_Reset(void);  // ÊÖ¶¯Èí¼ş¸´Î»
+void Soft_Reset(void);  // æ‰‹åŠ¨è½¯ä»¶å¤ä½
 extern uint16_t* getPDUData(void);
 
 #endif

@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "bsp.h"
+#include "usartx.h"
 
 extern void  rt_application_init(void);
 
@@ -83,8 +84,11 @@ void rtthread_startup(void)
  */
 int main(void)
 {
+    // 然后进行对应的参数初始化
+    modbus_task_init();
     /* disable interrupt first */
     rt_hw_interrupt_disable();
+
 
     /* startup RT-Thread RTOS */
     rtthread_startup();

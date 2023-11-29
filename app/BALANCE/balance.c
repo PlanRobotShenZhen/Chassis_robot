@@ -436,7 +436,7 @@ void Balance_task(void* pvParameters)
 	pdu[axles_distance] = (uint16_t)(Axle_spacing * 10000);
 	pdu[motor_num] = Motor_Number;
 	pdu[car_mode] = CONTROL_MODE_REMOTE;
-	int tmp1=0;
+	uint8_t tmp1=0;
 
 
 #if(PLAN_CONTROL_BOARD_V==11)
@@ -446,18 +446,12 @@ void Balance_task(void* pvParameters)
 	while (1)
 	{
 		rt_thread_delay(100);   //< 10ms
-
-		//LedBlink(LED_PORT, RUN2);
+		if (tmp1 == 50)
+		{
+			LedBlink(LED2_PORT, RUN2);
+			tmp1 = 0;
+		}
 		tmp1++;
-		if (tmp1 == 1)
-		{
-			GPIO_SetBits(LED2_PORT, RUN2);
-		}
-		else if(tmp1==50)
-		{
-			GPIO_ResetBits(LED2_PORT, RUN2);
-		}
-		else if(tmp1==99)tmp1=0;
 
 		g_eControl_Mode = pdu[car_mode]&0xff;
 		Get_Motor_Velocity();                  //获取驱动器反馈的速度，存放在结构体中

@@ -12,6 +12,7 @@ enum address_485 {
     axles_distance,
     software_reset,
     can_reinitialize,
+    para_save,
     R_motor_CAN_map = 10,
     L_motor_CAN_map,
     R_motor_default_CAN_id,

@@ -1,4 +1,4 @@
-﻿#include "usartx.h"
+#include "usartx.h"
 #include "user_can.h"
 #include "485_address.h"
 #include "mb.h"
@@ -6,8 +6,9 @@
 #include "balance.h"
 #include "bsp.h"
 #include "led.h"
+#include "motor_data.h"
+#include "FLASH_WR.h"
 
-static uint16_t* pdu
 /*--------上下位机通信格式数据usart3-----------*/
 SEND_DATA Send_Data;//发送数据的结构体
 RECEIVE_DATA Receive_Data;//接收数据的结构体
@@ -41,6 +42,7 @@ unsigned char g_ucLightOnFlag = 0; //车灯开启标志
 float g_fltRecv_Vel_X = 0.0;                        // 串口接收到的速度数据
 float g_fltRecv_Vel_Y = 0.0;
 float g_fltRecv_Vel_Z = 0.0;
+static uint16_t* pdu;
 
 
 /**************************************************************************
@@ -1172,12 +1174,10 @@ void DMA1_Channel4_IRQHandler(void)
 **************************************************************************/
 void Pdu_Init()
 {
-
 	pdu[car_type] = FourWheel_Car;
 	pdu[car_version] = 0x88;
 	//初始化航模参数
-	rc_ptr = (Remote_Control_struct*)&pdu[i];
-
+	int i = turn_off_remote;
 	pdu[i++] = TURN_OFF_REMOTE;
 	pdu[i++] = TURN_ON_REMOTE;
 	pdu[i++] = VEL_BASE_VALUE;
@@ -1198,11 +1198,6 @@ void Pdu_Init()
 	pdu[i++] = LIGHT_MIN;
 	//初始化电机参数
 	int length = motor2_state - motor1_state;
-	motorA_ptr = (Motor_struct*)&pdu[i];
-	motorB_ptr = (Motor_struct*)&pdu[i + length];
-	motorC_ptr = (Motor_struct*)&pdu[i + 2 * length];
-	motorD_ptr = (Motor_struct*)&pdu[i + 3 * length];
-
 	int m_bast_addr;
 	uint16_t model = SERVO_ZLAC;//<  测试
 	for (int j = 0; j < 4; j++) {
@@ -1244,49 +1239,38 @@ void Pdu_Init()
 	pdu[i++] = 0;
 	pdu[i] = 0;
 
+
+	pdu[motor1_radius] = FourWheer_Radiaus * 10000;
+	pdu[motor1_reduction_ratio] = REDUCTION_RATE * 100;
+
+	float Radiaus = pdu[motor1_radius] * 0.0001;
+	float rate = pdu[motor1_reduction_ratio] * 0.01;
+	FourWheer_Perimeter = 2 * PI * Radiaus;//< 车轮周长
+	FourWheer_Conversion = FourWheer_Perimeter / 60 / rate;
+	VelocityToRpmConversion = (60 * rate) / FourWheer_Perimeter;
+	AngularVelocityConversion = DIRECTOR_BASE * (PI / 4);
+	pdu[car_default_mode] = g_eControl_Mode;
+	pdu[wheel_distance] = (uint16_t)(Wheel_spacing * 10000);
+	pdu[axles_distance] = (uint16_t)(Axle_spacing * 10000);
+	pdu[motor_num] = Motor_Number=4;
+	pdu[car_mode] = CONTROL_MODE_REMOTE;
 }
 
-
-/**************************************************************************
-函数功能：向指定地址写入数据
-入口参数：addr 	写入的FLASH页的首地址
-					p	  	被写入变量的地址（数组中的必须是uint8_t类型，元素个数必须是偶数）
-					Count_To_Write 被写入变量的地址数
-返 回 值：无
-**************************************************************************/
-void FLASH_WriteHalfWord(unsigned int addr, uint16_t* p, uint16_t Count_To_Write)
+void modbus_task_init(void)
 {
-	if (*(__IO uint16_t*)(MEMORY_ADDR_FIRST)==0xFFFF)
-	{
-		//初始化pdu数组
-		Pdu_Init();
-
-		//写入数据
-		FLASH_Unlock();
-		FLASH_ClearFlag(FLASH_FLAG_BUSY | FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);
-		for (uint16_t dataIndex = 0;dataIndex < Count_To_Write;dataIndex++)  FLASH_ProgramHalfWord(addr + dataIndex * 2, p[dataIndex]);
-		FLASH_Lock();
-	}
-}
-
-/**************************************************************************
-函数功能：从指定地址读取数据
-入口参数：addr 从FLASH中读取的地址
-					p    读取后要存入变量的地址（数组中的必须是uint8_t类型）
-					Count_To_Write 要读出的字节数
-返 回 值：无
-**************************************************************************/
-void FLASH_ReadByte(unsigned int addr, uint16_t* p, uint16_t Count_To_Read)
-{
-	//for(uint16_t dataIndex=0;dataIndex<Count_To_Read;dataIndex++)     p[dataIndex]=*(__IO uint16_t*)(addr+dataIndex*2);
-	memcpy(pdu, (uint16_t*)addr, Count_To_Read);
-}
-
-void modbus_task_init(uint16_t* _pdu)
-{
-	pdu = _pdu;
 	UCHAR mySlaveAddress = 0x01;//< 从机地址
+	pdu = getPDUData();
+		//初始化pdu数组
 	eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);
+	MyFLASH_ReadByte(FINAL_PAGE_ADDRESS,pdu , MB_RTU_DATA_MAX_SIZE);
+	if (pdu[car_mode] == 0xFFFF)
+	{//< 芯片首次初始化
+		eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);
+		Pdu_Init();
+		MyFLASH_WriteHalfWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
+		pdu[para_save] = 10;
+	}
+	else pdu[para_save] = 0;
 }
 
 void ModBUS_task(void* pvParameters)
@@ -1314,6 +1298,18 @@ void ModBUS_task(void* pvParameters)
 			DMA_EnableChannel(USARTy_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
 			DMA_SetCurrDataCounter(USARTy_Rx_DMA_Channel, USART1_RX_MAXBUFF);
 			DMA_EnableChannel(USARTy_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
+		}
+		if (pdu[para_save]==1)
+		{//< 保存当前参数
+			pdu[para_save] = 0;
+			MyFLASH_WriteHalfWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
+		}
+		else if (pdu[para_save] == 2)
+		{//< 恢复出厂设置
+			pdu[para_save] = 0;
+			eMBInit(MB_RTU, 1, 3, 115200, MB_PAR_NONE);
+			Pdu_Init();
+			MyFLASH_WriteHalfWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
 		}
 	}
 }

@@ -122,10 +122,17 @@ void cali_store(struct calibration_data *data)
 
 static void InitTask(void* parameter)
 {
-	int i= turn_off_remote;
-  rt_err_t result;
-  uint16_t* pdu = getPDUData();
-
+    rt_err_t result;
+    uint16_t* pdu = getPDUData();
+    //初始化航模参数指针
+    rc_ptr = (Remote_Control_struct*)&pdu[turn_off_remote];
+    //初始化电机参数指针
+    int i = motor1_state;
+    int length = motor2_state - motor1_state;
+    motorA_ptr = (Motor_struct*)&pdu[i];
+    motorB_ptr = (Motor_struct*)&pdu[i + length];
+    motorC_ptr = (Motor_struct*)&pdu[i + 2 * length];
+    motorD_ptr = (Motor_struct*)&pdu[i + 3 * length];
 	rt_thread_delay(100);   //< 10ms
 	LED_Init();                     //初始化与LED连接的硬件接口
 	USART1_Init(2000000);	        //=====串口初始化为，普通的串口，打印调试信息 DMA
@@ -135,78 +142,6 @@ static void InitTask(void* parameter)
 	Can_Driver_Init();              //底层can协议初始化
 
 	Robot_Select();                 // 根据电位器的值判断目前正在运行的是哪一款机器人，
-	// 然后进行对应的参数初始化
-	modbus_task_init();
-	pdu[car_type] = FourWheel_Car;
-	pdu[car_version] = 0x88;
-	//初始化航模参数
-	rc_ptr = (Remote_Control_struct*)&pdu[i];
-
-	pdu[i++] = TURN_OFF_REMOTE;
-	pdu[i++] = TURN_ON_REMOTE;
-	pdu[i++] = VEL_BASE_VALUE;
-	pdu[i++] = DIR_BASE_VALUE;
-	pdu[i++] = LIMIT_MAX_VAL;
-	pdu[i++] = LIMIT_MIN_VAL;
-	pdu[i++] = SPEED_LEVEL1;
-	pdu[i++] = SPEED_LEVEL2;
-	pdu[i++] = SPEED_LEVEL3;
-	pdu[i++] = SPEED_LOW;
-	pdu[i++] = SPEED_MIDDLE;
-	pdu[i++] = SPEED_HIGH;
-	pdu[i++] = SPEED_DIR_LOW;
-	pdu[i++] = SPEED_DIR_MIDDLE;
-	pdu[i++] = SPEED_DIR_HIGH;
-	pdu[i++] = LIGHT_BASE;
-	pdu[i++] = LIGHT_MAX;
-	pdu[i++] = LIGHT_MIN;
-	//初始化电机参数
-	int length = motor2_state - motor1_state;
-	motorA_ptr = (Motor_struct*)&pdu[i];
-	motorB_ptr = (Motor_struct*)&pdu[i + length];
-	motorC_ptr = (Motor_struct*)&pdu[i + 2 * length];
-	motorD_ptr = (Motor_struct*)&pdu[i + 3 * length];
-
-	int m_bast_addr;
-	uint16_t model = SERVO_ZLAC;//<  测试
-	for (int j = 0; j < 4; j++) {
-		m_bast_addr = j * length;
-		i = motor1_state + m_bast_addr;
-		pdu[i++] = 0;					      //节点状态
-		pdu[i++] = FourWheer_Radiaus * 10000; //车轮半径，乘以10000后
-		pdu[i++] = REDUCTION_RATE * 100;	  //减速比，乘以100后
-		pdu[i++] = j + 1;					  //CAN ID
-		pdu[i++] = 1000;					  //CAN波特率，除以100后
-		pdu[i++] = 0;						  //心跳  
-		pdu[i++] = model;					  //伺服厂家型号
-		pdu[i++] = 0;						  //目标转矩
-		pdu[i++] = 0;                         
-		pdu[i++] = 0;						  //目标转速
-		pdu[i++] = 0;                         
-		pdu[i++] = 0;						  //目标位置
-	}
-	//初始化小车速度限幅参数
-	i = car_max_lin_speed;
-	union {
-		float v;
-		int16_t ud[2];
-	}tmp;
-	tmp.v = 0.802;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = -0.802;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = 0.8014;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = -0.8014;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	pdu[i++] = 0;
-	pdu[i++] = 0;
-	pdu[i++] = 0;
-	pdu[i] = 0;
 	Motor_Number = 4;
 
     /* init Balance thread */

@@ -40,6 +40,7 @@
 #define N32G45X_SRAM_SIZE           144
 #define N32G45X_SRAM_START          (0x20000000 + N32G45X_SRAM_SIZE/2 * 1024)
 #define N32G45X_SRAM_END            (0x20000000 + N32G45X_SRAM_SIZE * 1024)
+
 #define MEMORY_ADDR_FIRST			0x0807F800	//数据存储区首地址
 
 typedef union __SPI_IO_INPUT

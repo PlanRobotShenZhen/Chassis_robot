@@ -1,66 +1,52 @@
-#include "n32g45x.h"                    // Device header
+#include "n32g45x_flash.h"
 #include "FLASH_WR.h"
-
-uint16_t Store_Data[STORE_COUNT];
-
-// 读取FLASH
-uint16_t MyFLASH_ReadWord(uint32_t Address)
+/**************************************************************************
+函数功能：向指定地址写入数据13302317829    99595736
+入口参数：addr 	写入的FLASH页的首地址
+                    p	  	被写入变量的地址（数组中的必须是uint8_t类型，元素个数必须是偶数）
+                    Count_To_Write 被写入变量的地址数
+返 回 值：无
+**************************************************************************/
+void MyFLASH_WriteHalfWord(unsigned int addr, uint16_t* p, uint16_t Count_To_Write)
 {
-    return *((__IO uint16_t *)(Address));
-}
-
-// 擦除FLASH
-void MyFLASH_ErasePage(uint32_t Address)
-{
+    //写入数据
+    uint32_t d;
+	uint16_t dataIndex;
+    __disable_irq();
     FLASH_Unlock();
-    FLASH_EraseOnePage(Address);
+    FLASH_ClearFlag(FLASH_FLAG_BUSY | FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);
+    FLASH_STS FLASH_EraseOnePage(addr);
+    for (dataIndex = 0;dataIndex < Count_To_Write;dataIndex++)
+    {
+        d = p[dataIndex];
+		dataIndex++;
+        d |= p[dataIndex] << 16;
+        FLASH_ProgramWord(addr, d);
+        addr += 4;
+    }
     FLASH_Lock();
+    __enable_irq();
+
 }
 
-// 写入FLASH
-void MyFLASH_ProgramWord(uint32_t Address, uint16_t Data)
+/**************************************************************************
+函数功能：从指定地址读取数据
+入口参数：addr 从FLASH中读取的地址
+                    p    读取后要存入变量的地址（数组中的必须是uint8_t类型）
+                    Count_To_Write 要读出的字节数
+返 回 值：无
+**************************************************************************/
+void MyFLASH_ReadByte(unsigned int addr, uint16_t* p, uint16_t Count_To_Read)
 {
-    FLASH_Unlock();
-    FLASH_ProgramWord(Address, Data);
-    FLASH_Lock();
-}
-
-// 初始化数据
-void Store_Init(void)
-{
-    if (MyFLASH_ReadWord(FINAL_PAGE_ADDRESS) != 0xA5A5)
+    //memcpy(p, (uint16_t*)addr, Count_To_Read);
+    uint32_t d;
+	uint32_t id=0;
+	int n = Count_To_Read>>1;		
+    for (uint16_t i=0; i<n; i++)
     {
-        MyFLASH_ErasePage(FINAL_PAGE_ADDRESS);
-        MyFLASH_ProgramWord(FINAL_PAGE_ADDRESS, 0xA5A5);
-        for (uint16_t i=1; i<STORE_COUNT; i++)
-        {
-            MyFLASH_ProgramWord(FINAL_PAGE_ADDRESS+i, 0x0000);
-        }
+        d = *((__IO uint32_t *)(addr));
+		p[id++]=d;
+		p[id++]=d>>16;
+		addr+=4;
     }
-    
-    for (uint16_t i=0; i<STORE_COUNT; i++)
-    {
-        Store_Data[i] = MyFLASH_ReadWord(FINAL_PAGE_ADDRESS+i);
-    }
-}
-
-// 写入数据
-void Store_Save(void)
-{
-    MyFLASH_ErasePage(FINAL_PAGE_ADDRESS);
-    for (uint16_t i=0; i<STORE_COUNT; i++)
-    {
-        MyFLASH_ProgramWord(FINAL_PAGE_ADDRESS+i, Store_Data[i]);
-    }
-}
-
-// 清除数据
-void Store_Clear(void)
-{
-    MyFLASH_ErasePage(FINAL_PAGE_ADDRESS);
-    for (uint16_t i=1; i<STORE_COUNT; i++)
-    {
-        Store_Data[i] = 0x0000;
-    }
-    Store_Save();
 }
