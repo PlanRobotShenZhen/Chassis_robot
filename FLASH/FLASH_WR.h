@@ -8,9 +8,9 @@
 入口参数：addr 	写入的FLASH页的首地址
                     p	  	被写入变量的地址（数组中的必须是uint8_t类型，元素个数必须是偶数）
                     Count_To_Write 被写入变量的地址数
-返 回 值：无
+返 回 值：成功写入个数
 **************************************************************************/
-void MyFLASH_WriteHalfWord(unsigned int addr, uint16_t* p, uint16_t Count_To_Write);
+int MyFLASH_WriteWord(uint32_t faddr, uint16_t* p, uint16_t Count_To_Write);
 
 /**************************************************************************
 函数功能：从指定地址读取数据

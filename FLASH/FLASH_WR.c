@@ -5,9 +5,9 @@
 入口参数：addr 	写入的FLASH页的首地址
                     p	  	被写入变量的地址（数组中的必须是uint8_t类型，元素个数必须是偶数）
                     Count_To_Write 被写入变量的地址数
-返 回 值：无
+返 回 值：成功写入个数
 **************************************************************************/
-void MyFLASH_WriteHalfWord(unsigned int addr, uint16_t* p, uint16_t Count_To_Write)
+int MyFLASH_WriteWord(uint32_t faddr, uint16_t* p, uint16_t Count_To_Write)
 {
     //写入数据
     uint32_t d;
@@ -15,18 +15,18 @@ void MyFLASH_WriteHalfWord(unsigned int addr, uint16_t* p, uint16_t Count_To_Wri
     __disable_irq();
     FLASH_Unlock();
     FLASH_ClearFlag(FLASH_FLAG_BUSY | FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);
-    FLASH_STS FLASH_EraseOnePage(addr);
+    FLASH_EraseOnePage(faddr);
     for (dataIndex = 0;dataIndex < Count_To_Write;dataIndex++)
     {
         d = p[dataIndex];
 		dataIndex++;
         d |= p[dataIndex] << 16;
-        FLASH_ProgramWord(addr, d);
-        addr += 4;
+        FLASH_ProgramWord(faddr, d);
+        faddr += 4;
     }
     FLASH_Lock();
     __enable_irq();
-
+    return dataIndex;
 }
 
 /**************************************************************************

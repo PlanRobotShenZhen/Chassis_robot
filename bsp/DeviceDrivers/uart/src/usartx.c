@@ -1267,7 +1267,7 @@ void modbus_task_init(void)
 	{//< 芯片首次初始化
 		eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);
 		Pdu_Init();
-		MyFLASH_WriteHalfWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
+		MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
 		pdu[para_save] = 10;
 	}
 	else pdu[para_save] = 0;
@@ -1302,14 +1302,14 @@ void ModBUS_task(void* pvParameters)
 		if (pdu[para_save]==1)
 		{//< 保存当前参数
 			pdu[para_save] = 0;
-			MyFLASH_WriteHalfWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
+			pdu[247]=MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
 		}
 		else if (pdu[para_save] == 2)
 		{//< 恢复出厂设置
 			pdu[para_save] = 0;
 			eMBInit(MB_RTU, 1, 3, 115200, MB_PAR_NONE);
 			Pdu_Init();
-			MyFLASH_WriteHalfWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
+			MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
 		}
 	}
 }

@@ -13,6 +13,7 @@ enum address_485 {
     software_reset,
     can_reinitialize,
     para_save,
+    para_save_num,
     R_motor_CAN_map = 10,
     L_motor_CAN_map,
     R_motor_default_CAN_id,
