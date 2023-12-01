@@ -46,31 +46,31 @@
 typedef union __SPI_IO_INPUT
 {
 	struct {
-		uint8_t X0 : 1;
-		uint8_t X1 : 1;
-		uint8_t X2 : 1;
-		uint8_t X3 : 1;
-		uint8_t X4 : 1;
-		uint8_t X5 : 1;
-		uint8_t X6 : 1;
-		uint8_t X7 : 1;
+		unsigned char X0 : 1;
+		unsigned char X1 : 1;
+		unsigned char X2 : 1;
+		unsigned char X3 : 1;
+		unsigned char X4 : 1;
+		unsigned char X5 : 1;
+		unsigned char X6 : 1;
+		unsigned char X7 : 1;
 	}bit;
-	uint8_t input;
+	unsigned char input;
 }EXIO_INPUT;
 
 typedef struct __SPI_IO_OUTPUT
 {
 	struct {
-		uint8_t RGB_G : 1;
-		uint8_t RGB_B : 1;
-		uint8_t RGB_R : 1;
-		uint8_t Light : 1;
-		uint8_t Light_Q : 1;
-		uint8_t Light_Z : 1;
-		uint8_t Light_Y : 1;
-		uint8_t Light_H : 1;
+		unsigned char RGB_G : 1;
+		unsigned char RGB_B : 1;
+		unsigned char RGB_R : 1;
+		unsigned char Light : 1;
+		unsigned char Light_Q : 1;
+		unsigned char Light_Z : 1;
+		unsigned char Light_Y : 1;
+		unsigned char Light_H : 1;
 	}bit;
-	uint8_t output;
+	unsigned char output;
 }EXIO_OUTPUT;
 
 #define PLAN_CONTROL_BOARD_V 11
@@ -234,6 +234,48 @@ typedef struct __SPI_IO_OUTPUT
 #define CANb_RxPin			GPIO_PIN_12
 #define CANb_TxPin			GPIO_PIN_13
 
+
+/*ADC1_JT*/
+#define ADC1_JT_GPIO		GPIOA
+#define ADC1_JT_RxPin		GPIO_PIN_0
+#define ADC1_JT_ADC		    ADC1
+#define ADC1_JT_ADC_Channel	ADC1_Channel_01_PA0
+
+/*ADC2*/
+#define ADC2_GPIO		    GPIOB
+#define ADC2_RxPin			GPIO_PIN_1
+#define ADC2_ADC		    ADC2
+#define ADC2_ADC_Channel	ADC2_Channel_03_PB1
+
+/*YL_1*/
+#define YL_1_GPIO		    GPIOA
+#define YL_1_RxPin			GPIO_PIN_1
+#define YL_1_JT_ADC		    ADC1
+#define YL_1_JT_ADC_Channel	ADC1_Channel_02_PA1
+
+/*YL_2*/
+#define YL_2_GPIO		    GPIOA
+#define YL_2_RxPin			GPIO_PIN_2
+#define YL_2_JT_ADC		    ADC1
+#define YL_2_JT_ADC_Channel	ADC1_Channel_11_PA2
+
+/*YL_3*/
+#define YL_3_GPIO		    GPIOA
+#define YL_3_RxPin			GPIO_PIN_3
+#define YL_3_JT_ADC		    ADC1
+#define YL_3_JT_ADC_Channel	ADC1_Channel_04_PA3
+
+/*YL_4*/
+#define YL_4_GPIO		    GPIOB
+#define YL_4_RxPin			GPIO_PIN_0
+#define YL_4_JT_ADC		    ADC3
+#define YL_4_JT_ADC_Channel	ADC3_Channel_12_PB0
+
+/*YL_5*/
+#define YL_5_GPIO		    GPIOB
+#define YL_5_RxPin			GPIO_PIN_15
+#define YL_5_JT_ADC		    ADC4
+#define YL_5_JT_ADC_Channel	ADC4_Channel_05_PB15
 
 #endif
 

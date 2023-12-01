@@ -39,6 +39,7 @@
 #include "robot_select_init.h"
 #include "usartx.h"
 #include "user_can.h"
+#include "user_adc.h"
 #include "motor_data.h"
 #include "485_address.h"
 #include "balance.h"
@@ -68,12 +69,14 @@ static rt_uint8_t Motor_stack[512];
 static rt_uint8_t Can_stack[2048];
 static rt_uint8_t DATA_stack[512];
 static rt_uint8_t ModBUS_stack[512];
+static rt_uint8_t ADC_stack[512];
 static struct rt_thread Balance_thread;
 static struct rt_thread Motor_init_thread;
 static struct rt_thread Motor_thread;
 static struct rt_thread Can_thread;
 static struct rt_thread DATA_thread;
 static struct rt_thread ModBUS_thread;
+static struct rt_thread ADC_thread;
 float Wheel_perimeter = 0;    //轮子周长（单位：米）
 float Wheel_spacing = 0;      //主动轮轮距 （单位：米）//后面会在robot_select_init.h文件中初始化
 float Axle_spacing = 0;       //前后轴距
@@ -138,7 +141,7 @@ static void InitTask(void* parameter)
 	USART1_Init(2000000);	        //=====串口初始化为，普通的串口，打印调试信息 DMA
 	Usart3_init(115200);            //上下位机通信初始化，串口3
 	Usart5_Init(100000);            //串口5初始化，用于航模控制
-	//Adc_Init();                     //采集电池电压ADC引脚初始化	
+    Adc_Init();                     //采集电池电压ADC引脚初始化	
 	Can_Driver_Init();              //底层can协议初始化
 
 	Robot_Select();                 // 根据电位器的值判断目前正在运行的是哪一款机器人，
@@ -179,7 +182,15 @@ static void InitTask(void* parameter)
     if (result == RT_EOK)
     {
         rt_thread_startup(&ModBUS_thread);
+    }    
+    /* init adc thread */
+    result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
+    if (result == RT_EOK)
+    {
+        rt_thread_startup(&ADC_thread);
     }
+
+    
 }
 
 /**

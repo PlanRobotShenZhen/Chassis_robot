@@ -149,6 +149,13 @@ enum address_485 {
     remote_ch15_value,
     remote_ch16_value,
     remote_connect_state,
+    adc1_jt_value,
+    adc2_value,
+    adc_yl_1,
+    adc_yl_2,
+    adc_yl_3,
+    adc_yl_4,
+    adc_yl_5,
 
     motor_num = 248,
 
