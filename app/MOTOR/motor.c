@@ -5,7 +5,7 @@
 int Motor_Number = 4;
 MOTOR_TPDO mtd[MAX_MOTOR_NUMBER];//< 发送pdo
 MOTOR_RPDO mrd[MAX_MOTOR_NUMBER];//< 接收pdo
-static uint16_t* pdu_data;
+static uint16_t* pdu;
 static MOTOR_DATA motor_data[MAX_MOTOR_NUMBER];
 uint8_t can_id_map[4] = 
 {
@@ -35,7 +35,7 @@ typedef union
  **********************************************************/
 void New_Servo_Motor_Init(int i,uint8_t ID)
 {
-	uint16_t model = pdu_data[can_model_map[i]];
+	uint16_t model = pdu[can_model_map[i]];
 	switch (model)
 	{
 	case 1:// 万泽伺服
@@ -49,11 +49,6 @@ void New_Servo_Motor_Init(int i,uint8_t ID)
 	//delay_ms(1);
 }
 
-void MotorDataRefreshInit(uint16_t* pd)
-{
-	pdu_data = pd;
-}
-
 void MotorDataRefresh()
 {
 
@@ -63,24 +58,24 @@ void MotorDataRefresh()
 	MOTOR_TPDO* mt;
 	MOTOR_RPDO* mr;
 	MOTOR_DATA* md;
-	pdu_data[R_motor_CAN_map] = can_id_map[0] | can_id_map[1] << 8;
-	pdu_data[L_motor_CAN_map] = can_id_map[2] | can_id_map[3] << 8;
+	pdu[R_motor_CAN_map] = can_id_map[0] | can_id_map[1] << 8;
+	pdu[L_motor_CAN_map] = can_id_map[2] | can_id_map[3] << 8;
 
 	for (i = 0; i < Motor_Number; i++)
 	{
 		mt = &mtd[k];
 		mr = &mrd[i];
 		md = &motor_data[k];
-		pdu_data[n++] = mt->d.status.sd;	
-		pdu_data[n++] = ((uint16_t)md->d.step << 2 | md->d.on&3) | ((uint16_t)mr->d.online << 8);
-		pdu_data[n++] = 0;
-		pdu_data[n++] = 0;
-		pdu_data[n++] = 0;
-		pdu_data[n++] = 0;
-		pdu_data[n++] = (uint16_t)(mt->d.current_velocity >> 16);
-		pdu_data[n++] = (uint16_t)(mt->d.current_velocity);
-		pdu_data[n++] = (uint16_t)(mt->d.current_pos >> 16);
-		pdu_data[n++] = (uint16_t)(mt->d.current_pos);
+		pdu[n++] = mt->d.status.sd;	
+		pdu[n++] = ((uint16_t)md->d.step << 2 | md->d.on&3) | ((uint16_t)mr->d.online << 8);
+		pdu[n++] = 0;
+		pdu[n++] = 0;
+		pdu[n++] = 0;
+		pdu[n++] = 0;
+		pdu[n++] = (uint16_t)(mt->d.current_velocity >> 16);
+		pdu[n++] = (uint16_t)(mt->d.current_velocity);
+		pdu[n++] = (uint16_t)(mt->d.current_pos >> 16);
+		pdu[n++] = (uint16_t)(mt->d.current_pos);
 		k++;
 	}
 
@@ -95,8 +90,8 @@ void Motor_init(void)
 		mrd[i].d.mapping = can_id_map[i];
 		mtd[i].d.mapping = can_id_map[i];
 	}
-	pdu_data[R_motor_default_CAN_id] = can_id_map[0] << 8 | can_id_map[1];
-	pdu_data[L_motor_default_CAN_id] = can_id_map[2] << 8 | can_id_map[3];
+	pdu[R_motor_default_CAN_id] = can_id_map[0] << 8 | can_id_map[1];
+	pdu[L_motor_default_CAN_id] = can_id_map[2] << 8 | can_id_map[3];
 }
 void Motor_init_process(void)
 {
@@ -105,9 +100,9 @@ void Motor_init_process(void)
 	MOTOR_RPDO* m_ctrl;
 	MOTOR_TPDO* m_states;
 	MOTOR_DATA* md;
-	if (pdu_data[can_reinitialize] == 5)
+	if (pdu[can_reinitialize] == 5)
 	{
-		pdu_data[can_reinitialize] = 0;
+		pdu[can_reinitialize] = 0;
 		for (i = 0; i < Motor_Number; i++)
 		{
 			NMT_Control(can_id_map[i], 0x00, can_id_map[i]); //暂停传输数据
@@ -150,6 +145,7 @@ void Motor_init_process(void)
 
 void Motor_init_task(void* pvParameters)
 {
+	pdu = (uint16_t*)pvParameters;
 	Motor_init();
 	while (1)
 	{
@@ -161,6 +157,7 @@ void Motor_init_task(void* pvParameters)
 void Motor_task(void* pvParameters)
 {
 	int i;
+	pdu = (uint16_t*)pvParameters;
 	MOTOR_RPDO* m_ctrl;
 	MOTOR_TPDO* m_states;
 	MOTOR_DATA* md;
@@ -209,12 +206,12 @@ void Motor_task(void* pvParameters)
 			{
 				m_ctrl->d.ctrl.cd = 0;
 			}
-			else if (pdu_data[error_get_and_clear] == 1)
+			else if (pdu[error_get_and_clear] == 1)
 			{//< 伺服清除报警
 				m_ctrl->d.ctrl.cd = 0x80;
 			}
 		}
-		if (pdu_data[error_get_and_clear] == 1)pdu_data[error_get_and_clear] = 0;
+		if (pdu[error_get_and_clear] == 1)pdu[error_get_and_clear] = 0;
 	}
 
 }

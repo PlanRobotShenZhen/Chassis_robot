@@ -51,7 +51,7 @@ extern int g_nCurrentVelocity;
 /*—-------------上下位机通信协议相关宏定义--------------*/
 #define FRAME_HEADER 0X7B             //发送数据的帧头,"{"
 #define FRAME_TAIL 0X7D               //发送数据的帧尾,"}"
-#define SEND_DATA_SIZE 24
+#define SEND_DATA_SIZE 34
 #define RECEIVE_DATA_SIZE 11
 
 
@@ -67,20 +67,22 @@ typedef struct __Mpu6050_Data_
 /*—-----------------上下位机串口发送和接收数据的结构体-------------------*/
 typedef struct _SEND_DATA_  
 {
-	unsigned char buffer[SEND_DATA_SIZE];
-	struct _Sensor_Str_
-	{
-		unsigned char Frame_Header;//1个字节
-		short X_speed;	           //2个字节
-		short Y_speed;             //2个字节
-		short Z_speed;             //2个字节
-		short Power_Voltage;       //2个字节
-		
-		Mpu6050_Data Accelerometer;//6个字节
-		Mpu6050_Data Gyroscope;    //6个字节
-		
-		unsigned char Frame_Tail;  //1个字节
-	}Sensor_Str;
+	unsigned char Frame_Header;//1个字节
+	short X_speed;	           //2个字节
+	short Y_speed;             //2个字节
+	short Z_speed;             //2个字节
+	short Power_Voltage;       //2个字节
+
+	uint16_t M1_current;       //< 电机1电流
+	uint16_t M2_current;       //< 电机2电流
+	uint16_t P19_current;       //< 19V电源电流
+	uint16_t P12_current;       //< 12V电源电流
+	uint16_t P5_current;       //< 5V电源电流
+
+	Mpu6050_Data Accelerometer;//6个字节
+	Mpu6050_Data Gyroscope;    //6个字节
+
+	unsigned char Frame_Tail;  //1个字节
 
 }SEND_DATA;
 
@@ -154,10 +156,8 @@ void Car_Light_Control(void);                         //车灯数据解析，对应的是ch
 
 
 void Usart3_init(u32 baud);         //usart3作为上下位机通信模块
-void Usart3_send(u8 data);
-void USART3_SEND(void);
 void USART3_IRQHandler(void);       //中断中作为数据接收处理
-unsigned char Check_Sum(unsigned char Count_Number,unsigned char Mode);
+uint8_t Check_Sum(uint8_t* d, uint8_t Count_Number, uint8_t Mode);
 void Data_transition(void);         //串口3发送给上位机数据转换
 
 void Printf_MPU9250_Data(void);     //调试打印imu的信息

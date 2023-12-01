@@ -400,7 +400,7 @@ int target_limit_int(int insert,int low,int high)
 **************************************************************************/
 void Balance_task(void* pvParameters)
 {
-	pdu = getPDUData();
+	pdu = (uint16_t*)pvParameters;
 	// pdu[61] 电机1车轮半径 pdu[62] 电机1减速比
 	//FourWheer_Perimeter = 2 * PI * FourWheer_Radiaus;
 	union {
@@ -509,5 +509,7 @@ void Balance_task(void* pvParameters)
 		{
 			pdu[car_system_state] = 2;
 		}
+
+
 	}
 }

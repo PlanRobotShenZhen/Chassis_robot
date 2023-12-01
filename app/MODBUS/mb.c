@@ -57,7 +57,6 @@
 #ifndef MB_PORT_HAS_CLOSE
 #define MB_PORT_HAS_CLOSE 0
 #endif
-#include "motor_data.h"
 /* ----------------------- Static variables ---------------------------------*/
 
 static UCHAR    ucMBAddress;
@@ -923,7 +922,6 @@ eMBErrorCode eMBInit( eMBMode eMode, UCHAR ucSlaveAddress, UCHAR ucPort, ULONG u
     /* 申请内存空间作为保持寄存器地址,对应功能码03H、06H和10H */
     //PduData.PtrHoldingbase = (uint16_t*)malloc(sizeof(uint16_t) * MB_RTU_DATA_MAX_SIZE);
     PduData.PtrHoldingbase = mbdata;
-    MotorDataRefreshInit((uint16_t*)PduData.PtrHoldingbase);
     FillBuf((uint16_t*)PduData.PtrHoldingbase, FUN_CODE_03H);
 
     /* check preconditions */

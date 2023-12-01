@@ -19,7 +19,7 @@ uint32_t uart1_recv_len = 0;         // 接收的数据长度
 uint32_t uart1_send_len = 0;         // 发送的数据长度
 uint32_t uart1_send_flag = 0;        // 发送完成标志位
 #define USART3_RX_MAXBUFF 25
-#define USART3_TX_MAXBUFF 25
+#define USART3_TX_MAXBUFF 34
 uint8_t uart3_recv_data[USART3_RX_MAXBUFF] = { 0 };  // 接收数据缓冲区
 uint8_t uart3_send_data[USART3_TX_MAXBUFF] = { 0 };  // 发送数据缓冲区
 uint8_t uart3_recv_flag = 0;        // 接收完成标志位
@@ -74,7 +74,7 @@ void DATA_task(void *pvParameters)
 				{
 					if (Receive_Data.buffer[10] == FRAME_TAIL) //验证数据包的尾部校验信息
 					{
-						if (Receive_Data.buffer[9] == Check_Sum(9, 0))	 //数据校验位计算，模式0是发送数据校验
+						if (Receive_Data.buffer[9] == Check_Sum(&Receive_Data.buffer[0],9, 0))	 //数据校验位计算，模式0是发送数据校验
 						{
 							g_fltRecv_Vel_X = XYZ_Target_Speed_transition(Receive_Data.buffer[3], Receive_Data.buffer[4]);
 							g_fltRecv_Vel_Y = XYZ_Target_Speed_transition(Receive_Data.buffer[5], Receive_Data.buffer[6]);
@@ -90,7 +90,6 @@ void DATA_task(void *pvParameters)
 			{//< 回复帧
 				uart3_send_flag = 0;
 				Data_transition(); //对要进行发送的数据进行赋值
-				USART3_SEND();     //串口3(ROS)发送数据
 			}
 		}
 }
@@ -467,33 +466,6 @@ void USARTz_IRQHandler(void)
 #endif
 }
 
-/**************************************************************************
-函数功能：串口3(ROS)发送数据
-入口参数：无
-返回  值：无
-**************************************************************************/
-void USART3_SEND(void)
-{
-	uart3_send_len = 24;
-	memcpy(uart3_send_data, Send_Data.buffer, uart3_send_len);
-	DMA_EnableChannel(USARTz_Tx_DMA_Channel, DISABLE);    // 关闭 DMA1 通道2, UART3_TX
-	DMA_SetCurrDataCounter(USARTz_Tx_DMA_Channel, uart3_send_len);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
-	DMA_EnableChannel(USARTz_Tx_DMA_Channel, ENABLE);    // 开启 DMA1 通道2, UART3_TX	
-}
-
-
-/**************************************************************************
-函数功能：串口3发送数据
-入口参数：要发送的数据
-返回  值：无
-**************************************************************************/
-void Usart3_send(unsigned char data)
-{
-	USARTz->DAT = data;
-	while((USARTz->STS&0x40) == 0);
-}
-
-
 
 /**************************************************************************
 函数功能：串口发送的数据进行赋值
@@ -502,98 +474,110 @@ void Usart3_send(unsigned char data)
 **************************************************************************/
 void Data_transition(void)
 {
-	Send_Data.Sensor_Str.Frame_Header = FRAME_HEADER; //帧头
-	Send_Data.Sensor_Str.Frame_Tail = FRAME_TAIL; //帧尾
+	uint8_t i = 0;
+	uint8_t si = 0;
+	Send_Data.Frame_Header = FRAME_HEADER; //帧头
+	Send_Data.Frame_Tail = FRAME_TAIL; //帧尾
 	
 	switch(g_emCarMode)
 	{	
 		case Mec_Car:      //麦克纳姆轮小车 
-			Send_Data.Sensor_Str.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity
+			Send_Data.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity
 																			+MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/4)*1000; //小车x轴速度
-	    Send_Data.Sensor_Str.Y_speed = ((MOTOR_A.fltFeedBack_Velocity - MOTOR_B.fltFeedBack_Velocity
+	    Send_Data.Y_speed = ((MOTOR_A.fltFeedBack_Velocity - MOTOR_B.fltFeedBack_Velocity
 																			+MOTOR_C.fltFeedBack_Velocity - MOTOR_D.fltFeedBack_Velocity)/4)*1000; //小车y轴速度
-	    Send_Data.Sensor_Str.Z_speed = ((-MOTOR_A.fltFeedBack_Velocity - MOTOR_B.fltFeedBack_Velocity
+	    Send_Data.Z_speed = ((-MOTOR_A.fltFeedBack_Velocity - MOTOR_B.fltFeedBack_Velocity
 																			+MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/4/(Axle_spacing+Wheel_spacing))*1000;//小车z轴速度            
 		  break; 
 		
     case Omni_Car: //全向轮小车     
-			Send_Data.Sensor_Str.X_speed = ((MOTOR_C.fltFeedBack_Velocity-MOTOR_B.fltFeedBack_Velocity)/2/X_PARAMETER)*1000; //小车x轴速度
-	    Send_Data.Sensor_Str.Y_speed = ((MOTOR_A.fltFeedBack_Velocity*2-MOTOR_B.fltFeedBack_Velocity-MOTOR_C.fltFeedBack_Velocity)/3)*1000; //小车y轴速度
-	    Send_Data.Sensor_Str.Z_speed = ((MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity)/3/Omni_turn_radiaus)*1000;//小车z轴速度       
+			Send_Data.X_speed = ((MOTOR_C.fltFeedBack_Velocity-MOTOR_B.fltFeedBack_Velocity)/2/X_PARAMETER)*1000; //小车x轴速度
+	    Send_Data.Y_speed = ((MOTOR_A.fltFeedBack_Velocity*2-MOTOR_B.fltFeedBack_Velocity-MOTOR_C.fltFeedBack_Velocity)/3)*1000; //小车y轴速度
+	    Send_Data.Z_speed = ((MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity)/3/Omni_turn_radiaus)*1000;//小车z轴速度       
 		  break; 
     
 		case Akm_Car:   //阿克曼小车
-			Send_Data.Sensor_Str.X_speed = ((MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity)/2)*1000; //小车x轴速度
-			Send_Data.Sensor_Str.Y_speed = 0;
-			Send_Data.Sensor_Str.Z_speed = ((MOTOR_B.fltFeedBack_Velocity-MOTOR_A.fltFeedBack_Velocity)/Wheel_spacing)*1000;//小车z轴速度
+			Send_Data.X_speed = ((MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity)/2)*1000; //小车x轴速度
+			Send_Data.Y_speed = 0;
+			Send_Data.Z_speed = ((MOTOR_B.fltFeedBack_Velocity-MOTOR_A.fltFeedBack_Velocity)/Wheel_spacing)*1000;//小车z轴速度
 		  break; 
 		
 		case Diff_Car:  //两轮差速小车
-			Send_Data.Sensor_Str.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity)/2)*1000; //小车x轴速度
-			Send_Data.Sensor_Str.Y_speed = 0;
-			Send_Data.Sensor_Str.Z_speed = ((MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity)/Wheel_spacing)*1000;//小车z轴速度
+			Send_Data.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity)/2)*1000; //小车x轴速度
+			Send_Data.Y_speed = 0;
+			Send_Data.Z_speed = ((MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity)/Wheel_spacing)*1000;//小车z轴速度
 			break; 
 		
 		case FourWheel_Car: //四驱车 
-      Send_Data.Sensor_Str.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity 
+      Send_Data.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity 
 									+MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/4)*1000; //小车x轴速度
-	    Send_Data.Sensor_Str.Y_speed = 0;
+	    Send_Data.Y_speed = 0;
 		  /*Z轴方向上发送的是一个角速度信息，wr = v*/
-	    Send_Data.Sensor_Str.Z_speed = ((-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + 
+	    Send_Data.Z_speed = ((-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + 
 		MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/2/(Axle_spacing+Wheel_spacing))*1000;//小车z轴速度
 		 break; 
 		
 		case Tank_Car:   //履带车
-			Send_Data.Sensor_Str.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity)/2)*1000; //小车x轴速度
-			Send_Data.Sensor_Str.Y_speed = 0;
-			Send_Data.Sensor_Str.Z_speed = ((MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity)/(Wheel_spacing)*1000);//小车z轴速度
+			Send_Data.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity)/2)*1000; //小车x轴速度
+			Send_Data.Y_speed = 0;
+			Send_Data.Z_speed = ((MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity)/(Wheel_spacing)*1000);//小车z轴速度
 			break; 
 		default:
 			break;
 	}
 	//加速度计三轴加速度
-	Send_Data.Sensor_Str.Accelerometer.X_data=0;// accel[1]; //加速度计Y轴转换到ROS坐标X轴
-	Send_Data.Sensor_Str.Accelerometer.Y_data=0;//-accel[0]; //加速度计X轴转换到ROS坐标Y轴
-	Send_Data.Sensor_Str.Accelerometer.Z_data=0;// accel[2];
+	Send_Data.Accelerometer.X_data=0;// accel[1]; //加速度计Y轴转换到ROS坐标X轴
+	Send_Data.Accelerometer.Y_data=0;//-accel[0]; //加速度计X轴转换到ROS坐标Y轴
+	Send_Data.Accelerometer.Z_data=0;// accel[2];
 	
 	//角速度计三轴角速度
-	Send_Data.Sensor_Str.Gyroscope.X_data=0;// gyro[1]; //角速度计Y轴转换到ROS坐标X轴
-	Send_Data.Sensor_Str.Gyroscope.Y_data=0;//-gyro[0]; //角速度计X轴转换到ROS坐标Y轴
-	if (Flag_Stop == 0) Send_Data.Sensor_Str.Gyroscope.Z_data = 0;//gyro[2];  //如果电机控制位使能状态，那么正常发送Z轴角速度
-	else             Send_Data.Sensor_Str.Gyroscope.Z_data=0;       //如果机器人是静止的（电机控制位失能），那么发送的Z轴角速度为0
+	Send_Data.Gyroscope.X_data=0;// gyro[1]; //角速度计Y轴转换到ROS坐标X轴
+	Send_Data.Gyroscope.Y_data=0;//-gyro[0]; //角速度计X轴转换到ROS坐标Y轴
+	if (Flag_Stop == 0) Send_Data.Gyroscope.Z_data = 0;//gyro[2];  //如果电机控制位使能状态，那么正常发送Z轴角速度
+	else             Send_Data.Gyroscope.Z_data=0;       //如果机器人是静止的（电机控制位失能），那么发送的Z轴角速度为0
 	
-	Send_Data.Sensor_Str.Power_Voltage = Voltage*1000; //电池电压(这里将浮点数放大一千倍传输，相应的在接收端在接收到数据后也会缩小一千倍)
-	
-	Send_Data.buffer[0]=Send_Data.Sensor_Str.Frame_Header; //帧头(固定值)
-  Send_Data.buffer[1]=Flag_Stop;//电机状态
-	
-	Send_Data.buffer[2]=Send_Data.Sensor_Str.X_speed >>8; //小车x轴速度
-	Send_Data.buffer[3]=Send_Data.Sensor_Str.X_speed ;    //小车x轴速度
-	Send_Data.buffer[4]=Send_Data.Sensor_Str.Y_speed>>8;  //小车y轴速度
-	Send_Data.buffer[5]=Send_Data.Sensor_Str.Y_speed;     //小车y轴速度
-	Send_Data.buffer[6]=Send_Data.Sensor_Str.Z_speed >>8; //小车z轴速度
-	Send_Data.buffer[7]=Send_Data.Sensor_Str.Z_speed ;    //小车z轴速度
-	
-	Send_Data.buffer[8]=Send_Data.Sensor_Str.Accelerometer.X_data>>8; //加速度计三轴加速度
-	Send_Data.buffer[9]=Send_Data.Sensor_Str.Accelerometer.X_data;    //加速度计三轴加速度
-	Send_Data.buffer[10]=Send_Data.Sensor_Str.Accelerometer.Y_data>>8;
-	Send_Data.buffer[11]=Send_Data.Sensor_Str.Accelerometer.Y_data;
-	Send_Data.buffer[12]=Send_Data.Sensor_Str.Accelerometer.Z_data>>8;
-	Send_Data.buffer[13]=Send_Data.Sensor_Str.Accelerometer.Z_data;
-	
-	Send_Data.buffer[14]=Send_Data.Sensor_Str.Gyroscope.X_data>>8; //角速度计三轴角速度
-	Send_Data.buffer[15]=Send_Data.Sensor_Str.Gyroscope.X_data; //角速度计三轴角速度
-	Send_Data.buffer[16]=Send_Data.Sensor_Str.Gyroscope.Y_data>>8;
-	Send_Data.buffer[17]=Send_Data.Sensor_Str.Gyroscope.Y_data;
-	Send_Data.buffer[18]=Send_Data.Sensor_Str.Gyroscope.Z_data>>8;
-	Send_Data.buffer[19]=Send_Data.Sensor_Str.Gyroscope.Z_data;
-	
-	Send_Data.buffer[20]=Send_Data.Sensor_Str.Power_Voltage >>8; //电池电压
-	Send_Data.buffer[21]=Send_Data.Sensor_Str.Power_Voltage; //电池电压
+	Send_Data.Power_Voltage = Voltage*1000; //电池电压(这里将浮点数放大一千倍传输，相应的在接收端在接收到数据后也会缩小一千倍)
+	i = 0;
+	uart3_send_data[i++]=Send_Data.Frame_Header; //帧头(固定值)
+	uart3_send_data[i++]=Flag_Stop;//电机状态	
+	uart3_send_data[i++]=Send_Data.X_speed >>8; //小车x轴速度
+	uart3_send_data[i++]=Send_Data.X_speed ;    //小车x轴速度
+	uart3_send_data[i++]=Send_Data.Y_speed>>8;  //小车y轴速度
+	uart3_send_data[i++]=Send_Data.Y_speed;     //小车y轴速度
+	uart3_send_data[i++]=Send_Data.Z_speed >>8; //小车z轴速度
+	uart3_send_data[i++]=Send_Data.Z_speed ;    //小车z轴速度	
+	uart3_send_data[i++]=Send_Data.Accelerometer.X_data>>8; //加速度计三轴加速度
+	uart3_send_data[i++]=Send_Data.Accelerometer.X_data;    //加速度计三轴加速度
+	uart3_send_data[i++]=Send_Data.Accelerometer.Y_data>>8;
+	uart3_send_data[i++]=Send_Data.Accelerometer.Y_data;
+	uart3_send_data[i++]=Send_Data.Accelerometer.Z_data>>8;
+	uart3_send_data[i++]=Send_Data.Accelerometer.Z_data;	
+	uart3_send_data[i++]=Send_Data.Gyroscope.X_data>>8; //角速度计三轴角速度
+	uart3_send_data[i++]=Send_Data.Gyroscope.X_data; //角速度计三轴角速度
+	uart3_send_data[i++]=Send_Data.Gyroscope.Y_data>>8;
+	uart3_send_data[i++]=Send_Data.Gyroscope.Y_data;
+	uart3_send_data[i++]=Send_Data.Gyroscope.Z_data>>8;
+	uart3_send_data[i++]=Send_Data.Gyroscope.Z_data;	
+	uart3_send_data[i++]=Send_Data.Power_Voltage >>8; //电池电压
+	uart3_send_data[i++]=Send_Data.Power_Voltage; //电池电压
+	uart3_send_data[i++] = Send_Data.M1_current >> 8; //电机1电流
+	uart3_send_data[i++] = Send_Data.M1_current; //电机1电流
+	uart3_send_data[i++] = Send_Data.M2_current >> 8; //电机2电流
+	uart3_send_data[i++] = Send_Data.M2_current; //电机2电流
+	uart3_send_data[i++] = Send_Data.P19_current >> 8; //19V电源电流
+	uart3_send_data[i++] = Send_Data.P19_current; //19V电源电流
+	uart3_send_data[i++] = Send_Data.P12_current >> 8; //12V电源电流
+	uart3_send_data[i++] = Send_Data.P12_current; //12V电源电流
+	uart3_send_data[i++] = Send_Data.P5_current >> 8; //5V电源电流
+	uart3_send_data[i++] = Send_Data.P5_current; //5V电源电流
+	si = i;
+	uart3_send_data[i++]=Check_Sum(&uart3_send_data[0],si,1); //数据校验位计算，模式1是发送数据校验	
+	uart3_send_data[i++]=Send_Data.Frame_Tail;//帧尾（固定值）
 
-	Send_Data.buffer[22]=Check_Sum(22,1); //数据校验位计算，模式1是发送数据校验
-	
-	Send_Data.buffer[23]=Send_Data.Sensor_Str.Frame_Tail;//帧尾（固定值）
+
+	DMA_EnableChannel(USARTz_Tx_DMA_Channel, DISABLE);    // 关闭 DMA1 通道2, UART3_TX
+	DMA_SetCurrDataCounter(USARTz_Tx_DMA_Channel, i);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
+	DMA_EnableChannel(USARTz_Tx_DMA_Channel, ENABLE);    // 开启 DMA1 通道2, UART3_TX	
 }
 
 
@@ -602,10 +586,10 @@ void Data_transition(void)
 入口参数：23位为校验位，结果是数组1-22的异或结果；后一个参数为发送或是接收校验位
 返 回 值：检验位
 **************************************************************************/
-u8 Check_Sum(unsigned char Count_Number,unsigned char Mode)
+uint8_t Check_Sum(uint8_t* d, uint8_t Count_Number, uint8_t Mode)
 {
-	unsigned char check_sum = 0,k;
-	unsigned char* buff = Mode == 0? &Receive_Data.buffer[0]: &Send_Data.buffer[0];
+	uint8_t check_sum = 0,k;
+	uint8_t* buff = Mode == 0? &Receive_Data.buffer[0]: d;
 	//Mode == 0接收数据的校验,Mode == 1发送数据的校验
 	for (k = 0;k < Count_Number; k++)
 	{

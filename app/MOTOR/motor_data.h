@@ -209,8 +209,6 @@ typedef struct MOTOR_DATA__
 #define MOTOR_STK_SIZE   128 	//任务堆栈大小
 #define MOTOR_TASK_PRIO  10   
 
-void MotorDataRefreshInit(uint16_t* pd);
-
 void Motor_init_task(void* pvParameters);
 void Motor_task(void* pvParameters);
 #endif

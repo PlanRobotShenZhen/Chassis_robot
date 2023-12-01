@@ -148,19 +148,19 @@ static void InitTask(void* parameter)
 	Motor_Number = 4;
 
     /* init Balance thread */
-    result = rt_thread_init(&Balance_thread, "Balance", Balance_task, RT_NULL, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);
+    result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);
     if (result == RT_EOK)
     {
         rt_thread_startup(&Balance_thread);
     }
     /* init Motor_init thread */
-    result = rt_thread_init(&Motor_init_thread, "Motor_init", Motor_init_task, RT_NULL, (rt_uint8_t*)&Motor_init_stack[0], sizeof(Motor_init_stack), 10, 10);
+    result = rt_thread_init(&Motor_init_thread, "Motor_init", Motor_init_task, (void*)pdu, (rt_uint8_t*)&Motor_init_stack[0], sizeof(Motor_init_stack), 10, 10);
     if (result == RT_EOK)
     {
             rt_thread_startup(&Motor_init_thread);
     }
     /* init Motor thread */
-    result = rt_thread_init(&Motor_thread, "Motor", Motor_task, RT_NULL, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
+    result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
     if (result == RT_EOK)
     {
         rt_thread_startup(&Motor_thread);
@@ -172,7 +172,7 @@ static void InitTask(void* parameter)
         rt_thread_startup(&Can_thread);
     }
     /* init DATA thread */
-    result = rt_thread_init(&DATA_thread, "DATA", DATA_task, RT_NULL, (rt_uint8_t*)&DATA_stack[0], sizeof(DATA_stack), 8, 5);
+    result = rt_thread_init(&DATA_thread, "DATA", DATA_task, (void*)pdu, (rt_uint8_t*)&DATA_stack[0], sizeof(DATA_stack), 8, 5);
     if (result == RT_EOK)
     {
         rt_thread_startup(&DATA_thread);
