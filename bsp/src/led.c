@@ -110,7 +110,7 @@ void LED_Init(void)
     rt_thread_delay(20000);   //< 2s
     GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
     rt_thread_delay(5000);   //< 500ms
-#elif(PLAN_CONTROL_BOARD_V==11)
+#elif(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
 
     RCC_EnableAPB2PeriphClk(LED1_PORT_RCC| LED2_PORT_RCC | JDQ_PORT_RCC, ENABLE);
 

@@ -5,6 +5,7 @@
 #include "robot_select_init.h" 
 #include "usartx.h"
 #include "led.h"
+#include "port.h"
 
 struct Smooth_Control tagSmooth_control;
 float Move_X = 0,Move_Y = 0,Move_Z = 0;
@@ -273,7 +274,7 @@ void Smooth_control(float vx,float vy,float vz)
 }
 
 
-#if(PLAN_CONTROL_BOARD_V==11)
+#if(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
 void ExioInit(void)
 {
 	EXIO_INPUT in;
@@ -391,6 +392,57 @@ int target_limit_int(int insert,int low,int high)
         return insert;	
 }
 
+void BatteryInformation()
+{
+	static bt = 0;
+	if (uart4_recv_flag)
+	{
+		uart4_send_flag = 2;
+		bt = 0;
+		if (uart4_recv_data[0] == 0x7e)
+		{
+			uint32_t tmp = 0;
+			uint16_t r_crc = (uint16_t)uart4_recv_data[uart4_recv_len - 2] | (((uint16_t)uart4_recv_data[uart4_recv_len - 1])<<8);
+			uint16_t c_crc = usMBCRC16(uart4_recv_data, uart4_recv_len - 2);
+			if (r_crc == c_crc)
+			{
+				int i = 0;
+				pdu[BatteryStatus] = 1;//< 电池读取成功
+				pdu[BatteryQuantity] = (uint16_t)uart4_recv_data[107] | (((uint16_t)uart4_recv_data[108]) << 8);//< 电池电量
+				i = 97;
+				tmp  = (uint32_t)uart4_recv_data[i++];
+				tmp |= (uint32_t)uart4_recv_data[i++]<<8;
+				tmp |= (uint32_t)uart4_recv_data[i++]<<16;
+				tmp |= (uint32_t)uart4_recv_data[i++]<<24;
+				pdu[BatteryVoltage] = tmp;//< 电池电压
+				tmp = (uint32_t)uart4_recv_data[i++];
+				tmp |= (uint32_t)uart4_recv_data[i++] << 8;
+				tmp |= (uint32_t)uart4_recv_data[i++] << 16;
+				tmp |= (uint32_t)uart4_recv_data[i++] << 24;
+				pdu[BatteryCurrent] = tmp;//< 电池电流
+				pdu[BatteryTemperature] = (uint16_t)uart4_recv_data[77] | (((uint16_t)uart4_recv_data[78]) << 8);//< 电池电量;//< 电池温度
+			}
+		}
+
+	}
+	bt++;
+	if (bt >= 200)
+	{//< 超过2秒自动重发
+		bt = 0;
+		uart4_send_flag = 2;
+		pdu[BatteryStatus] = 0;//< 电池读取失败
+	}
+	if (uart4_send_flag == 2)
+	{
+		uart4_send_flag = 0;
+		pdu[BatteryTemperature + 1]++;//< 
+		//GPIO_SetBits(USARTb_485en_GPIO, USARTb_485enPin);
+		GPIO_ResetBits(USARTb_485en_GPIO, USARTb_485enPin);
+		DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);    // 关闭 DMA2 通道5, UART4_TX
+		DMA_SetCurrDataCounter(USARTb_Tx_DMA_Channel, USART4_TX_MAXBUFF);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
+		DMA_EnableChannel(USARTb_Tx_DMA_Channel, ENABLE);    // 开启 DMA2 通道5, UART4_TX	
+	}
+}
 
 
 /**************************************************************************
@@ -439,10 +491,24 @@ void Balance_task(void* pvParameters)
 	uint8_t tmp1=0;
 
 
-#if(PLAN_CONTROL_BOARD_V==11)
+#if(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
 	ExioInit();
 #endif
-
+	i = 0;
+	//7E 0A 01 00 00 30 00 AC 00 00 2C 90
+	uart4_send_flag = 2;//< 
+	uart4_send_data[i++] = 0x7E;
+	uart4_send_data[i++] = 0x0A;
+	uart4_send_data[i++] = 0x01;
+	uart4_send_data[i++] = 0x00;
+	uart4_send_data[i++] = 0x00;
+	uart4_send_data[i++] = 0x30;
+	uart4_send_data[i++] = 0x00;
+	uart4_send_data[i++] = 0xAC;
+	uart4_send_data[i++] = 0x00;
+	uart4_send_data[i++] = 0x00;
+	uart4_send_data[i++] = 0x2C;
+	uart4_send_data[i++] = 0x90;
 	while (1)
 	{
 		rt_thread_delay(100);   //< 10ms
@@ -509,7 +575,7 @@ void Balance_task(void* pvParameters)
 		{
 			pdu[car_system_state] = 2;
 		}
-
+		BatteryInformation();
 
 	}
 }

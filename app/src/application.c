@@ -139,8 +139,9 @@ static void InitTask(void* parameter)
 	rt_thread_delay(100);   //< 10ms
 	LED_Init();                     //初始化与LED连接的硬件接口
 	USART1_Init(2000000);	        //=====串口初始化为，普通的串口，打印调试信息 DMA
-	Usart3_init(115200);            //上下位机通信初始化，串口3
-	Usart5_Init(100000);            //串口5初始化，用于航模控制
+	Usart3_Init(115200);            //上下位机通信初始化，串口3
+    Usart4_Init(9600);              //串口4初始化，用于读取电池信息
+    Usart5_Init(100000);            //串口5初始化，用于航模控制
     Adc_Init();                     //采集电池电压ADC引脚初始化	
 	Can_Driver_Init();              //底层can协议初始化
 

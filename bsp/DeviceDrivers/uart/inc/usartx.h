@@ -15,7 +15,8 @@ Usart3是与上位机ROS通信的。
 
 #define USART1_RX_MAXBUFF   2560 		// 接收数据最大缓冲区
 #define USART1_TX_MAXBUFF   256 		// 接收数据最大缓冲区
-
+#define USART4_RX_MAXBUFF 250
+#define USART4_TX_MAXBUFF 12
 /*—-------------航模模块--------------*/
 #define Max_BUFF_Len      200          //一帧数据的长度，25个字节
 #define VEL_BASE_VALUE   1023         //ch3通道基准值，速度
@@ -131,6 +132,14 @@ extern uint32_t uart1_recv_len;      // 接收的数据长度
 extern uint32_t uart1_send_len;      // 发送的数据长度
 extern uint32_t uart1_send_flag;     // 发送完成标志位
 
+
+extern uint8_t uart4_recv_data[USART4_RX_MAXBUFF]; // 接收数据缓冲区
+extern uint8_t uart4_send_data[USART4_TX_MAXBUFF]; // 发送数据缓冲区
+extern uint32_t uart4_recv_flag;     // 接收完成标志位
+extern uint32_t uart4_recv_len;      // 接收的数据长度
+extern uint32_t uart4_send_len;      // 发送的数据长度
+extern uint32_t uart4_send_flag;     // 发送完成标志位
+
 extern SBUS_CH_Struct tagSBUS_CH;                    //存放转换后的通道数据
 extern unsigned char Uart5_Buffer[Max_BUFF_Len];  //存放接收到的数据
 extern unsigned int  ucRcvCount;                     //索引计数
@@ -155,13 +164,14 @@ int Target_Direct_get(unsigned short usValue);
 void Car_Light_Control(void);                         //车灯数据解析，对应的是ch10通道的数据
 
 
-void Usart3_init(u32 baud);         //usart3作为上下位机通信模块
+void Usart3_Init(uint32_t baud);         //usart3作为上下位机通信模块
 void USART3_IRQHandler(void);       //中断中作为数据接收处理
 uint8_t Check_Sum(uint8_t* d, uint8_t Count_Number, uint8_t Mode);
 void Data_transition(void);         //串口3发送给上位机数据转换
 
 void Printf_MPU9250_Data(void);     //调试打印imu的信息
 
+void Usart4_Init(uint32_t baud);         //usart4作为读取电池信息模块
 
 
 void USART1_Init(uint32_t bound);

@@ -26,6 +26,14 @@ uint8_t uart3_recv_flag = 0;        // 接收完成标志位
 uint8_t uart3_recv_len = 0;         // 接收的数据长度
 uint8_t uart3_send_len = 0;         // 发送的数据长度
 uint8_t uart3_send_flag = 1;        // 发送完成标志位
+
+
+uint8_t uart4_recv_data[USART4_RX_MAXBUFF] = { 0 };  // 接收数据缓冲区
+uint8_t uart4_send_data[USART4_TX_MAXBUFF] = { 0 };  // 发送数据缓冲区
+uint32_t uart4_recv_flag = 0;        // 接收完成标志位
+uint32_t uart4_recv_len = 0;         // 接收的数据长度
+uint32_t uart4_send_len = 0;         // 发送的数据长度
+uint32_t uart4_send_flag = 1;        // 发送完成标志位
 /*--------航模数据解析相关全局变量的定义-----------*/
 SBUS_CH_Struct tagSBUS_CH;
 unsigned char Uart5_Buffer[Max_BUFF_Len] = {0};  
@@ -247,7 +255,7 @@ void uart3_dma_config(void)
 是在PCB板中的第二个USB接口
 返 回 值：无
 **************************************************************************/
-void Usart3_init(u32 baud)
+void Usart3_Init(uint32_t baud)
 {
 	GPIO_InitType GPIO_InitStructure;
 	NVIC_InitType NVIC_InitStructure;
@@ -291,7 +299,121 @@ void Usart3_init(u32 baud)
 	/* Enable the USARTz */
 	USART_Enable(USARTz, ENABLE);
 }
+/**
+ *  @brief  串口4 DMA初始化配置
+ *  @param  无
+ *  @retval 无
+ *  @note    UART4_TX -> DMA2 Channel5; UART4_RX -> DMA2 Channel3
+ */
+void uart4_dma_config(void)
+{
+	DMA_InitType DMA_InitStruct;
+	NVIC_InitType NVIC_InitStruct;
 
+	DMA_DeInit(USARTb_Tx_DMA_Channel);  // DMA2 通道5, UART4_TX
+	DMA_DeInit(USARTb_Rx_DMA_Channel);  // DMA2 通道3, UART4_RX
+
+	DMA_StructInit(&DMA_InitStruct);
+	// 配置 DMA2 通道5, UART4_TX
+	DMA_InitStruct.PeriphAddr = USARTb_DR_Base;   // 数据寄存器(USART_DR) 地址偏移：0x04
+	DMA_InitStruct.MemAddr = (uint32_t)uart4_send_data;  // 内存地址
+	DMA_InitStruct.Direction = DMA_DIR_PERIPH_DST;
+	DMA_InitStruct.BufSize = 0;      // 寄存器的内容为0时，无论通道是否开启，都不会发生任何数据传输
+	DMA_InitStruct.PeriphInc = DMA_PERIPH_INC_DISABLE;
+	DMA_InitStruct.DMA_MemoryInc = DMA_MEM_INC_ENABLE;
+	DMA_InitStruct.PeriphDataSize = DMA_PERIPH_DATA_SIZE_BYTE;
+	DMA_InitStruct.MemDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStruct.CircularMode = DMA_MODE_NORMAL;
+	DMA_InitStruct.Priority = DMA_PRIORITY_HIGH;
+	DMA_InitStruct.Mem2Mem = DMA_M2M_DISABLE;
+	DMA_Init(USARTb_Tx_DMA_Channel, &DMA_InitStruct);
+	DMA_RequestRemap(DMA2_REMAP_UART4_TX, DMA2, USARTb_Tx_DMA_Channel, ENABLE);
+
+	// 配置 DMA2 通道3, UART4_RX
+	DMA_InitStruct.PeriphAddr = USARTb_DR_Base;   // 数据寄存器(USART_DR) 地址偏移：0x04
+	DMA_InitStruct.MemAddr = (uint32_t)uart4_recv_data;  // 内存地址
+	DMA_InitStruct.Direction = DMA_DIR_PERIPH_SRC;                 // 外设到内存
+	DMA_InitStruct.BufSize = USART4_RX_MAXBUFF;
+	DMA_InitStruct.PeriphInc = DMA_PERIPH_INC_DISABLE;
+	DMA_InitStruct.DMA_MemoryInc = DMA_MEM_INC_ENABLE;
+	DMA_InitStruct.PeriphDataSize = DMA_PERIPH_DATA_SIZE_BYTE;
+	DMA_InitStruct.MemDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStruct.CircularMode = DMA_MODE_NORMAL;
+	DMA_InitStruct.Priority = DMA_PRIORITY_HIGH;
+	DMA_InitStruct.Mem2Mem = DMA_M2M_DISABLE;
+	DMA_Init(USARTb_Rx_DMA_Channel, &DMA_InitStruct);
+	DMA_RequestRemap(DMA2_REMAP_UART4_RX, DMA2, USARTb_Rx_DMA_Channel, ENABLE);
+
+	// 配置串口4的DMA发送中断
+	NVIC_InitStruct.NVIC_IRQChannel = DMA2_Channel5_IRQn;   //
+	NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;  // 抢占优先级
+	NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;         // 子优先级
+	NVIC_Init(&NVIC_InitStruct);
+	// 配置 DMA1 通道4, UART1_TX 传输完成中断
+	DMA_ConfigInt(USARTb_Tx_DMA_Channel, DMA_INT_TXC, ENABLE);
+	/* Get Current Data Counter value before transfer begins */
+
+	/* Enable USARTz DMA Rx and TX request */
+	USART_EnableDMA(USARTb, USART_DMAREQ_RX | USART_DMAREQ_TX, ENABLE);
+	DMA_EnableChannel(USARTb_Rx_DMA_Channel, DISABLE);     // 禁止接收
+	DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);    // 禁止发送
+}
+
+/**************************************************************************
+函数功能：串口4初始化，作为读取电池信息模块
+入口参数：baud为通信波特率
+返 回 值：无
+**************************************************************************/
+void Usart4_Init(uint32_t baud)         //usart4
+{
+	GPIO_InitType GPIO_InitStructure;
+	NVIC_InitType NVIC_InitStructure;
+	USART_InitType USART_InitStructure;
+	/* System Clocks Configuration */
+	RCC_EnableAPB2PeriphClk(USARTb_GPIO_CLK, ENABLE);	//使能GPIO时钟
+	RCC_EnableAPB1PeriphClk(USARTb_CLK, ENABLE);	//使能USART3时钟
+
+	RCC_EnableAHBPeriphClk(USARTb_DMAx_CLK, ENABLE);
+	/* Configure the GPIO ports */
+	//USART_TX  
+	GPIO_InitStructure.Pin = USARTb_TxPin; //
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;	//复用推挽输出
+	GPIO_InitPeripheral(USARTb_GPIO, &GPIO_InitStructure);
+	//USART_RX	  
+	GPIO_InitStructure.Pin = USARTb_RxPin;//
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;//上拉输入
+	GPIO_InitPeripheral(USARTb_GPIO, &GPIO_InitStructure);
+	//485 enable	  
+	GPIO_InitStructure.Pin = USARTb_485enPin; //
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	//复用推挽输出
+	GPIO_InitPeripheral(USARTb_485en_GPIO, &GPIO_InitStructure);
+
+	/* USARTz configuration ------------------------------------------------------*/
+	USART_InitStructure.BaudRate = baud;
+	USART_InitStructure.WordLength = USART_WL_8B;
+	USART_InitStructure.StopBits = USART_STPB_1;
+	USART_InitStructure.Parity = USART_PE_NO;
+	USART_InitStructure.HardwareFlowControl = USART_HFCTRL_NONE;
+	USART_InitStructure.Mode = USART_MODE_RX | USART_MODE_TX;
+
+	/* Configure USARTz */
+	USART_Init(USARTb, &USART_InitStructure);
+
+	//UsartNVIC 配置
+	NVIC_InitStructure.NVIC_IRQChannel = USARTb_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;//抢占优先级，中断优先级最高
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;		//子优先级
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
+	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
+
+	uart4_dma_config();     // DMA配置
+	USART_ConfigInt(USARTb, USART_INT_IDLEF, ENABLE);  // 使能空闲中断
+
+	/* Enable the USARTz */
+	USART_Enable(USARTb, ENABLE);
+}
 
 void SBUSDataRefresh(uint16_t* pdu)
 {
@@ -403,7 +525,6 @@ void DMA1_Channel2_IRQHandler(void)
 **************************************************************************/
 void USARTz_IRQHandler(void)
 {	
-#if(1)
 	if (USART_GetIntStatus(USARTz, USART_INT_IDLEF) != RESET)
 	{
 		USARTz->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
@@ -421,52 +542,41 @@ void USARTz_IRQHandler(void)
 		DMA_SetCurrDataCounter(USARTz_Rx_DMA_Channel, USART3_RX_MAXBUFF);
 		DMA_EnableChannel(USARTz_Rx_DMA_Channel, ENABLE);     // DMA1 通道3, UART3_RX
 	}
-#else
-	static unsigned char ucCount=0;
-	unsigned char ucUsart_Receive;
-
-	
-	if(USART_GetITStatus(USART3, USART_IT_RXNE) != RESET)  //判断是否接收到数据
-	{
-		USART_ClearITPendingBit(USART3,USART_IT_RXNE); //清除中断标志
-		
-		g_ucRos_Flag = 1;                        // 航模开启的时候，给这个变量赋值为0
-		if(g_ucRemote_Flag == 0 && g_ucRos_Flag == 1)
-		{
-			g_eControl_Mode = CONTROL_MODE_ROS;   // 为ROS上位机控制
-		}
-		
-		ucUsart_Receive = USART_ReceiveData(USART3);//读取数据
-    Receive_Data.buffer[ucCount] = ucUsart_Receive;
-		if(ucUsart_Receive == FRAME_HEADER || ucCount > 0) 
-		{
-			ucCount++;
-		} 
-		else 
-		{
-			ucCount = 0;
-		}
-		if (ucCount == 11)	//验证数据包的长度
-		{   
-			ucCount=0;//重新开始接收
-			if(Receive_Data.buffer[10] == FRAME_TAIL) //验证数据包的尾部校验信息
-			{
-				if(Receive_Data.buffer[9] ==Check_Sum(9,0))	 //数据校验位计算，模式0是发送数据校验
-				{			
-//					Move_X=XYZ_Target_Speed_transition(Receive_Data.buffer[3],Receive_Data.buffer[4]);
-//					Move_Y=XYZ_Target_Speed_transition(Receive_Data.buffer[5],Receive_Data.buffer[6]);
-//					Move_Z=XYZ_Target_Speed_transition(Receive_Data.buffer[7],Receive_Data.buffer[8]);
-					g_fltRecv_Vel_X = XYZ_Target_Speed_transition(Receive_Data.buffer[3],Receive_Data.buffer[4]);
-					g_fltRecv_Vel_Y = XYZ_Target_Speed_transition(Receive_Data.buffer[5],Receive_Data.buffer[6]);
-					g_fltRecv_Vel_Z = XYZ_Target_Speed_transition(Receive_Data.buffer[7],Receive_Data.buffer[8]);
-				}
-			}
-		}
-	} 
-#endif
 }
 
 
+// DMA2 通道5, UART4_TX 传输完成中断
+void DMA2_Channel5_IRQHandler(void)
+{
+	if (DMA_GetIntStatus(DMA2_INT_TXC5, DMA2) != RESET) // DMA2 通道5, UART4_TX 传输完成
+	{
+		DMA_ClrIntPendingBit(DMA2_INT_TXC5, DMA2);     // 清除中断
+		uart4_send_flag = 1;
+		//GPIO_ResetBits(USARTb_485en_GPIO, USARTb_485enPin);
+		GPIO_SetBits(USARTb_485en_GPIO, USARTb_485enPin);
+		DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);        // 关闭 DMA2 通道5, UART4_TX
+		DMA_EnableChannel(USARTb_Rx_DMA_Channel, DISABLE);    // DMA2 通道3, UART4_RX
+		DMA_SetCurrDataCounter(USARTb_Rx_DMA_Channel, USART4_RX_MAXBUFF);
+		DMA_EnableChannel(USARTb_Rx_DMA_Channel, ENABLE);     // DMA2 通道3, UART4_RX
+	}
+}
+/**************************************************************************
+函数功能：串口4接收中断,接收电池发送过来的数据
+入口参数：无
+返 回 值：无
+**************************************************************************/
+void USARTb_IRQHandler(void)
+{
+	if (USART_GetIntStatus(USARTb, USART_INT_IDLEF) != RESET)
+	{
+		USARTb->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
+		USARTb->DAT; // 清除空闲中断
+		uart4_recv_flag = 1;                // 接收标志置1
+		// 统计收到的数据的长度
+		uart4_recv_len = USART4_RX_MAXBUFF - DMA_GetCurrDataCounter(USARTb_Rx_DMA_Channel);
+		DMA_EnableChannel(USARTb_Rx_DMA_Channel, DISABLE);    // DMA2 通道3, UART4_RX
+	}
+}
 /**************************************************************************
 函数功能：串口发送的数据进行赋值
 入口参数：无

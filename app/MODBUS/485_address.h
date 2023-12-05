@@ -99,6 +99,11 @@ enum address_485 {
     car_current_ctrl_mode,
     car_feedback_lin_speed = 158,
     car_feedback_ang_speed = 160,
+    BatteryStatus=162,
+    BatteryQuantity,
+    BatteryVoltage,
+    BatteryCurrent,
+    BatteryTemperature,
     // 电机参数
     motor1_state_word = 171,
     motor1_on_line_state,

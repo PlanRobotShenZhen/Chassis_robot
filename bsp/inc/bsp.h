@@ -73,7 +73,7 @@ typedef struct __SPI_IO_OUTPUT
 	unsigned char output;
 }EXIO_OUTPUT;
 
-#define PLAN_CONTROL_BOARD_V 11
+#define PLAN_CONTROL_BOARD_V 12
 #if(PLAN_CONTROL_BOARD_V==10)
 #define PLAN_CONTROL_BOARD_VERSION "V1.0"
 
@@ -153,8 +153,14 @@ typedef struct __SPI_IO_OUTPUT
 #define CANb_RxPin			GPIO_PIN_12
 #define CANb_TxPin			GPIO_PIN_13
 
-#elif(PLAN_CONTROL_BOARD_V==11)
+#elif(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
+
+#if(PLAN_CONTROL_BOARD_V==11)
 #define PLAN_CONTROL_BOARD_VERSION "V1.1"
+#endif
+#if(PLAN_CONTROL_BOARD_V==12)
+#define PLAN_CONTROL_BOARD_VERSION "V1.2"
+#endif
 #define LED1_PORT_RCC     RCC_APB2_PERIPH_GPIOC
 #define LED2_PORT_RCC     RCC_APB2_PERIPH_GPIOB
 #define LED1_PORT     GPIOC
@@ -209,6 +215,24 @@ typedef struct __SPI_IO_OUTPUT
 #define USARTz_Rx_DMA_Channel	DMA1_CH3
 #define USARTz_DR_Base			(USART3_BASE + 0x04)
 #define USARTz_Tx_DMA_FLAG		DMA1_FLAG_TC2
+
+/*USART4 电池信息读取*/
+#define USARTb					UART4
+#define USARTb_GPIO				GPIOA
+#define USARTb_CLK				RCC_APB1_PERIPH_UART4
+#define USARTb_GPIO_CLK			RCC_APB2_PERIPH_GPIOA
+#define USARTb_RxPin			GPIO_PIN_14
+#define USARTb_TxPin			GPIO_PIN_13
+#define USARTb_485enPin			GPIO_PIN_7
+#define USARTb_485en_GPIO		GPIOB
+#define USARTb_DMAx_CLK			RCC_AHB_PERIPH_DMA2
+#define USARTb_APBxClkCmd		RCC_EnableAPB2PeriphClk
+#define USARTb_IRQHandler		UART4_IRQHandler
+#define USARTb_IRQn				UART4_IRQn
+#define USARTb_Tx_DMA_Channel	DMA2_CH5
+#define USARTb_Rx_DMA_Channel	DMA2_CH3
+#define USARTb_DR_Base			(UART4_BASE + 0x04)
+#define USARTb_Tx_DMA_FLAG		DMA2_FLAG_TC5
 /*USART5 */
 #define USARTe					UART5
 #define USARTe_GPIO				GPIOB
