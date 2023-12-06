@@ -72,16 +72,16 @@ typedef struct _SEND_DATA_
 	short X_speed;	           //2个字节
 	short Y_speed;             //2个字节
 	short Z_speed;             //2个字节
-	short Power_Voltage;       //2个字节
+	uint16_t Power_Quantity;       //电池电量
+	uint16_t Power_Voltage;       //电池电压
+	uint16_t Power_Current;       //电池电流
+	uint16_t Power_Temperature;       //电池温度
 
 	uint16_t M1_current;       //< 电机1电流
 	uint16_t M2_current;       //< 电机2电流
 	uint16_t P19_current;       //< 19V电源电流
 	uint16_t P12_current;       //< 12V电源电流
 	uint16_t P5_current;       //< 5V电源电流
-
-	Mpu6050_Data Accelerometer;//6个字节
-	Mpu6050_Data Gyroscope;    //6个字节
 
 	unsigned char Frame_Tail;  //1个字节
 

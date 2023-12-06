@@ -397,8 +397,7 @@ void BatteryInformation()
 	static bt = 0;
 	if (uart4_recv_flag)
 	{
-		//pdu[BatteryCurrent] = uart4_recv_len;//< 
-		//pdu[BatteryTemperature] = uart4_recv_data[0];
+		uart4_recv_flag = 0;
 		if (uart4_recv_data[0] == 0x7e)
 		{
 			uint32_t tmp = 0;
@@ -431,7 +430,6 @@ void BatteryInformation()
 	{//< 1秒刷新1次
 		bt = 0;
 		GPIO_SetBits(USARTb_485en_GPIO, USARTb_485enPin);
-		//GPIO_ResetBits(USARTb_485en_GPIO, USARTb_485enPin);
 		DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);    // 关闭 DMA2 通道5, UART4_TX
 		DMA_SetCurrDataCounter(USARTb_Tx_DMA_Channel, 14);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
 		DMA_EnableChannel(USARTb_Tx_DMA_Channel, ENABLE);    // 开启 DMA2 通道5, UART4_TX	
