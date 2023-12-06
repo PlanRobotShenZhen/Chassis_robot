@@ -19,7 +19,7 @@ uint32_t uart1_recv_len = 0;         // 接收的数据长度
 uint32_t uart1_send_len = 0;         // 发送的数据长度
 uint32_t uart1_send_flag = 0;        // 发送完成标志位
 #define USART3_RX_MAXBUFF 25
-#define USART3_TX_MAXBUFF 34
+#define USART3_TX_MAXBUFF 50
 uint8_t uart3_recv_data[USART3_RX_MAXBUFF] = { 0 };  // 接收数据缓冲区
 uint8_t uart3_send_data[USART3_TX_MAXBUFF] = { 0 };  // 发送数据缓冲区
 uint8_t uart3_recv_flag = 0;        // 接收完成标志位
@@ -651,18 +651,16 @@ void Data_transition(void)
 		default:
 			break;
 	}
-	//加速度计三轴加速度
-	Send_Data.Accelerometer.X_data=0;// accel[1]; //加速度计Y轴转换到ROS坐标X轴
-	Send_Data.Accelerometer.Y_data=0;//-accel[0]; //加速度计X轴转换到ROS坐标Y轴
-	Send_Data.Accelerometer.Z_data=0;// accel[2];
 	
 	//角速度计三轴角速度
 	Send_Data.Gyroscope.X_data=0;// gyro[1]; //角速度计Y轴转换到ROS坐标X轴
 	Send_Data.Gyroscope.Y_data=0;//-gyro[0]; //角速度计X轴转换到ROS坐标Y轴
 	if (Flag_Stop == 0) Send_Data.Gyroscope.Z_data = 0;//gyro[2];  //如果电机控制位使能状态，那么正常发送Z轴角速度
 	else             Send_Data.Gyroscope.Z_data=0;       //如果机器人是静止的（电机控制位失能），那么发送的Z轴角速度为0
-	
-	Send_Data.Power_Voltage = Voltage*1000; //电池电压(这里将浮点数放大一千倍传输，相应的在接收端在接收到数据后也会缩小一千倍)
+	Send_Data.Power_Quantity = pdu[BatteryQuantity];
+	Send_Data.Power_Voltage = pdu[BatteryVoltage]; //电池电压(这里将浮点数放大一千倍传输，相应的在接收端在接收到数据后也会缩小一千倍)
+	Send_Data.Power_Current = pdu[BatteryCurrent];
+	Send_Data.Power_Temperature = pdu[BatteryTemperature];
 	i = 0;
 	uart3_send_data[i++] = Send_Data.Frame_Header; //帧头(固定值)
 	uart3_send_data[i++] = Flag_Stop;//电机状态	
@@ -672,20 +670,15 @@ void Data_transition(void)
 	uart3_send_data[i++] = Send_Data.Y_speed;     //小车y轴速度
 	uart3_send_data[i++] = Send_Data.Z_speed >>8; //小车z轴速度
 	uart3_send_data[i++] = Send_Data.Z_speed ;    //小车z轴速度	
-	uart3_send_data[i++] = Send_Data.Accelerometer.X_data>>8; //加速度计三轴加速度
-	uart3_send_data[i++] = Send_Data.Accelerometer.X_data;    //加速度计三轴加速度
-	uart3_send_data[i++] = Send_Data.Accelerometer.Y_data>>8;
-	uart3_send_data[i++] = Send_Data.Accelerometer.Y_data;
-	uart3_send_data[i++] = Send_Data.Accelerometer.Z_data>>8;
-	uart3_send_data[i++] = Send_Data.Accelerometer.Z_data;	
-	uart3_send_data[i++] = Send_Data.Gyroscope.X_data>>8; //角速度计三轴角速度
-	uart3_send_data[i++] = Send_Data.Gyroscope.X_data; //角速度计三轴角速度
-	uart3_send_data[i++] = Send_Data.Gyroscope.Y_data>>8;
-	uart3_send_data[i++] = Send_Data.Gyroscope.Y_data;
-	uart3_send_data[i++] = Send_Data.Gyroscope.Z_data>>8;
-	uart3_send_data[i++] = Send_Data.Gyroscope.Z_data;	
-	uart3_send_data[i++] = Send_Data.Power_Voltage >>8; //电池电压
+	uart3_send_data[i++] = Send_Data.Power_Quantity >>8; //电池电量
+	uart3_send_data[i++] = Send_Data.Power_Quantity; //电池电量
+	uart3_send_data[i++] = Send_Data.Power_Voltage >> 8; //电池电压
 	uart3_send_data[i++] = Send_Data.Power_Voltage; //电池电压
+	uart3_send_data[i++] = Send_Data.Power_Current >> 8; //电池电流
+	uart3_send_data[i++] = Send_Data.Power_Current; //电池电流
+	uart3_send_data[i++] = Send_Data.Power_Temperature >> 8; //电池温度
+	uart3_send_data[i++] = Send_Data.Power_Temperature; //电池温度
+
 	uart3_send_data[i++] = Send_Data.M1_current >> 8; //电机1电流
 	uart3_send_data[i++] = Send_Data.M1_current; //电机1电流
 	uart3_send_data[i++] = Send_Data.M2_current >> 8; //电机2电流
