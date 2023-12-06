@@ -99,7 +99,7 @@ enum address_485 {
     car_current_ctrl_mode,
     car_feedback_lin_speed = 158,
     car_feedback_ang_speed = 160,
-    BatteryStatus=162,
+    BatteryStatus=166,
     BatteryQuantity,
     BatteryVoltage,
     BatteryCurrent,

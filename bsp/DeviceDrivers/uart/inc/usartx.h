@@ -15,8 +15,8 @@ Usart3是与上位机ROS通信的。
 
 #define USART1_RX_MAXBUFF   2560 		// 接收数据最大缓冲区
 #define USART1_TX_MAXBUFF   256 		// 接收数据最大缓冲区
-#define USART4_RX_MAXBUFF 250
-#define USART4_TX_MAXBUFF 12
+#define USART4_RX_MAXBUFF 500
+#define USART4_TX_MAXBUFF 25
 /*—-------------航模模块--------------*/
 #define Max_BUFF_Len      200          //一帧数据的长度，25个字节
 #define VEL_BASE_VALUE   1023         //ch3通道基准值，速度

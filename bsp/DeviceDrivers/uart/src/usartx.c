@@ -350,7 +350,7 @@ void uart4_dma_config(void)
 	NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;  // 抢占优先级
 	NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;         // 子优先级
 	NVIC_Init(&NVIC_InitStruct);
-	// 配置 DMA1 通道4, UART1_TX 传输完成中断
+	// 配置 DMA2 通道5, UART4_TX 传输完成中断
 	DMA_ConfigInt(USARTb_Tx_DMA_Channel, DMA_INT_TXC, ENABLE);
 	/* Get Current Data Counter value before transfer begins */
 
@@ -358,6 +358,18 @@ void uart4_dma_config(void)
 	USART_EnableDMA(USARTb, USART_DMAREQ_RX | USART_DMAREQ_TX, ENABLE);
 	DMA_EnableChannel(USARTb_Rx_DMA_Channel, DISABLE);     // 禁止接收
 	DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);    // 禁止发送
+}
+//JTAG模式设置,用于设置JTAG的模式
+//mode: jtag,swd模式设置;00, 全使能;01, 使能SWD;10, 全关闭;
+//JTAG,SWD但没有NJTRST选项没有写入		  
+void JTAG_Set(uint8_t mode)
+{
+	uint32_t temp;
+	temp = mode;
+	temp <<= 25;
+	RCC->APB2PCLKEN |= 1 << 0;     //开启辅助时钟	   
+	AFIO->RMP_CFG &= 0XF8FFFFFF; //清除MAPR的[26:24]
+	AFIO->RMP_CFG |= temp;       //设置jtag模式
 }
 
 /**************************************************************************
@@ -370,10 +382,13 @@ void Usart4_Init(uint32_t baud)         //usart4
 	GPIO_InitType GPIO_InitStructure;
 	NVIC_InitType NVIC_InitStructure;
 	USART_InitType USART_InitStructure;
+	RCC_EnableAPB2PeriphClk(RCC_APB2_PERIPH_AFIO,ENABLE);
+	GPIO_ConfigPinRemap(AFIO_RMP_CFG_SW_JTAG_CFG_DISABLE, ENABLE);
+	GPIO_ConfigPinRemap(GPIO_RMP_SW_JTAG_DISABLE, ENABLE);
+
 	/* System Clocks Configuration */
 	RCC_EnableAPB2PeriphClk(USARTb_GPIO_CLK, ENABLE);	//使能GPIO时钟
-	RCC_EnableAPB1PeriphClk(USARTb_CLK, ENABLE);	//使能USART3时钟
-
+	RCC_EnableAPB1PeriphClk(USARTb_CLK, ENABLE);	//使能USART4时钟
 	RCC_EnableAHBPeriphClk(USARTb_DMAx_CLK, ENABLE);
 	/* Configure the GPIO ports */
 	//USART_TX  
@@ -383,14 +398,15 @@ void Usart4_Init(uint32_t baud)         //usart4
 	GPIO_InitPeripheral(USARTb_GPIO, &GPIO_InitStructure);
 	//USART_RX	  
 	GPIO_InitStructure.Pin = USARTb_RxPin;//
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;//上拉输入
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;//浮空输入
 	GPIO_InitPeripheral(USARTb_GPIO, &GPIO_InitStructure);
+	GPIO_ConfigPinRemap(GPIO_RMP2_UART4, ENABLE);
+	/*****************************************/
 	//485 enable	  
 	GPIO_InitStructure.Pin = USARTb_485enPin; //
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;	//复用推挽输出
 	GPIO_InitPeripheral(USARTb_485en_GPIO, &GPIO_InitStructure);
-
-	/* USARTz configuration ------------------------------------------------------*/
+	/* USARTb configuration ------------------------------------------------------*/
 	USART_InitStructure.BaudRate = baud;
 	USART_InitStructure.WordLength = USART_WL_8B;
 	USART_InitStructure.StopBits = USART_STPB_1;
@@ -398,7 +414,7 @@ void Usart4_Init(uint32_t baud)         //usart4
 	USART_InitStructure.HardwareFlowControl = USART_HFCTRL_NONE;
 	USART_InitStructure.Mode = USART_MODE_RX | USART_MODE_TX;
 
-	/* Configure USARTz */
+	/* Configure USARTb */
 	USART_Init(USARTb, &USART_InitStructure);
 
 	//UsartNVIC 配置
@@ -411,7 +427,7 @@ void Usart4_Init(uint32_t baud)         //usart4
 	uart4_dma_config();     // DMA配置
 	USART_ConfigInt(USARTb, USART_INT_IDLEF, ENABLE);  // 使能空闲中断
 
-	/* Enable the USARTz */
+	/* Enable the USARTb */
 	USART_Enable(USARTb, ENABLE);
 }
 
@@ -552,8 +568,8 @@ void DMA2_Channel5_IRQHandler(void)
 	{
 		DMA_ClrIntPendingBit(DMA2_INT_TXC5, DMA2);     // 清除中断
 		uart4_send_flag = 1;
-		//GPIO_ResetBits(USARTb_485en_GPIO, USARTb_485enPin);
-		GPIO_SetBits(USARTb_485en_GPIO, USARTb_485enPin);
+		GPIO_ResetBits(USARTb_485en_GPIO, USARTb_485enPin);
+		//GPIO_SetBits(USARTb_485en_GPIO, USARTb_485enPin);
 		DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);        // 关闭 DMA2 通道5, UART4_TX
 		DMA_EnableChannel(USARTb_Rx_DMA_Channel, DISABLE);    // DMA2 通道3, UART4_RX
 		DMA_SetCurrDataCounter(USARTb_Rx_DMA_Channel, USART4_RX_MAXBUFF);
