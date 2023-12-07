@@ -35,6 +35,7 @@
 #include "n32g45x_it.h"
 #include "n32g45x.h"
 #include "main.h"
+#include "bsp.h"
 
 /** @addtogroup N32G45X_StdPeriph_Template
  * @{
@@ -119,10 +120,17 @@ void DebugMon_Handler(void)
 //}
 
 /**
- * @brief  This function handles DMA interrupt request defined in main.h .
+ * @brief  This function handles SPI1 interrupt request defined in main.h .
  */
-void DMA_IRQ_HANDLER(void)
+void SPI1_IRQHandler(void)
 {
+    if (SPI_I2S_GetStatus(SPI_MASTER, SPI_I2S_RNE_FLAG) != RESET)
+    {
+        SPI_Master_Rx_Buffer = SPI_MASTER->DAT;
+        SPI_ReadWriteCycle = 0;
+        GPIO_WriteBit(SPI_MASTER_GPIO, SPI_MASTER_PIN_NSS, Bit_RESET);
+    }
+
 }
 
 /******************************************************************************/

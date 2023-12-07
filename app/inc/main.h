@@ -40,7 +40,6 @@ extern "C" {
 #endif
 
 #include "n32g45x.h"
-
 #ifdef __cplusplus
 }
 #endif

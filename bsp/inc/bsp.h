@@ -176,14 +176,6 @@ typedef struct __SPI_IO_OUTPUT
 #define JDQ1_PIN    GPIO_PIN_13
 #define JDQ2_PIN    GPIO_PIN_14
 
-
-#define SPI1_PORT        GPIOA
-#define SPI1_NSS_PIN     GPIO_PIN_4
-#define SPI1_SCK_PIN     GPIO_PIN_5
-#define SPI1_MISO_PIN    GPIO_PIN_6
-#define SPI1_MOSI_PIN    GPIO_PIN_7
-
-
 /*USART1 */
 #define USARTy            USART1
 #define USARTy_GPIO       GPIOA
@@ -300,6 +292,18 @@ typedef struct __SPI_IO_OUTPUT
 #define YL_5_RxPin			GPIO_PIN_15
 #define YL_5_JT_ADC		    ADC4
 #define YL_5_JT_ADC_Channel	ADC4_Channel_05_PB15
+/*SPI1*/
+#define SPI_MASTER                SPI1
+#define SPI_MASTER_CLK            RCC_APB2_PERIPH_SPI1
+#define SPI_MASTER_GPIO           GPIOA
+#define SPI_MASTER_GPIO_CLK       RCC_APB2_PERIPH_GPIOA
+#define SPI_MASTER_PIN_SCK        GPIO_PIN_5
+#define SPI_MASTER_PIN_NSS        GPIO_PIN_4
+#define SPI_MASTER_PIN_MOSI       GPIO_PIN_7
+#define SPI_MASTER_PIN_MISO       GPIO_PIN_6
+
+extern uint8_t SPI_Master_Rx_Buffer;
+extern uint8_t SPI_ReadWriteCycle;
 
 #endif
 

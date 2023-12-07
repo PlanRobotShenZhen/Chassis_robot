@@ -652,11 +652,6 @@ void Data_transition(void)
 			break;
 	}
 	
-	//角速度计三轴角速度
-	Send_Data.Gyroscope.X_data=0;// gyro[1]; //角速度计Y轴转换到ROS坐标X轴
-	Send_Data.Gyroscope.Y_data=0;//-gyro[0]; //角速度计X轴转换到ROS坐标Y轴
-	if (Flag_Stop == 0) Send_Data.Gyroscope.Z_data = 0;//gyro[2];  //如果电机控制位使能状态，那么正常发送Z轴角速度
-	else             Send_Data.Gyroscope.Z_data=0;       //如果机器人是静止的（电机控制位失能），那么发送的Z轴角速度为0
 	Send_Data.Power_Quantity = pdu[BatteryQuantity];
 	Send_Data.Power_Voltage = pdu[BatteryVoltage]; //电池电压(这里将浮点数放大一千倍传输，相应的在接收端在接收到数据后也会缩小一千倍)
 	Send_Data.Power_Current = pdu[BatteryCurrent];

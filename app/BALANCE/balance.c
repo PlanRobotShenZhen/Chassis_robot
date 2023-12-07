@@ -20,7 +20,9 @@ float g_fltProprity_Voltage=1;  //
 float Voltage = 0.0f;
 
 
-
+uint8_t SPI_Master_Rx_Buffer;
+int SPI_heartbeat = 0;
+uint8_t SPI_ReadWriteCycle = 0;
 /**************************************************************************
 函数功能：对接收到数据进行处理
 入口参数：X和Y Z轴方向的运动速度
@@ -274,35 +276,6 @@ void Smooth_control(float vx,float vy,float vz)
 }
 
 
-#if(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
-void ExioInit(void)
-{
-	EXIO_INPUT in;
-	EXIO_OUTPUT out;
-	SPI_InitType SPI_InitStructure;
-	NVIC_InitType NVIC_InitStruct;
-	SPI_InitStructure.DataDirection = SPI_DIR_DOUBLELINE_FULLDUPLEX;
-	SPI_InitStructure.SpiMode       = SPI_MODE_MASTER;
-	SPI_InitStructure.DataLen       = SPI_DATA_SIZE_8BITS;
-	SPI_InitStructure.CLKPOL		= SPI_CLKPOL_HIGH;
-	SPI_InitStructure.CLKPHA		= SPI_CLKPHA_FIRST_EDGE;
-	SPI_InitStructure.NSS			= SPI_NSS_SOFT;
-	SPI_InitStructure.BaudRatePres  = SPI_BR_PRESCALER_64;
-	SPI_InitStructure.FirstBit      = SPI_FB_LSB;
-	SPI_InitStructure.CRCPoly       = 7;
-	SPI_Init(SPI1, &SPI_InitStructure);
-
-	NVIC_InitStruct.NVIC_IRQChannel = SPI1_IRQn;
-	NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;  // 抢占优先级
-	NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;         // 子优先级
-	NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStruct);
-
-	SPI_I2S_EnableInt(SPI1, SPI_I2S_INT_RNE, ENABLE);
-	SPI_Enable(SPI1,ENABLE);
-}
-
-#endif
 
 
 /**************************************************************************
@@ -436,7 +409,39 @@ void BatteryInformation()
 	}
 }
 
-
+//SPI读写函数
+void  SPI1_ReadWriteByte(void)
+{
+	if (SPI_ReadWriteCycle == 0)
+	{
+		uint16_t retry = 0;
+		GPIO_WriteBit(SPI_MASTER_GPIO, SPI_MASTER_PIN_NSS, Bit_SET);
+		pdu[exio_input_status] = (uint16_t)SPI_Master_Rx_Buffer;
+		for (retry = 0;retry < 1000;)
+		{
+			retry++;
+		}
+		retry = 0;
+		while ((SPI_MASTER->STS & 1 << 1) == 0) //等待发送区空
+		{
+			retry++;
+			if (retry > 2000) return;
+		}
+		SPI_MASTER->DAT = pdu[exio_output_set];
+		SPI_ReadWriteCycle = 1;
+		SPI_heartbeat = 0;
+		pdu[car_light_messages] = pdu[exio_output_set];
+	}
+	if (SPI_ReadWriteCycle == 1)
+	{
+		SPI_heartbeat++;
+		if (SPI_heartbeat > 20)
+		{
+			SPI_heartbeat = 0;
+			SPI_ReadWriteCycle = 0;
+		}
+	}
+}
 /**************************************************************************
 函数功能：核心控制相关
 入口参数：
@@ -444,6 +449,7 @@ void BatteryInformation()
 **************************************************************************/
 void Balance_task(void* pvParameters)
 {
+	uint8_t tmp1 = 0;
 	pdu = (uint16_t*)pvParameters;
 	// pdu[61] 电机1车轮半径 pdu[62] 电机1减速比
 	//FourWheer_Perimeter = 2 * PI * FourWheer_Radiaus;
@@ -480,12 +486,6 @@ void Balance_task(void* pvParameters)
 	pdu[axles_distance] = (uint16_t)(Axle_spacing * 10000);
 	pdu[motor_num] = Motor_Number;
 	pdu[car_mode] = CONTROL_MODE_REMOTE;
-	uint8_t tmp1=0;
-
-
-#if(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
-	ExioInit();
-#endif
 	i = 0;
 	//7E 0A 01 00 00 30 00 AC 00 00 2C 90
 	uart4_send_data[0] = 0x7E;
@@ -569,6 +569,6 @@ void Balance_task(void* pvParameters)
 			pdu[car_system_state] = 2;
 		}
 		BatteryInformation();
-
+		SPI1_ReadWriteByte();
 	}
 }

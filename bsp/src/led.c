@@ -90,6 +90,50 @@ void LedInit(GPIO_Module* GPIOx, uint16_t Pin)
         GPIO_InitPeripheral(GPIOx, &GPIO_InitStructure);
     }
 }
+#if(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
+void ExioInit(void)
+{
+    EXIO_INPUT in;
+    EXIO_OUTPUT out;
+    SPI_InitType SPI_InitStructure;
+    NVIC_InitType NVIC_InitStruct;
+    GPIO_InitType GPIO_InitStructure;
+    /* Enable SPI_MASTER clock and GPIO clock for SPI_MASTER and SPI_SLAVE */
+    RCC_EnableAPB2PeriphClk(SPI_MASTER_GPIO_CLK | SPI_MASTER_CLK, ENABLE);
+    /* Configure SPI_MASTER pins: SCK  MOSI MISO*/
+    GPIO_InitStructure.Pin = SPI_MASTER_PIN_SCK | SPI_MASTER_PIN_MOSI | SPI_MASTER_PIN_MISO;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitPeripheral(SPI_MASTER_GPIO, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.Pin = SPI_MASTER_PIN_NSS;
+    GPIO_InitPeripheral(SPI_MASTER_GPIO, &GPIO_InitStructure);
+    GPIO_WriteBit(SPI_MASTER_GPIO, SPI_MASTER_PIN_NSS, Bit_RESET);
+
+    SPI_InitStructure.DataDirection = SPI_DIR_DOUBLELINE_FULLDUPLEX;
+    SPI_InitStructure.SpiMode = SPI_MODE_MASTER;
+    SPI_InitStructure.DataLen = SPI_DATA_SIZE_8BITS;
+    SPI_InitStructure.CLKPOL = SPI_CLKPOL_HIGH;
+    SPI_InitStructure.CLKPHA = SPI_CLKPHA_FIRST_EDGE;
+    SPI_InitStructure.NSS = SPI_NSS_SOFT;
+    SPI_InitStructure.BaudRatePres = SPI_BR_PRESCALER_64;
+    SPI_InitStructure.FirstBit = SPI_FB_MSB;
+    SPI_InitStructure.CRCPoly = 7;
+    SPI_Init(SPI1, &SPI_InitStructure);
+
+    NVIC_InitStruct.NVIC_IRQChannel = SPI1_IRQn;
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;  // 抢占优先级
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;         // 子优先级
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStruct);
+
+    SPI_I2S_EnableInt(SPI1, SPI_I2S_INT_RNE, ENABLE);
+    SPI_Enable(SPI1, ENABLE);
+}
+
+#endif
+
 void LED_Init(void)
 {
     GPIO_InitType GPIO_InitStructure;
@@ -126,6 +170,7 @@ void LED_Init(void)
     GPIO_InitStructure.Pin = JDQ1_PIN | JDQ2_PIN;
     GPIO_InitPeripheral(JDQ_PORT, &GPIO_InitStructure);
     GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
+    ExioInit();
     rt_thread_delay(20000);   //< 2s
     GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
     rt_thread_delay(5000);   //< 500ms
