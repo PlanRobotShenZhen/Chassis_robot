@@ -19,7 +19,12 @@ int g_nVol_get_Flag = 0;          //
 float g_fltProprity_Voltage=1;  //
 float Voltage = 0.0f;
 
-
+uint8_t ultrasonic_t1tig = 1;
+uint8_t ultrasonic_t2tig = 1;
+uint32_t ultrasonic_t1tig_time = 0;
+uint32_t ultrasonic_t2tig_time = 0;
+int ultrasonic_t1tig_heartbeat = 0;
+int ultrasonic_t2tig_heartbeat = 0;
 uint8_t SPI_Master_Rx_Buffer;
 int SPI_heartbeat = 0;
 uint8_t SPI_ReadWriteCycle = 0;
@@ -408,7 +413,52 @@ void BatteryInformation()
 		DMA_EnableChannel(USARTb_Tx_DMA_Channel, ENABLE);    // ¿ªÆô DMA2 Í¨µÀ5, UART4_TX	
 	}
 }
-
+//< ³¬Éù²¨¼ì²â
+void UltrasonicProcess(void)
+{
+	if (ultrasonic_t1tig == 1)
+	{
+		int i = 0;
+		ultrasonic_t1tig = 0;
+		ultrasonic_t1tig_heartbeat = 0;
+		pdu[Ultrasonic1_H] = (uint16_t)(ultrasonic_t1tig_time>>16);
+		pdu[Ultrasonic1_L] = (uint16_t)ultrasonic_t1tig_time;
+		GPIO_SetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
+		for (i = 0;i < 100;i++);
+		GPIO_ResetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
+		UltrasonicSetEnable(1, 1);
+	}
+	else
+	{
+		ultrasonic_t1tig_heartbeat++;
+		if (ultrasonic_t1tig_heartbeat > 50)
+		{
+			ultrasonic_t1tig = 1;
+			ultrasonic_t1tig_heartbeat = 0;
+		}
+	}
+	if (ultrasonic_t2tig == 1)
+	{
+		int i = 0;
+		ultrasonic_t2tig = 0;
+		ultrasonic_t2tig_heartbeat = 0;
+		pdu[Ultrasonic2_H] = (uint16_t)(ultrasonic_t2tig_time >> 16);
+		pdu[Ultrasonic2_L] = (uint16_t) ultrasonic_t2tig_time;
+		GPIO_SetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
+		for (i = 0;i < 100;i++);
+		GPIO_ResetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
+		UltrasonicSetEnable(2, 1);
+	}
+	else
+	{
+		ultrasonic_t2tig_heartbeat++;
+		if (ultrasonic_t2tig_heartbeat > 50)
+		{
+			ultrasonic_t2tig = 1;
+			ultrasonic_t2tig_heartbeat = 0;
+		}
+	}
+}
 //SPI¶ÁÐ´º¯Êý
 void  SPI1_ReadWriteByte(void)
 {
@@ -570,5 +620,6 @@ void Balance_task(void* pvParameters)
 		}
 		BatteryInformation();
 		SPI1_ReadWriteByte();
+		UltrasonicProcess();
 	}
 }

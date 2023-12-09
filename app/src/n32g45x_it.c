@@ -36,6 +36,7 @@
 #include "n32g45x.h"
 #include "main.h"
 #include "bsp.h"
+#include "led.h"
 
 /** @addtogroup N32G45X_StdPeriph_Template
  * @{
@@ -133,20 +134,66 @@ void SPI1_IRQHandler(void)
 
 }
 
-/******************************************************************************/
-/*                 N32G45X Peripherals Interrupt Handlers                     */
-/*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */
-/*  available peripheral interrupt handler's name please refer to the startup */
-/*  file (startup_n32g45x.s).                                                 */
-/******************************************************************************/
 
-/**
- * @brief  This function handles PPP interrupt request.
- */
-/*void PPP_IRQHandler(void)
+void EXTI4_IRQHandler(void)
 {
-}*/
+    if (RESET != EXTI_GetITStatus(EXTI_LINE4))
+    {
+        EXTI_ClrITPendBit(EXTI_LINE4);
+        TIM_ClrIntPendingBit(TIM3, TIM_INT_UPDATE);
+        if (GPIO_ReadInputDataBit(CS1_Econ_PORT, CS1_Econ_PIN))
+        {
+            ultrasonic_t1tig_time=0;
+            TIM_SetCnt(TIM3, 0);
+            TIM_Enable(TIM3, ENABLE);
+        }
+        else
+        {
+            TIM_Enable(TIM3, DISABLE);
+            ultrasonic_t1tig = 1;
+            UltrasonicSetEnable(1, 0);
+        }
+    }
+}
+void EXTI9_5_IRQHandler(void)
+{
+    if (RESET != EXTI_GetITStatus(EXTI_LINE5))
+    {
+        EXTI_ClrITPendBit(EXTI_LINE5);
+        if (GPIO_ReadInputDataBit(CS2_Econ_PORT, CS2_Econ_PIN))
+        {
+            ultrasonic_t2tig_time = 0;
+            TIM_SetCnt(TIM4, 0);
+            TIM_Enable(TIM4, ENABLE);
+        }
+        else
+        {
+            TIM_Enable(TIM4, DISABLE);
+            UltrasonicSetEnable(2, 0);
+            ultrasonic_t2tig = 1;
+        }
+    }
+}
 
 /**
- * @}
+ * @brief  This function handles TIM3 update interrupt request.
  */
+void TIM3_IRQHandler(void)
+{
+    if (TIM_GetIntStatus(TIM3, TIM_INT_UPDATE) != RESET)
+    {
+        TIM_ClrIntPendingBit(TIM3, TIM_INT_UPDATE);
+        ultrasonic_t1tig_time++;
+    }
+}
+/**
+ * @brief  This function handles TIM4 update interrupt request.
+ */
+void TIM4_IRQHandler(void)
+{
+    if (TIM_GetIntStatus(TIM4, TIM_INT_UPDATE) != RESET)
+    {
+        TIM_ClrIntPendingBit(TIM4, TIM_INT_UPDATE);
+        ultrasonic_t2tig_time++;
+    }
+}

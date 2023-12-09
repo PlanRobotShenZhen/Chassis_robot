@@ -134,9 +134,94 @@ void ExioInit(void)
 
 #endif
 
+void UltrasonicSetEnable(int id,uint8_t en)
+{
+    NVIC_InitType NVIC_InitStructure;
+    IRQn_Type irq_type = id == 1 ? EXTI4_IRQn : EXTI9_5_IRQn;
+    FunctionalState enable = en == 1 ? ENABLE : DISABLE;
+    NVIC_InitStructure.NVIC_IRQChannel = irq_type;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;  // 抢占优先级
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;         // 子优先级
+    NVIC_InitStructure.NVIC_IRQChannelCmd = enable;
+    NVIC_Init(&NVIC_InitStructure);
+}
+//< 超声波初始化
+void UltrasonicInit(void)
+{
+    TIM_TimeBaseInitType TIM_TimeBaseStructure;
+    GPIO_InitType GPIO_InitStructure;
+    EXTI_InitType EXTI_InitStructure;
+    NVIC_InitType NVIC_InitStructure;
+
+    /* TIM1, TIM3 and TIM4 clock enable */
+    RCC_EnableAPB1PeriphClk(RCC_APB1_PERIPH_TIM3 | RCC_APB1_PERIPH_TIM4, ENABLE);
+    RCC_EnableAPB2PeriphClk(CS1_Ttig_RCC| CS2_Ttig_RCC, ENABLE);
+    /*超声波初始化*/
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.Pin = CS1_Ttig_PIN;
+    GPIO_InitPeripheral(CS1_Ttig_PORT, &GPIO_InitStructure);
+    GPIO_InitStructure.Pin = CS2_Ttig_PIN;
+    GPIO_InitPeripheral(CS2_Ttig_PORT, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.Pin = CS1_Econ_PIN;
+    GPIO_InitPeripheral(CS1_Econ_PORT, &GPIO_InitStructure);
+    GPIO_InitStructure.Pin = CS2_Econ_PIN;
+    GPIO_InitPeripheral(CS2_Econ_PORT, &GPIO_InitStructure);
+
+    /*Configure key EXTI Line to key input Pin*/
+    GPIO_ConfigEXTILine(GPIOB_PORT_SOURCE, GPIO_PIN_SOURCE4);
+    GPIO_ConfigEXTILine(GPIOB_PORT_SOURCE, GPIO_PIN_SOURCE5);
+    EXTI_InitStructure.EXTI_Line = EXTI_LINE4;
+    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
+    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+    EXTI_InitPeripheral(&EXTI_InitStructure);
+    EXTI_InitStructure.EXTI_Line = EXTI_LINE5;
+    EXTI_InitPeripheral(&EXTI_InitStructure);
+
+    UltrasonicSetEnable(1, 0);
+    UltrasonicSetEnable(2, 0);
+    GPIO_ResetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
+    GPIO_ResetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
+
+    /* Enable the TIM3,4 global Interrupt */
+    NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+    NVIC_InitStructure.NVIC_IRQChannel = TIM4_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+
+    TIM_InitTimBaseStruct(&TIM_TimeBaseStructure);
+    TIM_TimeBaseStructure.Period = 0x7f;
+    TIM_TimeBaseStructure.Prescaler = 0;
+    TIM_TimeBaseStructure.RepetCnt = 0;
+    TIM_TimeBaseStructure.ClkDiv = TIM_CLK_DIV1;
+    TIM_TimeBaseStructure.CntMode = TIM_CNT_MODE_UP;
+    TIM_InitTimeBase(TIM3, &TIM_TimeBaseStructure);
+    TIM_InitTimeBase(TIM4, &TIM_TimeBaseStructure);
+
+    /* Prescaler configuration */
+    TIM_ConfigPrescaler(TIM3, 0, TIM_PSC_RELOAD_MODE_IMMEDIATE);
+    TIM_ConfigPrescaler(TIM4, 0, TIM_PSC_RELOAD_MODE_IMMEDIATE);
+
+    /* TIM1 enable update irq */
+    TIM_ConfigInt(TIM3, TIM_INT_UPDATE, ENABLE);
+    TIM_ConfigInt(TIM4, TIM_INT_UPDATE, ENABLE);
+
+}
+
 void LED_Init(void)
 {
     GPIO_InitType GPIO_InitStructure;
+    NVIC_InitType NVIC_InitStruct;
+    EXTI_InitType EXTI_InitStructure;
 
 #if(PLAN_CONTROL_BOARD_V==10)
     RCC_EnableAPB2PeriphClk(LED1_PORT_RCC | JDQ_PORT_RCC, ENABLE);
@@ -158,19 +243,19 @@ void LED_Init(void)
 
     RCC_EnableAPB2PeriphClk(LED1_PORT_RCC| LED2_PORT_RCC | JDQ_PORT_RCC, ENABLE);
 
+
     GPIO_InitStructure.Pin = RUN1;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitPeripheral(LED1_PORT, &GPIO_InitStructure);
     GPIO_InitStructure.Pin = RUN2;
     GPIO_InitPeripheral(LED2_PORT, &GPIO_InitStructure);
-    //GPIO_ResetBits(LED_PORT, LED_Battery);
-    //GPIO_SetBits(LED_PORT, LED_R | LED_G | LED_B);
-
     GPIO_InitStructure.Pin = JDQ1_PIN | JDQ2_PIN;
     GPIO_InitPeripheral(JDQ_PORT, &GPIO_InitStructure);
+
     GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
     ExioInit();
+    UltrasonicInit();
     rt_thread_delay(20000);   //< 2s
     GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
     rt_thread_delay(5000);   //< 500ms
