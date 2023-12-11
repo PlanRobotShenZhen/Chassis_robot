@@ -105,7 +105,7 @@ void Motor_init_process(void)
 		pdu[can_reinitialize] = 0;
 		for (i = 0; i < Motor_Number; i++)
 		{
-			NMT_Control(can_id_map[i], 0x00, can_id_map[i]); //暂停传输数据
+			NMT_Control(mrd[i].d.mapping, 0x00, mrd[i].d.mapping); //暂停传输数据
 			mrd[i].d.online = 0;
 			mtd[i].d.heartbeat = 0;
 			motor_data[i].d.step = 0;
@@ -123,7 +123,7 @@ void Motor_init_process(void)
 				switch (md->d.step)
 				{
 				case 0:
-						New_Servo_Motor_Init(i, can_id_map[i]);
+						New_Servo_Motor_Init(i, m_ctrl->d.mapping);
 						md->d.step = 1;
 					break;
 				case 1:

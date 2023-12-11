@@ -733,6 +733,7 @@ void SetReal_Velocity(uint16_t* pdu)
 	}
 	SBUSDataRefresh(pdu);
 	//判断SWA是否打开
+	rc_ptr = (Remote_Control_struct*)&pdu[turn_off_remote];
 	nTemp = tagSBUS_CH.CH7;
 	if((Abs_int(nTemp - rc_ptr->turn_off_remote) < 10))
 	{
