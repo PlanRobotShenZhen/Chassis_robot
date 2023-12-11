@@ -163,6 +163,10 @@ enum address_485 {
     adc_yl_3,
     adc_yl_4,
     adc_yl_5,
+    Ultrasonic1_H,
+    Ultrasonic1_L,
+    Ultrasonic2_H,
+    Ultrasonic2_L,
 
     motor_num = 248,
 

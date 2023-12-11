@@ -176,6 +176,24 @@ typedef struct __SPI_IO_OUTPUT
 #define JDQ1_PIN    GPIO_PIN_13
 #define JDQ2_PIN    GPIO_PIN_14
 
+#define CS1_Ttig_RCC     RCC_APB2_PERIPH_GPIOA
+#define CS1_Ttig_PORT     GPIOA
+#define CS1_Ttig_PIN     GPIO_PIN_15
+#define CS1_Econ_PORT     GPIOB
+#define CS1_Econ_PIN     GPIO_PIN_4
+
+#define CS2_Ttig_RCC     RCC_APB2_PERIPH_GPIOB
+#define CS2_Ttig_PORT     GPIOB
+#define CS2_Ttig_PIN     GPIO_PIN_3
+#define CS2_Econ_PORT     GPIOB
+#define CS2_Econ_PIN     GPIO_PIN_5
+
+extern uint8_t ultrasonic_t1tig;
+extern uint8_t ultrasonic_t2tig;
+extern uint32_t ultrasonic_t1tig_time;
+extern uint32_t ultrasonic_t2tig_time;
+void UltrasonicSetEnable(int id, uint8_t en);
+
 /*USART1 */
 #define USARTy            USART1
 #define USARTy_GPIO       GPIOA
@@ -266,32 +284,32 @@ typedef struct __SPI_IO_OUTPUT
 /*YL_1*/
 #define YL_1_GPIO		    GPIOA
 #define YL_1_RxPin			GPIO_PIN_1
-#define YL_1_JT_ADC		    ADC1
-#define YL_1_JT_ADC_Channel	ADC1_Channel_02_PA1
+#define YL_1_ADC		    ADC1
+#define YL_1_ADC_Channel	ADC1_Channel_02_PA1
 
 /*YL_2*/
 #define YL_2_GPIO		    GPIOA
 #define YL_2_RxPin			GPIO_PIN_2
-#define YL_2_JT_ADC		    ADC1
-#define YL_2_JT_ADC_Channel	ADC1_Channel_11_PA2
+#define YL_2_ADC		    ADC1
+#define YL_2_ADC_Channel	ADC1_Channel_11_PA2
 
 /*YL_3*/
 #define YL_3_GPIO		    GPIOA
 #define YL_3_RxPin			GPIO_PIN_3
-#define YL_3_JT_ADC		    ADC1
-#define YL_3_JT_ADC_Channel	ADC1_Channel_04_PA3
+#define YL_3_ADC		    ADC1
+#define YL_3_ADC_Channel	ADC1_Channel_04_PA3
 
 /*YL_4*/
 #define YL_4_GPIO		    GPIOB
 #define YL_4_RxPin			GPIO_PIN_0
-#define YL_4_JT_ADC		    ADC3
-#define YL_4_JT_ADC_Channel	ADC3_Channel_12_PB0
+#define YL_4_ADC		    ADC3
+#define YL_4_ADC_Channel	ADC3_Channel_12_PB0
 
 /*YL_5*/
 #define YL_5_GPIO		    GPIOB
 #define YL_5_RxPin			GPIO_PIN_15
-#define YL_5_JT_ADC		    ADC4
-#define YL_5_JT_ADC_Channel	ADC4_Channel_05_PB15
+#define YL_5_ADC		    ADC4
+#define YL_5_ADC_Channel	ADC4_Channel_05_PB15
 /*SPI1*/
 #define SPI_MASTER                SPI1
 #define SPI_MASTER_CLK            RCC_APB2_PERIPH_SPI1
