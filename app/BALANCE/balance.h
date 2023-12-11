@@ -27,6 +27,8 @@ extern float Move_X,Move_Y,Move_Z;   //小车各个轴的速度
 extern float Voltage;
 
 /*----------------------核心控制函数--------------------------*/
+void Ultrasonic1_task(void* pvParameters);
+void Ultrasonic2_task(void* pvParameters);
 void Balance_task(void *pvParameters);           //任务函数
 void Remote_Control(void);                       //航模遥控器接收数据处理
 void Ros_Control(void);                          //航模遥控器接收数据处理

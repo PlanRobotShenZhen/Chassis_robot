@@ -189,9 +189,11 @@ typedef struct __SPI_IO_OUTPUT
 #define CS2_Econ_PIN     GPIO_PIN_5
 
 extern uint8_t ultrasonic_t1tig;
-extern uint8_t ultrasonic_t2tig;
 extern uint32_t ultrasonic_t1tig_time;
+extern uint8_t ultrasonic_t2tig;
 extern uint32_t ultrasonic_t2tig_time;
+
+
 void UltrasonicSetEnable(int id, uint8_t en);
 
 /*USART1 */

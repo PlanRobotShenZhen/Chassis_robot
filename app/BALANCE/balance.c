@@ -25,6 +25,12 @@ uint32_t ultrasonic_t1tig_time = 0;
 uint32_t ultrasonic_t2tig_time = 0;
 int ultrasonic_t1tig_heartbeat = 0;
 int ultrasonic_t2tig_heartbeat = 0;
+
+uint8_t f1_cnt = 0;
+uint32_t ultrasonic1_filtering[4];
+uint8_t f2_cnt = 0;
+uint32_t ultrasonic2_filtering[4];
+
 uint8_t SPI_Master_Rx_Buffer;
 int SPI_heartbeat = 0;
 uint8_t SPI_ReadWriteCycle = 0;
@@ -416,17 +422,21 @@ void BatteryInformation()
 //< 超声波检测
 void UltrasonicProcess(void)
 {
-	if (ultrasonic_t1tig == 1)
+	if (ultrasonic_t1tig >= 1)
 	{
-		int i = 0;
-		ultrasonic_t1tig = 0;
-		ultrasonic_t1tig_heartbeat = 0;
-		pdu[Ultrasonic1_H] = (uint16_t)(ultrasonic_t1tig_time>>16);
-		pdu[Ultrasonic1_L] = (uint16_t)ultrasonic_t1tig_time;
-		GPIO_SetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
-		for (i = 0;i < 100;i++);
-		GPIO_ResetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
-		UltrasonicSetEnable(1, 1);
+		ultrasonic_t1tig++;
+		if (ultrasonic_t1tig > 10)
+		{
+			int i = 0;
+			ultrasonic_t1tig = 0;
+			ultrasonic_t1tig_heartbeat = 0;
+			pdu[Ultrasonic1_H] = (uint16_t)(ultrasonic_t1tig_time >> 16);
+			pdu[Ultrasonic1_L] = (uint16_t)ultrasonic_t1tig_time;
+			GPIO_SetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
+			for (i = 0;i < 100;i++);
+			GPIO_ResetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
+			UltrasonicSetEnable(1, 1);
+		}
 	}
 	else
 	{
@@ -437,17 +447,21 @@ void UltrasonicProcess(void)
 			ultrasonic_t1tig_heartbeat = 0;
 		}
 	}
-	if (ultrasonic_t2tig == 1)
+	if (ultrasonic_t2tig >= 1)
 	{
-		int i = 0;
-		ultrasonic_t2tig = 0;
-		ultrasonic_t2tig_heartbeat = 0;
-		pdu[Ultrasonic2_H] = (uint16_t)(ultrasonic_t2tig_time >> 16);
-		pdu[Ultrasonic2_L] = (uint16_t) ultrasonic_t2tig_time;
-		GPIO_SetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
-		for (i = 0;i < 100;i++);
-		GPIO_ResetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
-		UltrasonicSetEnable(2, 1);
+		ultrasonic_t2tig++;
+		if (ultrasonic_t2tig >= 10)
+		{
+			int i = 0;
+			ultrasonic_t2tig = 0;
+			ultrasonic_t2tig_heartbeat = 0;
+			pdu[Ultrasonic2_H] = (uint16_t)(ultrasonic_t2tig_time >> 16);
+			pdu[Ultrasonic2_L] = (uint16_t)ultrasonic_t2tig_time;
+			GPIO_SetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
+			for (i = 0;i < 100;i++);
+			GPIO_ResetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
+			UltrasonicSetEnable(2, 1);
+		}
 	}
 	else
 	{
@@ -492,6 +506,132 @@ void  SPI1_ReadWriteByte(void)
 		}
 	}
 }
+
+void Ultrasonic1_task(void* pvParameters)
+{
+	uint32_t tig_time = 0;
+	int i = 0;
+	uint32_t max_time;
+	uint32_t min_time;
+	pdu = (uint16_t*)pvParameters;
+	while (1)
+	{
+		rt_thread_delay(1000);   //< 100ms
+
+		GPIO_SetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
+		for (i = 0;i < 100;i++);
+		GPIO_ResetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
+		tig_time = 0;
+		i = 0;
+		while (GPIO_ReadInputDataBit(CS1_Econ_PORT, CS1_Econ_PIN)== Bit_RESET)
+		{
+			tig_time++;
+			if (tig_time >= 200000)
+			{
+				i = 1;
+				break;
+			}
+		}
+		if (i == 0)
+		{
+			max_time = 0;
+			min_time = 100000000;
+			tig_time = 0;
+			while (GPIO_ReadInputDataBit(CS1_Econ_PORT, CS1_Econ_PIN) == Bit_SET)
+			{
+				tig_time++;
+				if (tig_time >= 200000)
+				{
+					break;
+				}
+			}
+		}
+		else tig_time = 200000;
+		ultrasonic1_filtering[f1_cnt] = tig_time;
+		f1_cnt++;
+		if (f1_cnt >= 4)f1_cnt = 0;
+		ultrasonic_t1tig_time = 0;
+		for (i = 0;i < 4;i++)
+		{
+			tig_time = ultrasonic1_filtering[i];
+			ultrasonic_t1tig_time += tig_time;
+			if (tig_time > max_time)max_time = tig_time;
+			if (tig_time < min_time)min_time = tig_time;
+		}
+		ultrasonic_t1tig_time -= max_time;
+		ultrasonic_t1tig_time -= min_time;
+		ultrasonic_t1tig_time <<= 1;
+		if (ultrasonic_t1tig_time > 400000)ultrasonic_t1tig_time = 400000;
+		pdu[Ultrasonic1_H] = (uint16_t)(ultrasonic_t1tig_time >> 16);
+		pdu[Ultrasonic1_L] = (uint16_t)ultrasonic_t1tig_time;
+
+
+	}
+
+}
+void Ultrasonic2_task(void* pvParameters)
+{
+	uint32_t tig_time = 0;
+	int i = 0;
+	uint32_t max_time;
+	uint32_t min_time;
+	pdu = (uint16_t*)pvParameters;
+	while (1)
+	{
+		rt_thread_delay(1000);   //< 100ms
+
+		GPIO_SetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
+		for (i = 0;i < 100;i++);
+		GPIO_ResetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
+		tig_time = 0;
+		i = 0;
+		while (GPIO_ReadInputDataBit(CS2_Econ_PORT, CS2_Econ_PIN) == Bit_RESET)
+		{
+			tig_time++;
+			if (tig_time >= 200000)
+			{
+				i = 1;
+				break;
+			}
+		}
+		if (i == 0)
+		{
+			max_time = 0;
+			min_time = 100000000;
+			tig_time = 0;
+			while (GPIO_ReadInputDataBit(CS2_Econ_PORT, CS2_Econ_PIN) == Bit_SET)
+			{
+				tig_time++;
+				if (tig_time >= 200000)
+				{
+					break;
+				}
+			}
+		}
+		else tig_time = 200000;
+		ultrasonic2_filtering[f2_cnt] = tig_time;
+		f2_cnt++;
+		if (f2_cnt >= 4)f2_cnt = 0;
+		ultrasonic_t2tig_time = 0;
+		for (i = 0;i < 4;i++)
+		{
+			tig_time = ultrasonic2_filtering[i];
+			ultrasonic_t2tig_time += tig_time;
+			if (tig_time > max_time)max_time = tig_time;
+			if (tig_time < min_time)min_time = tig_time;
+		}
+		ultrasonic_t2tig_time -= max_time;
+		ultrasonic_t2tig_time -= min_time;
+		ultrasonic_t2tig_time <<= 1;
+		if (ultrasonic_t2tig_time > 400000)ultrasonic_t2tig_time = 400000;
+		pdu[Ultrasonic2_H] = (uint16_t)(ultrasonic_t2tig_time >> 16);
+		pdu[Ultrasonic2_L] = (uint16_t) ultrasonic_t2tig_time;
+
+
+	}
+
+}
+
 /**************************************************************************
 函数功能：核心控制相关
 入口参数：
@@ -620,6 +760,6 @@ void Balance_task(void* pvParameters)
 		}
 		BatteryInformation();
 		SPI1_ReadWriteByte();
-		UltrasonicProcess();
+		//UltrasonicProcess();
 	}
 }

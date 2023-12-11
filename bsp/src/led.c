@@ -171,49 +171,45 @@ void UltrasonicInit(void)
     GPIO_InitPeripheral(CS2_Econ_PORT, &GPIO_InitStructure);
 
     /*Configure key EXTI Line to key input Pin*/
-    GPIO_ConfigEXTILine(GPIOB_PORT_SOURCE, GPIO_PIN_SOURCE4);
-    GPIO_ConfigEXTILine(GPIOB_PORT_SOURCE, GPIO_PIN_SOURCE5);
-    EXTI_InitStructure.EXTI_Line = EXTI_LINE4;
-    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
-    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-    EXTI_InitPeripheral(&EXTI_InitStructure);
-    EXTI_InitStructure.EXTI_Line = EXTI_LINE5;
-    EXTI_InitPeripheral(&EXTI_InitStructure);
+    //GPIO_ConfigEXTILine(GPIOB_PORT_SOURCE, GPIO_PIN_SOURCE4);
+    //GPIO_ConfigEXTILine(GPIOB_PORT_SOURCE, GPIO_PIN_SOURCE5);
+    //EXTI_InitStructure.EXTI_Line = EXTI_LINE4;
+    //EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+    //EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
+    //EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+    //EXTI_InitPeripheral(&EXTI_InitStructure);
+    //EXTI_InitStructure.EXTI_Line = EXTI_LINE5;
+    //EXTI_InitPeripheral(&EXTI_InitStructure);
 
-    UltrasonicSetEnable(1, 0);
-    UltrasonicSetEnable(2, 0);
+    //UltrasonicSetEnable(1, 0);
+    //UltrasonicSetEnable(2, 0);
     GPIO_ResetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
     GPIO_ResetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
 
     /* Enable the TIM3,4 global Interrupt */
-    NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-    NVIC_InitStructure.NVIC_IRQChannel = TIM4_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    //NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+    //NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    //NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    //NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    //NVIC_Init(&NVIC_InitStructure);
+    //NVIC_InitStructure.NVIC_IRQChannel = TIM4_IRQn;
+    //NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    //NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    //NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    //NVIC_Init(&NVIC_InitStructure);
 
-    TIM_InitTimBaseStruct(&TIM_TimeBaseStructure);
-    TIM_TimeBaseStructure.Period = 0x7f;
-    TIM_TimeBaseStructure.Prescaler = 0;
-    TIM_TimeBaseStructure.RepetCnt = 0;
-    TIM_TimeBaseStructure.ClkDiv = TIM_CLK_DIV1;
-    TIM_TimeBaseStructure.CntMode = TIM_CNT_MODE_UP;
-    TIM_InitTimeBase(TIM3, &TIM_TimeBaseStructure);
-    TIM_InitTimeBase(TIM4, &TIM_TimeBaseStructure);
-
-    /* Prescaler configuration */
-    TIM_ConfigPrescaler(TIM3, 0, TIM_PSC_RELOAD_MODE_IMMEDIATE);
-    TIM_ConfigPrescaler(TIM4, 0, TIM_PSC_RELOAD_MODE_IMMEDIATE);
+    //TIM_InitTimBaseStruct(&TIM_TimeBaseStructure);
+    //TIM_TimeBaseStructure.Period = 0xfff0;
+    //TIM_TimeBaseStructure.Prescaler = 64;
+    //TIM_TimeBaseStructure.RepetCnt = 0;
+    //TIM_TimeBaseStructure.ClkDiv = TIM_CLK_DIV1;
+    //TIM_TimeBaseStructure.CntMode = TIM_CNT_MODE_UP;
+    //TIM_InitTimeBase(TIM3, &TIM_TimeBaseStructure);
+    //TIM_InitTimeBase(TIM4, &TIM_TimeBaseStructure);
 
     /* TIM1 enable update irq */
-    TIM_ConfigInt(TIM3, TIM_INT_UPDATE, ENABLE);
-    TIM_ConfigInt(TIM4, TIM_INT_UPDATE, ENABLE);
+    //TIM_ConfigInt(TIM3, TIM_INT_UPDATE, ENABLE);
+    //TIM_ConfigInt(TIM4, TIM_INT_UPDATE, ENABLE);
 
 }
 

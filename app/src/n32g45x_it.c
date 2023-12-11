@@ -149,6 +149,7 @@ void EXTI4_IRQHandler(void)
         }
         else
         {
+            ultrasonic_t1tig_time = TIM_GetCnt(TIM3);
             TIM_Enable(TIM3, DISABLE);
             ultrasonic_t1tig = 1;
             UltrasonicSetEnable(1, 0);
@@ -183,7 +184,7 @@ void TIM3_IRQHandler(void)
     if (TIM_GetIntStatus(TIM3, TIM_INT_UPDATE) != RESET)
     {
         TIM_ClrIntPendingBit(TIM3, TIM_INT_UPDATE);
-        ultrasonic_t1tig_time++;
+        //ultrasonic_t1tig_time++;
     }
 }
 /**

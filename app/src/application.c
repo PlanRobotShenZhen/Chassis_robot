@@ -70,6 +70,8 @@ static rt_uint8_t Can_stack[2048];
 static rt_uint8_t DATA_stack[512];
 static rt_uint8_t ModBUS_stack[512];
 static rt_uint8_t ADC_stack[512];
+static rt_uint8_t Ultrasonic1_stack[512];
+static rt_uint8_t Ultrasonic2_stack[512];
 static struct rt_thread Balance_thread;
 static struct rt_thread Motor_init_thread;
 static struct rt_thread Motor_thread;
@@ -77,6 +79,8 @@ static struct rt_thread Can_thread;
 static struct rt_thread DATA_thread;
 static struct rt_thread ModBUS_thread;
 static struct rt_thread ADC_thread;
+static struct rt_thread Ultrasonic1_thread;
+static struct rt_thread Ultrasonic2_thread;
 float Wheel_perimeter = 0;    //轮子周长（单位：米）
 float Wheel_spacing = 0;      //主动轮轮距 （单位：米）//后面会在robot_select_init.h文件中初始化
 float Axle_spacing = 0;       //前后轴距
@@ -189,6 +193,16 @@ static void InitTask(void* parameter)
     if (result == RT_EOK)
     {
         rt_thread_startup(&ADC_thread);
+    }
+    result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
+    if (result == RT_EOK)
+    {
+        rt_thread_startup(&Ultrasonic1_thread);
+    }
+    result = rt_thread_init(&Ultrasonic2_thread, "Ultrasonic", Ultrasonic2_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic2_stack[0], sizeof(Ultrasonic2_stack), 13, 14);
+    if (result == RT_EOK)
+    {
+        rt_thread_startup(&Ultrasonic2_thread);
     }
 
     
