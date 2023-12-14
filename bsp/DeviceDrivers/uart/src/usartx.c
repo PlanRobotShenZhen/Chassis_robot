@@ -1272,6 +1272,8 @@ void Pdu_Init()
 {
 	pdu[car_type] = FourWheel_Car;
 	pdu[car_version] = 0x88;
+	pdu[moddbus_485_id] = 1;
+	pdu[moddbus_485_baud] = 9;
 	//初始化航模参数
 	int i = turn_off_remote;
 	pdu[i++] = TURN_OFF_REMOTE;

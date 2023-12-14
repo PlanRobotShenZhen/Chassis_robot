@@ -151,7 +151,8 @@ static void InitTask(void* parameter)
     case 5:usart1_baud = 512000;break;
     case 6:usart1_baud = 921600;break;
     case 7:usart1_baud = 1000000;break;
-    case 8:usart1_baud = 2000000;break;
+    case 8:usart1_baud = 1500000;break;
+    case 9:usart1_baud = 2000000;break;
     }
 	rt_thread_delay(100);   //< 10ms
 	LED_Init();                     //初始化与LED连接的硬件接口
