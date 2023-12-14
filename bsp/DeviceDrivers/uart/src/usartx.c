@@ -529,9 +529,6 @@ void DMA1_Channel2_IRQHandler(void)
 
 		uart3_send_flag = 1;
 		DMA_EnableChannel(DMA1_CH2, DISABLE);        // 关闭 DMA1 通道2, UART3_TX
-		DMA_EnableChannel(DMA1_CH3, DISABLE);    // DMA1 通道3, UART3_RX
-		DMA_SetCurrDataCounter(DMA1_CH3, USART3_RX_MAXBUFF);
-		DMA_EnableChannel(DMA1_CH3, ENABLE);     // DMA1 通道3, UART3_RX
 	}
 }
 /**************************************************************************

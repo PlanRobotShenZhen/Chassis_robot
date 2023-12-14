@@ -130,6 +130,7 @@ void cali_store(struct calibration_data *data)
 static void InitTask(void* parameter)
 {
     rt_err_t result;
+    uint32_t usart1_baud = 2000000;
     uint16_t* pdu = getPDUData();
     //初始化航模参数指针
     rc_ptr = (Remote_Control_struct*)&pdu[turn_off_remote];
@@ -140,9 +141,21 @@ static void InitTask(void* parameter)
     motorB_ptr = (Motor_struct*)&pdu[i + length];
     motorC_ptr = (Motor_struct*)&pdu[i + 2 * length];
     motorD_ptr = (Motor_struct*)&pdu[i + 3 * length];
+    switch (pdu[moddbus_485_baud])
+    {
+    case 0:usart1_baud = 9600;break;
+    case 1:usart1_baud = 19200;break;
+    case 2:usart1_baud = 57600;break;
+    case 3:usart1_baud = 115200;break;
+    case 4:usart1_baud = 256000;break;
+    case 5:usart1_baud = 512000;break;
+    case 6:usart1_baud = 921600;break;
+    case 7:usart1_baud = 1000000;break;
+    case 8:usart1_baud = 2000000;break;
+    }
 	rt_thread_delay(100);   //< 10ms
 	LED_Init();                     //初始化与LED连接的硬件接口
-	USART1_Init(2000000);	        //=====串口初始化为，普通的串口，打印调试信息 DMA
+	USART1_Init(usart1_baud);	        //=====串口初始化为，普通的串口，打印调试信息 DMA
 	Usart3_Init(115200);            //上下位机通信初始化，串口3
     Usart4_Init(9600);              //串口4初始化，用于读取电池信息
     Usart5_Init(100000);            //串口5初始化，用于航模控制

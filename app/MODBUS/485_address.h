@@ -25,6 +25,10 @@ enum address_485 {
     car_min_ang_speed = 22,
     car_tar_lin_speed = 24,
     car_tar_ang_speed = 26,
+
+
+    moddbus_485_id = 36,
+    moddbus_485_baud,
     // º½Ä£²ÎÊı
     turn_off_remote = 40,
     turn_on_remote,
