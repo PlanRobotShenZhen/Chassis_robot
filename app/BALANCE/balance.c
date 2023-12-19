@@ -34,6 +34,7 @@ uint32_t ultrasonic2_filtering[4];
 uint8_t SPI_Master_Rx_Buffer;
 int SPI_heartbeat = 0;
 uint8_t SPI_ReadWriteCycle = 0;
+EXIO_INPUT exio_input;
 /**************************************************************************
 函数功能：对接收到数据进行处理
 入口参数：X和Y Z轴方向的运动速度
@@ -481,6 +482,7 @@ void  SPI1_ReadWriteByte(void)
 		uint16_t retry = 0;
 		GPIO_WriteBit(SPI_MASTER_GPIO, SPI_MASTER_PIN_NSS, Bit_SET);
 		pdu[exio_input_status] = (uint16_t)SPI_Master_Rx_Buffer;
+		exio_input.input = pdu[exio_input_status];
 		for (retry = 0;retry < 1000;)
 		{
 			retry++;

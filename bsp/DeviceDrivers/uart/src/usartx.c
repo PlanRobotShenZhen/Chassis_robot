@@ -1270,12 +1270,14 @@ void DMA1_Channel4_IRQHandler(void)
 **************************************************************************/
 void Pdu_Init()
 {
+	int i;
 	pdu[car_type] = FourWheel_Car;
 	pdu[car_version] = 0x88;
 	pdu[moddbus_485_id] = 1;
 	pdu[moddbus_485_baud] = 9;
+
 	//初始化航模参数
-	int i = turn_off_remote;
+	i = turn_off_remote;
 	pdu[i++] = TURN_OFF_REMOTE;
 	pdu[i++] = TURN_ON_REMOTE;
 	pdu[i++] = VEL_BASE_VALUE;

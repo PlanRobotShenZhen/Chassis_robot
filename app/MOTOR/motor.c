@@ -58,8 +58,6 @@ void MotorDataRefresh()
 	MOTOR_TPDO* mt;
 	MOTOR_RPDO* mr;
 	MOTOR_DATA* md;
-	pdu[R_motor_CAN_map] = can_id_map[0] | can_id_map[1] << 8;
-	pdu[L_motor_CAN_map] = can_id_map[2] | can_id_map[3] << 8;
 
 	for (i = 0; i < Motor_Number; i++)
 	{
@@ -82,7 +80,11 @@ void MotorDataRefresh()
 }
 void Motor_init(void)
 {
-	int i;
+	int i=0;
+	pdu[211]=can_id_map[i++] = pdu[motor1_CAN_id];
+	pdu[212]=can_id_map[i++] = pdu[motor2_CAN_id];
+	pdu[213]=can_id_map[i++] = pdu[motor3_CAN_id];
+	pdu[214]=can_id_map[i++] = pdu[motor4_CAN_id];
 	for (i = 0; i < Motor_Number; i++)
 	{
 		motor_data[i].d.step = 0;
@@ -90,13 +92,11 @@ void Motor_init(void)
 		mrd[i].d.mapping = can_id_map[i];
 		mtd[i].d.mapping = can_id_map[i];
 	}
-	pdu[R_motor_default_CAN_id] = can_id_map[0] << 8 | can_id_map[1];
-	pdu[L_motor_default_CAN_id] = can_id_map[2] << 8 | can_id_map[3];
 }
 void Motor_init_process(void)
 {
 
-	int i;
+	int i=0;
 	MOTOR_RPDO* m_ctrl;
 	MOTOR_TPDO* m_states;
 	MOTOR_DATA* md;
