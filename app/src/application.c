@@ -161,7 +161,7 @@ static void InitTask(void* parameter)
     Usart4_Init(9600);              //串口4初始化，用于读取电池信息
     Usart5_Init(100000);            //串口5初始化，用于航模控制
     Adc_Init();                     //采集电池电压ADC引脚初始化	
-	Can_Driver_Init();              //底层can协议初始化
+	Can_Driver_Init(pdu[CAN_baud]);              //底层can协议初始化
 
 	Robot_Select();                 // 根据电位器的值判断目前正在运行的是哪一款机器人，
 	Motor_Number = 4;
