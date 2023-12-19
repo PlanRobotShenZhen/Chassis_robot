@@ -122,7 +122,7 @@ void CAN_NVIC_Config(void)
  * @brief  Configures CAN1 and CAN2.
  * @param CAN_BaudRate 10Kbit/s ~ 1Mbit/s
  */
-void CAN_Config(void)
+void CAN_Config(uint16_t baud)
 {
 	CAN_InitType CAN_InitStructure;
 	/* Configure CAN1 and CAN2 */
@@ -140,10 +140,21 @@ void CAN_Config(void)
 	CAN_InitStructure.RFLM = DISABLE;
 	CAN_InitStructure.TXFP = DISABLE;
 	CAN_InitStructure.OperatingMode = CAN_Normal_Mode;
-	CAN_InitStructure.RSJW = CAN_BIT_RSJW;
-	CAN_InitStructure.TBS1 = CAN_BIT_BS1;
-	CAN_InitStructure.TBS2 = CAN_BIT_BS2;
-	CAN_InitStructure.BaudRatePrescaler = CAN_BAUDRATEPRESCALER;
+	switch (baud)
+	{
+	case 1://< 500K
+		CAN_InitStructure.RSJW = CAN_RSJW_1tq;
+		CAN_InitStructure.TBS1 = CAN_TBS1_5tq;
+		CAN_InitStructure.TBS2 = CAN_TBS2_2tq;
+		CAN_InitStructure.BaudRatePrescaler = 9;
+		break;
+	default://< 1M
+		CAN_InitStructure.RSJW = CAN_RSJW_2tq;
+		CAN_InitStructure.TBS1 = CAN_TBS1_14tq;
+		CAN_InitStructure.TBS2 = CAN_TBS2_3tq;
+		CAN_InitStructure.BaudRatePrescaler = 2;
+		break;
+	}
 	/*Initializes the CAN1  and CAN2 */
 	CAN_Init(CAN1, &CAN_InitStructure);
 	CAN_Init(CAN2, &CAN_InitStructure);
@@ -156,13 +167,13 @@ void CAN_Config(void)
 * 参数：     无
 * 说明：     无
 **********************************************************/
-void Can_Driver_Init(void)
+void Can_Driver_Init(uint16_t baud)
 {
 	CAN_NVIC_Config();
 	/* Configures CAN IOs */
 	CAN_GPIO_Config();
 	/* Configures CAN */
-	CAN_Config();
+	CAN_Config(baud);
 }
 
 
