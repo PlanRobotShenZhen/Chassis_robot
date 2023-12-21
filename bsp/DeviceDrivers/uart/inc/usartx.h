@@ -161,7 +161,6 @@ void Set_Director(void);                             //设置电机的转向
 int Abs_int(int nValue);
 int Target_Velocity_get(unsigned short usValue);
 int Target_Direct_get(unsigned short usValue);
-void Car_Light_Control(void);                         //车灯数据解析，对应的是ch10通道的数据
 
 
 void Usart3_Init(uint32_t baud);         //usart3作为上下位机通信模块

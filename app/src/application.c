@@ -164,7 +164,7 @@ static void InitTask(void* parameter)
 	Can_Driver_Init(pdu[CAN_baud]);              //底层can协议初始化
 
 	Robot_Select();                 // 根据电位器的值判断目前正在运行的是哪一款机器人，
-	Motor_Number = 4;
+	
 
     /* init Balance thread */
     result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);

@@ -58,17 +58,17 @@ typedef union __SPI_IO_INPUT
 	unsigned char input;
 }EXIO_INPUT;
 
-typedef struct __SPI_IO_OUTPUT
+typedef union __SPI_IO_OUTPUT
 {
 	struct {
 		unsigned char RGB_G : 1;
 		unsigned char RGB_B : 1;
 		unsigned char RGB_R : 1;
 		unsigned char Light : 1;
-		unsigned char Light_Q : 1;
-		unsigned char Light_Z : 1;
-		unsigned char Light_Y : 1;
-		unsigned char Light_H : 1;
+		unsigned char Light_Q : 1;//< 左前
+		unsigned char Light_Z : 1;//< 左后
+		unsigned char Light_Y : 1;//< 右前
+		unsigned char Light_H : 1;//< 右后
 	}bit;
 	unsigned char output;
 }EXIO_OUTPUT;

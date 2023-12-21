@@ -9,6 +9,7 @@
 #include "rtthread.h"
 #include "n32g45x.h"
 #include "485_address.h"
+#include "rtthread.h"
 
 struct SdoFrame
 {
@@ -251,6 +252,7 @@ struct SdoFrame* SdoFramCereat(void)
 	}
 	return NULL;
 }
+
 /**********************************************************
  * 函数功能： RPDO0事件触发。
  * 参数：     ID代表节点地址。
@@ -446,6 +448,40 @@ uint8_t CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 
 	return nCount;
 }
+struct PointFrame
+{
+	uint32_t data[10];
+	struct PointFrame* next;
+};
+static struct PointFrame* point_data_head = NULL;
+struct PointFrame* PointFramCereat(void)
+{
+	struct PointFrame* new_point_frame = NULL;
+	struct PointFrame* next_sdo_frame;
+	//rt_malloc
+	new_point_frame = (struct PointFrame*)rt_malloc(sizeof(struct PointFrame));
+	if (new_point_frame != NULL)
+	{
+		if (point_data_head == NULL)
+
+		{
+			point_data_head = new_point_frame;//创建一个头结点
+			point_data_head->next = NULL;
+		}
+		else
+		{
+			next_sdo_frame = point_data_head;
+			while (next_sdo_frame->next != NULL)
+			{
+				next_sdo_frame = next_sdo_frame->next;
+			}
+			next_sdo_frame->next = new_point_frame;
+			new_point_frame->next = NULL;
+		}
+		return new_point_frame;
+	}
+	return NULL;
+}
 
 /**************************************************************************
 函数功能：CAN PDO任务
@@ -470,10 +506,12 @@ void Can_task(void* pvParameters)
 		{
 			buff_cnt += pdu[receive_buff_num];
 			//< 数据拷贝过来
+			//PointFramCereat()
 			pdu[receive_buff_num] = 0;
 		}
 
 		pdu[empty_buff_num] = 30 - buff_cnt;
+		//< 使用点数据
 	}
 
 }

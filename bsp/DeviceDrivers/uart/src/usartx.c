@@ -51,6 +51,7 @@ float g_fltRecv_Vel_X = 0.0;                        // 串口接收到的速度�
 float g_fltRecv_Vel_Y = 0.0;
 float g_fltRecv_Vel_Z = 0.0;
 static uint16_t* pdu;
+int remote_off_line_check = 0;
 
 
 /**************************************************************************
@@ -722,7 +723,23 @@ void SetReal_Velocity(uint16_t* pdu)
 	{
 		Update_sbus(Uart5_Buffer);
 		ucRcvReady = 0;
+		remote_off_line_check = 0;
 	}
+	if (ucRcvReady == 0|| g_ucRos_Flag!=1)
+	{
+		if (remote_off_line_check < 200)
+		{
+			remote_off_line_check++;
+		}
+		else
+		{
+			if ((g_eControl_Mode != CONTROL_MODE_UART)&&(g_eControl_Mode != CONTROL_MODE_ROS))
+			{
+				g_eControl_Mode = CONTROL_MODE_UNKNOW;
+			}
+		}
+	}
+	
 	if (g_eControl_Mode == CONTROL_MODE_UART)
 	{
 		SBUS_CH_Struct* uart_sbus = (SBUS_CH_Struct*) & pdu[130];
@@ -1022,35 +1039,6 @@ void Set_Director()
 
 
 
-/****************************************************************
-* 函数功能：车灯数据解析函数，使用VRA来控制，获取通道10来获取数据
-* 返回值：
-****************************************************************/
-void Car_Light_Control(void)
-{
-	unsigned short usTemp = 0;
-	
-	usTemp = tagSBUS_CH.CH10;
-	
-	// 逻辑判断模块
-	if(Abs_int(usTemp - rc_ptr->light_base) > 100)
-	{
-		// 此时代表没有触发开启灯光的标志
-
-		if((usTemp - rc_ptr->light_base) > 0)
-		{
-			// 开启灯光
-			g_ucLightOnFlag = 1;
-		}
-		else
-		{
-			// 关闭灯光
-			g_ucLightOnFlag = 0;
-		}
-	}
-}
-
-
 /*********************************************
 * 函数功能：串口调试打印imu信息
 
@@ -1299,7 +1287,7 @@ void Pdu_Init()
 	//初始化电机参数
 	int length = motor2_state - motor1_state;
 	int m_bast_addr;
-	uint16_t model = SERVO_ZLAC;//<  测试
+	uint16_t model = SERVO_WANZE;//< 默认万泽伺服
 	for (int j = 0; j < 4; j++) {
 		m_bast_addr = j * length;
 		i = motor1_state + m_bast_addr;

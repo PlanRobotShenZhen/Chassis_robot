@@ -22,6 +22,26 @@ struct Smooth_Control
 	
 };
 
+typedef struct {
+	uint32_t t_RGB_G;
+	uint32_t t_RGB_B;
+	uint32_t t_RGB_R;
+	uint32_t t_Light;
+	uint32_t t_Light_Q;//< 左前
+	uint32_t t_Light_Z;//< 左后
+	uint32_t t_Light_Y;//< 右前
+	uint32_t t_Light_H;//< 右后
+
+	uint32_t t_cnt_RGB_G;
+	uint32_t t_cnt_RGB_B;
+	uint32_t t_cnt_RGB_R;
+	uint32_t t_cnt_Light;
+	uint32_t t_cnt_Light_Q;//< 左前
+	uint32_t t_cnt_Light_Z;//< 左后
+	uint32_t t_cnt_Light_Y;//< 右前
+	uint32_t t_cnt_Light_H;//< 右后
+}LightTime;
+
 extern struct Smooth_Control tagSmooth_control;  //麦克纳姆轮需要用到的小车速度平滑处理
 extern float Move_X,Move_Y,Move_Z;   //小车各个轴的速度
 extern float Voltage;

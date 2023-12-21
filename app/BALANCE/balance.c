@@ -8,6 +8,7 @@
 #include "port.h"
 
 struct Smooth_Control tagSmooth_control;
+LightTime light_time;
 float Move_X = 0,Move_Y = 0,Move_Z = 0;
 static uint16_t* pdu;
 uint16_t error_code = ERROR_NONE;
@@ -35,6 +36,7 @@ uint8_t SPI_Master_Rx_Buffer;
 int SPI_heartbeat = 0;
 uint8_t SPI_ReadWriteCycle = 0;
 EXIO_INPUT exio_input;
+EXIO_OUTPUT exio_output;
 /**************************************************************************
 函数功能：对接收到数据进行处理
 入口参数：X和Y Z轴方向的运动速度
@@ -493,6 +495,7 @@ void  SPI1_ReadWriteByte(void)
 			retry++;
 			if (retry > 2000) return;
 		}
+		pdu[exio_output_set] = exio_output.output;
 		SPI_MASTER->DAT = pdu[exio_output_set];
 		SPI_ReadWriteCycle = 1;
 		SPI_heartbeat = 0;
@@ -634,6 +637,58 @@ void Ultrasonic2_task(void* pvParameters)
 
 }
 
+/****************************************************************
+* 函数功能：车灯数据解析函数，使用VRA来控制，获取通道10来获取数据
+* 返回值：
+****************************************************************/
+
+void Car_Light_Control(float Vx, float Vy)
+{
+	unsigned short usTemp = 0;
+	usTemp = tagSBUS_CH.CH10;
+
+	// 逻辑判断模块
+	if (Abs_int(usTemp - rc_ptr->light_base) > 100)
+	{
+		// 此时代表没有触发开启灯光的标志
+
+		if ((usTemp - rc_ptr->light_base) > 0)
+		{
+			// 开启灯光
+			g_ucLightOnFlag = 1;
+		}
+		else
+		{
+			// 关闭灯光
+			g_ucLightOnFlag = 0;
+		}
+	}
+	if (g_eControl_Mode == CONTROL_MODE_UNKNOW)
+	{//< 等待连接状态
+		if (light_time.t_cnt_Light_Q++ >= 25)
+		{
+			exio_output.bit.Light_Q = (exio_output.bit.Light_Q == 1) ? 0 : 1;
+			exio_output.bit.Light_Z = exio_output.bit.Light_Q;
+			exio_output.bit.Light_Y = exio_output.bit.Light_Q;
+			exio_output.bit.Light_H = exio_output.bit.Light_Q;
+			light_time.t_cnt_Light_Q = 0;
+		}
+	}
+	else
+	{
+		if (Vx == 0)
+		{
+			exio_output.bit.Light_Q = (g_ucLightOnFlag == 1) ? 1 : 0;
+			exio_output.bit.Light_Z = exio_output.bit.Light_Q;
+			exio_output.bit.Light_Y = exio_output.bit.Light_Q;
+			exio_output.bit.Light_H = exio_output.bit.Light_Q;
+		}
+
+	}
+
+}
+
+
 /**************************************************************************
 函数功能：核心控制相关
 入口参数：
@@ -735,7 +790,7 @@ void Balance_task(void* pvParameters)
 		}
 		pdu[CONTROL_MODE_ADDR] = g_eControl_Mode;//
 		Drive_Motor(Move_X, Move_Y, Move_Z);   //小车运动模型解析出每个电机的实际速度
-
+		Car_Light_Control(Move_X, Move_Y);
 		switch (g_emCarMode)
 		{
 		case Mec_Car:        break; //麦克纳姆轮小车

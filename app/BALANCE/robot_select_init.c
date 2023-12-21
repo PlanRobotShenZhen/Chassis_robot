@@ -1,5 +1,5 @@
 #include "robot_select_init.h"
-
+#include "motor_data.h"
 Robot_Parament_InitTypeDef  Robot_Parament;//初始化机器人参数结构体
 
 /**************************************************************************
@@ -14,9 +14,16 @@ void Robot_Select(void)
 	g_ucRemote_Flag = 0;
 	switch(g_emCarMode)
 	{
-		case FourWheel_Car: 
+		case FourWheel_Car: //四驱车 
+			Motor_Number = 4;
 			Robot_Init(Four_Mortor_wheelSpacing, Four_Mortor__axlespacing, 0, REDUCTION_RATE, Black_WheelDiameter);   
-		break; //四驱车 
+		break;
+		case Akm_Car:
+			Motor_Number = 3;
+			break;
+		case Diff_Car:
+			Motor_Number = 2;
+			break;
 		default:
 			break;
 	}
