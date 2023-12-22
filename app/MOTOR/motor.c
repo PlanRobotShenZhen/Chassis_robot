@@ -58,6 +58,10 @@ void MotorDataRefresh()
 	MOTOR_TPDO* mt;
 	MOTOR_RPDO* mr;
 	MOTOR_DATA* md;
+	motor_data[0].d.dir = pdu[motor1_direction];
+	motor_data[1].d.dir = pdu[motor2_direction];
+	motor_data[2].d.dir = pdu[motor3_direction];
+	motor_data[3].d.dir = pdu[motor4_direction];
 
 	for (i = 0; i < Motor_Number; i++)
 	{
@@ -81,10 +85,10 @@ void MotorDataRefresh()
 void Motor_init(void)
 {
 	int i=0;
-	pdu[211]=can_id_map[i++] = pdu[motor1_CAN_id];
-	pdu[212]=can_id_map[i++] = pdu[motor2_CAN_id];
-	pdu[213]=can_id_map[i++] = pdu[motor3_CAN_id];
-	pdu[214]=can_id_map[i++] = pdu[motor4_CAN_id];
+	can_id_map[i++] = pdu[motor1_CAN_id];
+	can_id_map[i++] = pdu[motor2_CAN_id];
+	can_id_map[i++] = pdu[motor3_CAN_id];
+	can_id_map[i++] = pdu[motor4_CAN_id];
 	for (i = 0; i < Motor_Number; i++)
 	{
 		motor_data[i].d.step = 0;

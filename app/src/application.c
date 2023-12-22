@@ -135,8 +135,8 @@ static void InitTask(void* parameter)
     //初始化航模参数指针
     rc_ptr = (Remote_Control_struct*)&pdu[turn_off_remote];
     //初始化电机参数指针
-    int i = motor1_state;
-    int length = motor2_state - motor1_state;
+    int i = motor1_direction;
+    int length = motor2_direction - motor1_direction;
     motorA_ptr = (Motor_struct*)&pdu[i];
     motorB_ptr = (Motor_struct*)&pdu[i + length];
     motorC_ptr = (Motor_struct*)&pdu[i + 2 * length];

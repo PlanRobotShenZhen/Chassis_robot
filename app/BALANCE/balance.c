@@ -185,7 +185,7 @@ void Get_Motor_Velocity()
 	int nMotor_A = mtd[0].d.current_velocity;
 	int nMotor_B = mtd[1].d.current_velocity;
 	int nMotor_C = mtd[2].d.current_velocity;
-	int nMotor_D = mtd[3].d.current_velocity;	
+	int nMotor_D = mtd[3].d.current_velocity;
 
 	MOTOR_A.nFeedback_Velocity = nMotor_A;
 	MOTOR_B.nFeedback_Velocity = nMotor_B;
@@ -325,6 +325,10 @@ void Set_MotorVelocity(int nMotorLB,int nMotorLF, int nMotorRF, int nMotorRB)
 	mrd[1].d.target_velocity = mrd[1].d.online ? nMotorLF : 0;
 	mrd[2].d.target_velocity = mrd[2].d.online ? nMotorRB : 0;
 	mrd[3].d.target_velocity = mrd[3].d.online ? nMotorRF : 0;
+	if(pdu[motor1_direction]==1)mrd[0].d.target_velocity = -mrd[0].d.target_velocity;
+	if(pdu[motor2_direction]==1)mrd[1].d.target_velocity = -mrd[1].d.target_velocity;
+	if(pdu[motor3_direction]==1)mrd[2].d.target_velocity = -mrd[2].d.target_velocity;
+	if(pdu[motor4_direction]==1)mrd[3].d.target_velocity = -mrd[3].d.target_velocity;
 }
 
 /*---------------------------一些功能函数--------------------------------*/
@@ -649,17 +653,13 @@ void Car_Light_Control(float Vx, float Vy)
 
 	// 逻辑判断模块
 	if (Abs_int(usTemp - rc_ptr->light_base) > 100)
-	{
-		// 此时代表没有触发开启灯光的标志
-
+	{// 此时代表没有触发开启灯光的标志		
 		if ((usTemp - rc_ptr->light_base) > 0)
-		{
-			// 开启灯光
+		{// 开启灯光			
 			g_ucLightOnFlag = 1;
 		}
 		else
-		{
-			// 关闭灯光
+		{// 关闭灯光			
 			g_ucLightOnFlag = 0;
 		}
 	}
@@ -682,6 +682,52 @@ void Car_Light_Control(float Vx, float Vy)
 			exio_output.bit.Light_Z = exio_output.bit.Light_Q;
 			exio_output.bit.Light_Y = exio_output.bit.Light_Q;
 			exio_output.bit.Light_H = exio_output.bit.Light_Q;
+		}
+		else if(Vx<0)
+		{//< 倒车
+			exio_output.bit.Light_Q = 0;
+			exio_output.bit.Light_Z = 1;
+			exio_output.bit.Light_Y = 0;
+			exio_output.bit.Light_H = 1;
+		}
+		if (g_ucLightOnFlag)
+		{
+			exio_output.bit.Light_Q = 1;
+			exio_output.bit.Light_Z = 1;
+			exio_output.bit.Light_Y = 1;
+			exio_output.bit.Light_H = 1;
+		}
+		if (Vy>0)
+		{//< 左转
+			if (light_time.t_cnt_Light_Q++ <= 50)
+			{
+				exio_output.bit.Light_Q = 1;
+				exio_output.bit.Light_Z = 1;
+			}
+			else if (light_time.t_cnt_Light_Q++ <= 100)
+			{
+				exio_output.bit.Light_Q = 0;
+				exio_output.bit.Light_Z = 0;
+				if (light_time.t_cnt_Light_Q == 100)light_time.t_cnt_Light_Q = 0;
+			}
+			else light_time.t_cnt_Light_Q = 0;
+
+		}
+		else if (Vy < 0)
+		{//< 右转
+			if (light_time.t_cnt_Light_Y++ <= 50)
+			{
+				exio_output.bit.Light_Y = 1;
+				exio_output.bit.Light_H = 1;
+			}
+			else if (light_time.t_cnt_Light_Y++ <= 100)
+			{
+				exio_output.bit.Light_Y = 0;
+				exio_output.bit.Light_H = 0;
+				if (light_time.t_cnt_Light_Y == 100)light_time.t_cnt_Light_Y = 0;
+			}
+			else light_time.t_cnt_Light_Y = 0;
+
 		}
 
 	}
@@ -789,6 +835,14 @@ void Balance_task(void* pvParameters)
 			
 		}
 		pdu[CONTROL_MODE_ADDR] = g_eControl_Mode;//
+		if (exio_input.bit.X0)
+		{//< 急停
+			Move_X = Move_Y = 0;
+		}
+		if (pdu[robot_forward_direction] == 1)Move_X = -Move_X;
+		if (pdu[robot_turning_direction] == 1)Move_Y = -Move_Y;
+		pdu[61] = (uint16_t)(Move_X * 100);
+		pdu[62] = (uint16_t)(Move_Y * 100);
 		Drive_Motor(Move_X, Move_Y, Move_Z);   //小车运动模型解析出每个电机的实际速度
 		Car_Light_Control(Move_X, Move_Y);
 		switch (g_emCarMode)

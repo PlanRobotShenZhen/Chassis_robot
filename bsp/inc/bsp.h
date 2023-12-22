@@ -46,7 +46,7 @@
 typedef union __SPI_IO_INPUT
 {
 	struct {
-		unsigned char X0 : 1;
+		unsigned char X0 : 1;//¡¶ ¼±Í£¿ª¹Ø
 		unsigned char X1 : 1;
 		unsigned char X2 : 1;
 		unsigned char X3 : 1;

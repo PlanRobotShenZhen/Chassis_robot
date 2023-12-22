@@ -847,8 +847,6 @@ void SetReal_Velocity(uint16_t* pdu)
 	
 	// 转角获取
 	Set_Director();
-	// 车灯控制
-	Car_Light_Control();
 }
 
 
@@ -1285,12 +1283,12 @@ void Pdu_Init()
 	pdu[i++] = LIGHT_MAX;
 	pdu[i++] = LIGHT_MIN;
 	//初始化电机参数
-	int length = motor2_state - motor1_state;
+	int length = motor2_direction - motor1_direction;
 	int m_bast_addr;
 	uint16_t model = SERVO_WANZE;//< 默认万泽伺服
 	for (int j = 0; j < 4; j++) {
 		m_bast_addr = j * length;
-		i = motor1_state + m_bast_addr;
+		i = motor1_direction + m_bast_addr;
 		pdu[i++] = 0;					      //节点状态
 		pdu[i++] = FourWheer_Radiaus * 10000; //车轮半径，乘以10000后
 		pdu[i++] = REDUCTION_RATE * 100;	  //减速比，乘以100后

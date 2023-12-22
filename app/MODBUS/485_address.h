@@ -110,7 +110,7 @@ enum address_485 {
 
 
     robot_forward_direction=134,
-    robot_turning _direction,
+    robot_turning_direction,
     moddbus_485_id,
     moddbus_485_baud,
     CAN_baud,
@@ -134,7 +134,7 @@ enum address_485 {
     light_max,
     light_min,
     // 电机参数
-    motor1_state = 160,
+    motor1_direction = 160,
     motor1_radius,
     motor1_reduction_ratio,
     motor1_CAN_id,
@@ -145,7 +145,7 @@ enum address_485 {
     motor1_tar_speed = 169,
     motor1_tar_position = 171,
 
-    motor2_state = 177,
+    motor2_direction = 177,
     motor2_radius,
     motor2_reduction_ratio,
     motor2_CAN_id,
@@ -156,7 +156,7 @@ enum address_485 {
     motor2_tar_speed = 186,
     motor2_tar_position = 188,
 
-    motor3_state = 194,
+    motor3_direction = 194,
     motor3_radius,
     motor3_reduction_ratio,
     motor3_CAN_id,
@@ -167,7 +167,7 @@ enum address_485 {
     motor3_tar_speed = 203,
     motor3_tar_position = 205,
 
-    motor4_state = 211,
+    motor4_direction = 211,
     motor4_radius,
     motor4_reduction_ratio,
     motor4_CAN_id,
