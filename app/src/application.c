@@ -135,12 +135,10 @@ static void InitTask(void* parameter)
     //初始化航模参数指针
     rc_ptr = (Remote_Control_struct*)&pdu[turn_off_remote];
     //初始化电机参数指针
-    int i = motor1_direction;
-    int length = motor2_direction - motor1_direction;
-    motorA_ptr = (Motor_struct*)&pdu[i];
-    motorB_ptr = (Motor_struct*)&pdu[i + length];
-    motorC_ptr = (Motor_struct*)&pdu[i + 2 * length];
-    motorD_ptr = (Motor_struct*)&pdu[i + 3 * length];
+    motorA_ptr = (Motor_struct*)&pdu[motor1_direction];
+    motorB_ptr = (Motor_struct*)&pdu[motor2_direction];
+    motorC_ptr = (Motor_struct*)&pdu[motor3_direction];
+    motorD_ptr = (Motor_struct*)&pdu[motor4_direction];
     switch (pdu[moddbus_485_baud])
     {
     case 0:usart1_baud = 9600;break;
@@ -208,16 +206,16 @@ static void InitTask(void* parameter)
     {
         rt_thread_startup(&ADC_thread);
     }
-    result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
-    if (result == RT_EOK)
-    {
-        rt_thread_startup(&Ultrasonic1_thread);
-    }
-    result = rt_thread_init(&Ultrasonic2_thread, "Ultrasonic", Ultrasonic2_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic2_stack[0], sizeof(Ultrasonic2_stack), 13, 14);
-    if (result == RT_EOK)
-    {
-        rt_thread_startup(&Ultrasonic2_thread);
-    }
+    //<result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
+    //<if (result == RT_EOK)
+    //<{
+    //<    rt_thread_startup(&Ultrasonic1_thread);
+    //<}
+    //<result = rt_thread_init(&Ultrasonic2_thread, "Ultrasonic", Ultrasonic2_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic2_stack[0], sizeof(Ultrasonic2_stack), 13, 14);
+    //<if (result == RT_EOK)
+    //<{
+    //<    rt_thread_startup(&Ultrasonic2_thread);
+    //<}
 
     
 }

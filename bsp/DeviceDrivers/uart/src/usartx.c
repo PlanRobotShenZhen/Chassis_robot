@@ -742,7 +742,7 @@ void SetReal_Velocity(uint16_t* pdu)
 	
 	if (g_eControl_Mode == CONTROL_MODE_UART)
 	{
-		SBUS_CH_Struct* uart_sbus = (SBUS_CH_Struct*) & pdu[130];
+		SBUS_CH_Struct* uart_sbus = (SBUS_CH_Struct*) & pdu[turn_off_remote];
 		memcpy(&tagSBUS_CH, uart_sbus, sizeof(SBUS_CH_Struct));
 	}
 	SBUSDataRefresh(pdu);
@@ -1388,7 +1388,7 @@ void ModBUS_task(void* pvParameters)
 		if (pdu[para_save]==1)
 		{//< 保存当前参数
 			pdu[para_save] = 0;
-			pdu[247]=MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
+			MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
 		}
 		else if (pdu[para_save] == 2)
 		{//< 恢复出厂设置

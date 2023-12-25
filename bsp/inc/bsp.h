@@ -271,6 +271,9 @@ void UltrasonicSetEnable(int id, uint8_t en);
 #define CANb_TxPin			GPIO_PIN_13
 
 
+/*RJ_JT ¼±Í£Êä³ö output*/
+#define RJ_JT_GPIO			GPIOA
+#define RJ_JT_Pin			GPIO_PIN_8
 /*ADC1_JT*/
 #define ADC1_JT_GPIO		GPIOA
 #define ADC1_JT_RxPin		GPIO_PIN_0

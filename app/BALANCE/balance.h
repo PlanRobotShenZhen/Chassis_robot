@@ -40,6 +40,11 @@ typedef struct {
 	uint32_t t_cnt_Light_Z;//< 左后
 	uint32_t t_cnt_Light_Y;//< 右前
 	uint32_t t_cnt_Light_H;//< 右后
+
+	uint32_t c_Light_Q:1;//< 左前
+	uint32_t c_Light_Z:1;//< 左后
+	uint32_t c_Light_Y:1;//< 右前
+	uint32_t c_Light_H:1;//< 右后
 }LightTime;
 
 extern struct Smooth_Control tagSmooth_control;  //麦克纳姆轮需要用到的小车速度平滑处理
@@ -58,7 +63,7 @@ void Set_MotorVelocity(int nMotorLB,int nMotorLF, int nMotorRF, int nMotorRB);
 void Get_Motor_Velocity(void);                   //获取电机速度反馈值，r/min
 void Smooth_control(float vx,float vy,float vz); //全向轮小车速度平滑
 unsigned char Turn_Off(void);                    //根据电池电量来操作
-float RotateToSpeedVelocity(int nRotateSpeed);   //电机转速转换为轮子线速度，m/s
+float RotateToSpeedVelocity(float nRotateSpeed);   //电机转速转换为轮子线速度，m/s
 int SpeedVelocityToRotate(float fltSpeed);       //轮子速度转换为电机转速r/min
 
 

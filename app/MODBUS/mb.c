@@ -42,6 +42,7 @@
 #include "mbframe.h"
 #include "mbproto.h"
 #include "mbfunc.h"
+#include "485_address.h"
 
 #include "mbport.h"
 #if MB_RTU_ENABLED == 1
@@ -58,7 +59,6 @@
 #define MB_PORT_HAS_CLOSE 0
 #endif
 /* ----------------------- Static variables ---------------------------------*/
-
 static UCHAR    ucMBAddress;
 /* 私有变量 ------------------------------------------------------------------*/
 PDUData_TypeDef PduData;
@@ -72,6 +72,18 @@ static enum
     STATE_NOT_INITIALIZED
 } eMBState = STATE_NOT_INITIALIZED;
 
+/* Internal SRAM config fo MCU */
+#define SRAM_BASE_ADDR          (0x20000000)
+#define SRAM_SIZE               (0x20000)
+
+/* Constant for BOOT */
+#define SRAM_VECTOR_WORD_SIZE   (64)
+#define SRAM_VECTOR_ADDR        (SRAM_BASE_ADDR+SRAM_SIZE-0x100)
+#define BOOT_MARK1_ADDR         (0x1FFFF2D0)    /* BOOT NVIC */
+#define BOOT_MARK2_ADDR         (0x1FFFF288)    /* BOOT Code */
+#define BOOT_MARK3_ADDR         (0x40024C00)
+/* The pointer of function */
+typedef void (*pFunction)(void);
 /* Functions pointer which are initialized in eMBInit( ). Depending on the
  * mode (RTU or ASCII) the are set to the correct implementations.
  */
@@ -128,6 +140,139 @@ static xMBFunctionHandler xFuncHandlers[MB_FUNC_HANDLERS_MAX] = {
     {MB_FUNC_READ_DISCRETE_INPUTS, eMBFuncReadDiscreteInputs},
 #endif
 };
+
+/**
+* @brief  Set system clock as 72M with HSI and PLL.
+*/
+void SetSysClock_HSI_PLL(void)
+{
+    /* It is necessary to initialize the RCC peripheral to the reset state.*/
+    RCC_DeInit();
+
+    /* Enable HSI   */
+    RCC_EnableHsi(ENABLE);
+    while (RCC_GetFlagStatus(RCC_FLAG_HSIRD) == RESET)
+    {
+        /*  If HSI failed to start-up,the clock configuration must be wrong.
+            User can add some code here to dela with this problem   */
+    }
+
+    /* Enable ex mode */
+    RCC_EnableAPB1PeriphClk(RCC_APB1_PERIPH_PWR, ENABLE);
+    PWR->CTRL3 |= (uint32_t)0x00000001;
+
+    /* Enable ICACHE and Prefetch Buffer */
+    FLASH_SetLatency(FLASH_LATENCY_2);
+    FLASH_PrefetchBufSet(FLASH_PrefetchBuf_EN);
+    FLASH_iCacheCmd(FLASH_iCache_EN);
+
+    /* AHB prescaler factor set to 1,HCLK = SYSCLK = 72M    */
+    RCC_ConfigHclk(RCC_SYSCLK_DIV1);
+    /* APB2 prescaler factor set to 1,PCLK2 = HCLK/1 = 72M  */
+    RCC_ConfigPclk2(RCC_HCLK_DIV1);
+    /* APB1 prescaler factor set to 2,PCLK1 = HCLK/2 = 36M  */
+    RCC_ConfigPclk1(RCC_HCLK_DIV2);
+
+    /* Config PLL */
+    RCC_ConfigPll(RCC_PLL_SRC_HSI_DIV2, RCC_PLL_MUL_18);
+
+    /* Enable PLL */
+    RCC_EnablePll(ENABLE);
+    while (RCC_GetFlagStatus(RCC_FLAG_PLLRD) == RESET)
+    {
+    }
+
+    /* Switch PLL clock to SYSCLK. */
+    RCC_ConfigSysclk(RCC_SYSCLK_SRC_PLLCLK);
+    while (RCC_GetSysclkSrc() != RCC_CFG_SCLKSTS_PLL)
+    {
+    }
+}
+
+
+void Jump_To_BOOT(void)
+{
+    uint32_t i, * pVec, * pMark;
+    uint32_t BootAddr, SPAddr;
+
+    /* Disable all interrupt */
+    __disable_irq();
+
+    /* Config IWDG */
+    IWDG_ReloadKey();
+    IWDG_WriteConfig(IWDG_WRITE_ENABLE);
+    IWDG_SetPrescalerDiv(IWDG_PRESCALER_DIV256);
+
+    /* Config MMU */
+    pMark = (uint32_t*)(BOOT_MARK3_ADDR);
+    *pMark = (uint32_t)0x00000011;
+
+    /* Config system clock as 72M with HSI and PLL  */
+    SetSysClock_HSI_PLL();
+
+    /* Reset peripheral used by boot */
+    USART_DeInit(USART1);
+    GPIO_DeInit(GPIOA);
+    RCC_EnableAPB1PeriphReset(RCC_APB1_PERIPH_USB, ENABLE);
+    RCC_EnableAPB1PeriphReset(RCC_APB1_PERIPH_USB, DISABLE);
+
+    /* Init vector */
+    pVec = (uint32_t*)SRAM_VECTOR_ADDR;
+    for (i = 0;i < SRAM_VECTOR_WORD_SIZE;i++)
+        pVec[i] = 0;
+
+    /* Get SP addr */
+    SPAddr = (*((uint32_t*)BOOT_MARK2_ADDR));
+
+    /* Get usefull fuction addr */
+    pMark = (uint32_t*)BOOT_MARK1_ADDR;
+    if (*pMark != 0xFFFFFFFF)    /*BOOT V2.3 and above*/
+    {
+        BootAddr = pMark[0];
+        pVec[SysTick_IRQn + 16] = pMark[1];
+        pVec[USART1_IRQn + 16] = pMark[2];
+        pVec[USB_LP_CAN1_RX0_IRQn + 16] = pMark[3];
+        pVec[RTC_IRQn + 16] = pMark[4];
+    }
+    else
+    {
+        if (SPAddr != 0xFFFFFFFF)    /*BOOT V2.2*/
+        {
+            pVec[SysTick_IRQn + 16] = 0x1FFF0A67;
+            pVec[USART1_IRQn + 16] = 0x1FFF0A9F;
+            pVec[USB_LP_CAN1_RX0_IRQn + 16] = 0x1FFF0ACF;
+            pVec[RTC_IRQn + 16] = 0x1FFF0AD3;
+            BootAddr = 0x1FFF00D9;
+        }
+        else    /*BOOT V2.1*/
+        {
+            pVec[SysTick_IRQn + 16] = 0x1FFF10D7;
+            pVec[USART1_IRQn + 16] = 0x1FFF115D;
+            pVec[USB_LP_CAN1_RX0_IRQn + 16] = 0x1FFF117F;
+            pVec[RTC_IRQn + 16] = 0x1FFF1183;
+            pVec[EXTI15_10_IRQn + 16] = 0x1FFF10ED;
+            BootAddr = 0x1FFF0101;
+            SPAddr = 0x20008690;
+        }
+    }
+
+    /* Enable interrupt */
+    __enable_irq();
+
+    /* Set JumpBoot addr */
+    pFunction JumpBoot = (pFunction)BootAddr;
+
+    /* Initalize Stack Pointer */
+    __set_MSP(SPAddr);
+
+    /* Initialize vector table */
+    SCB->VTOR = SRAM_VECTOR_ADDR;
+
+    /* Jump to BOOT */
+    JumpBoot();
+}
+
+
 /**
   * 函数功能: 填充内存
   * 输入参数: buf:内存空间首地址,Code:功能码
@@ -655,7 +800,7 @@ static uint8_t MB_RSP_05H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
 
 int isWritableAddr(uint16_t _AddrOffset)
 {
-    if (_AddrOffset >= 150&& _AddrOffset<=250)
+    if (_AddrOffset >= car_type && _AddrOffset< car_mode)
     {
         return 0;
     }
@@ -705,11 +850,12 @@ static uint8_t MB_RSP_06H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
     {//<  可写地址
         *_AddrAbs = _RegNum;
     }
-    if (_AddrOffset == 6 && _RegNum == 0xa5)
+    if (_AddrOffset == software_reset)
     {
-        Soft_Reset();
+        if (_RegNum == 0xa5)Soft_Reset();
+        else if (_RegNum == 0x5a)Jump_To_BOOT();
     }
-    else if (_AddrOffset == 3 && _RegNum == 0)
+    else if (_AddrOffset == error_get_and_clear && _RegNum == 0)
     {
         error_code = 0;
     }

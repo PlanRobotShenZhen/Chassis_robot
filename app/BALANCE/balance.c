@@ -37,6 +37,15 @@ int SPI_heartbeat = 0;
 uint8_t SPI_ReadWriteCycle = 0;
 EXIO_INPUT exio_input;
 EXIO_OUTPUT exio_output;
+struct {
+	unsigned char SW : 2;//《 急停开关
+	unsigned char Rising : 1;
+	unsigned char Descending : 1;
+
+	unsigned char estop_soft : 1;//< 软急停
+	unsigned char estop_soft_old : 1;//< 软急停
+}emergency_stop;
+
 /**************************************************************************
 函数功能：对接收到数据进行处理
 入口参数：X和Y Z轴方向的运动速度
@@ -182,15 +191,19 @@ void Ros_Control()
 void Get_Motor_Velocity()
 {
 	//这里采集回来的是驱动器反馈回来的数据，要经过相应转换才行
-	int nMotor_A = mtd[0].d.current_velocity;
-	int nMotor_B = mtd[1].d.current_velocity;
-	int nMotor_C = mtd[2].d.current_velocity;
-	int nMotor_D = mtd[3].d.current_velocity;
+	float nMotor_A = mtd[0].d.current_velocity;
+	float nMotor_B = mtd[1].d.current_velocity;
+	float nMotor_C = mtd[2].d.current_velocity;
+	float nMotor_D = mtd[3].d.current_velocity;
+	if (pdu[motor1_model] == SERVO_WANZE)nMotor_A = nMotor_A * 60 / 10000;//< 一圈10000脉冲数
+	if (pdu[motor2_model] == SERVO_WANZE)nMotor_B = nMotor_B * 60 / 10000;//< 一圈10000脉冲数
+	if (pdu[motor3_model] == SERVO_WANZE)nMotor_C = nMotor_C * 60 / 10000;//< 一圈10000脉冲数
+	if (pdu[motor4_model] == SERVO_WANZE)nMotor_D = nMotor_D * 60 / 10000;//< 一圈10000脉冲数
 
-	MOTOR_A.nFeedback_Velocity = nMotor_A;
-	MOTOR_B.nFeedback_Velocity = nMotor_B;
-	MOTOR_C.nFeedback_Velocity = nMotor_C;
-	MOTOR_D.nFeedback_Velocity = nMotor_D;
+	MOTOR_A.nFeedback_Velocity = (int)nMotor_A;
+	MOTOR_B.nFeedback_Velocity = (int)nMotor_B;
+	MOTOR_C.nFeedback_Velocity = (int)nMotor_C;
+	MOTOR_D.nFeedback_Velocity = (int)nMotor_D;
 	
 	MOTOR_A.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
 	MOTOR_B.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
@@ -201,19 +214,18 @@ void Get_Motor_Velocity()
 		int16_t ud[2];
 	}tmp;
 	int i = motor1_feedback_speed;
-	int length = motor2_feedback_speed-motor1_feedback_speed;
 	tmp.v = MOTOR_A.fltFeedBack_Velocity;
 	pdu[i] = tmp.ud[1];
 	pdu[i+1] = tmp.ud[0];
-	i=i+length;
+	i = motor2_feedback_speed;
 	tmp.v = MOTOR_B.fltFeedBack_Velocity;
 	pdu[i] = tmp.ud[1];
 	pdu[i+1] = tmp.ud[0];
-	i=i+length;
+	i = motor3_feedback_speed;
 	tmp.v = MOTOR_C.fltFeedBack_Velocity;
 	pdu[i] = tmp.ud[1];
 	pdu[i+1] = tmp.ud[0];
-	i=i+length;
+	i = motor4_feedback_speed;
 	tmp.v = MOTOR_D.fltFeedBack_Velocity;
 	pdu[i] = tmp.ud[1];
 	pdu[i+1] = tmp.ud[0];
@@ -221,6 +233,7 @@ void Get_Motor_Velocity()
 	tmp.v = (MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity+MOTOR_D.fltFeedBack_Velocity)/4;
 	pdu[i] = tmp.ud[1];
 	pdu[i+1] = tmp.ud[0];
+	i = car_feedback_ang_speed;
 	tmp.v = (-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/2/(pdu[wheel_distance]+pdu[axles_distance])/10000;
 	pdu[i] = tmp.ud[1];
 	pdu[i+1] = tmp.ud[0];
@@ -232,16 +245,16 @@ void Get_Motor_Velocity()
 					存放在速度结构体中。
 					1 r/min = （2Π * R） / 60  m/s
 入口参数：nRotateSpeed代表转速，r/min
-返 回 值：轮子转速
+返 回 值：轮子线速度 m/s，
 **************************************************************************/
-float RotateToSpeedVelocity(int nRotateSpeed)
+float RotateToSpeedVelocity(float nRotateSpeed)
 {
 	//float fltReturn = 0.0f;
 	//v=n*2*pi*r/60
 	//fltReturn = nRotateSpeed * 2 * PI * FourWheer_Radiaus/ 60;  //转换为轮胎速度
 	// 2 * PI * FourWheer_Radiaus/ 60 = 0.0172787593
 	//fltReturn = nRotateSpeed * 0.0172787593;  //转换为轮胎速度
-	return nRotateSpeed * FourWheer_Perimeter/60;  //转换为轮胎速度;	
+	return nRotateSpeed * FourWheer_Conversion;  //转换为轮胎速度;	
 }
 
 
@@ -646,7 +659,7 @@ void Ultrasonic2_task(void* pvParameters)
 * 返回值：
 ****************************************************************/
 
-void Car_Light_Control(float Vx, float Vy)
+void Car_Light_Control(float Vx, float Vz)
 {
 	unsigned short usTemp = 0;
 	usTemp = tagSBUS_CH.CH10;
@@ -663,73 +676,125 @@ void Car_Light_Control(float Vx, float Vy)
 			g_ucLightOnFlag = 0;
 		}
 	}
+	
+
+
+	usTemp = tagSBUS_CH.CH9;//< 模拟软急停
+	if (Abs_int(usTemp - 1023) > 100)
+	{
+		if ((usTemp - 1023) > 0)
+		{// 开启软急停			
+			emergency_stop.estop_soft = 1;			
+		}
+		else
+		{// 关闭软急停	
+			emergency_stop.estop_soft = 0;			
+		}
+		if (emergency_stop.estop_soft_old != emergency_stop.estop_soft)
+		{
+			emergency_stop.estop_soft_old = emergency_stop.estop_soft;
+			if (emergency_stop.estop_soft)
+			{
+				emergency_stop.Descending = 1;
+				GPIO_SetBits(RJ_JT_GPIO, RJ_JT_Pin);//< 开启软急停	
+			}
+			else GPIO_ResetBits(RJ_JT_GPIO, RJ_JT_Pin);//< 关闭软急停	
+		}
+	}
+
 	if (g_eControl_Mode == CONTROL_MODE_UNKNOW)
 	{//< 等待连接状态
 		if (light_time.t_cnt_Light_Q++ >= 25)
 		{
-			exio_output.bit.Light_Q = (exio_output.bit.Light_Q == 1) ? 0 : 1;
-			exio_output.bit.Light_Z = exio_output.bit.Light_Q;
-			exio_output.bit.Light_Y = exio_output.bit.Light_Q;
-			exio_output.bit.Light_H = exio_output.bit.Light_Q;
+			if (exio_output.bit.Light_Q == 0)exio_output.output |= 0xf0;
+			else exio_output.output &= 0x0f;
 			light_time.t_cnt_Light_Q = 0;
 		}
 	}
 	else
 	{
-		if (Vx == 0)
-		{
-			exio_output.bit.Light_Q = (g_ucLightOnFlag == 1) ? 1 : 0;
-			exio_output.bit.Light_Z = exio_output.bit.Light_Q;
-			exio_output.bit.Light_Y = exio_output.bit.Light_Q;
-			exio_output.bit.Light_H = exio_output.bit.Light_Q;
-		}
-		else if(Vx<0)
+
+		if (g_ucLightOnFlag == 1)exio_output.output |= 0xf0;
+		else exio_output.output &= 0x0f;
+		if(Vx>0)
 		{//< 倒车
-			exio_output.bit.Light_Q = 0;
-			exio_output.bit.Light_Z = 1;
-			exio_output.bit.Light_Y = 0;
-			exio_output.bit.Light_H = 1;
+			exio_output.output |= 0xa0;
 		}
-		if (g_ucLightOnFlag)
-		{
-			exio_output.bit.Light_Q = 1;
-			exio_output.bit.Light_Z = 1;
-			exio_output.bit.Light_Y = 1;
-			exio_output.bit.Light_H = 1;
-		}
-		if (Vy>0)
+		if (Vz >0)
 		{//< 左转
-			if (light_time.t_cnt_Light_Q++ <= 50)
+			light_time.t_cnt_Light_Y = 0;
+			light_time.t_cnt_Light_Q++;
+			if (light_time.t_cnt_Light_Q <= 50)
 			{
-				exio_output.bit.Light_Q = 1;
-				exio_output.bit.Light_Z = 1;
+				exio_output.output |= 0x30;
 			}
-			else if (light_time.t_cnt_Light_Q++ <= 100)
+			else if (light_time.t_cnt_Light_Q <= 100)
 			{
-				exio_output.bit.Light_Q = 0;
-				exio_output.bit.Light_Z = 0;
+				exio_output.output &= ~0x30;
 				if (light_time.t_cnt_Light_Q == 100)light_time.t_cnt_Light_Q = 0;
 			}
 			else light_time.t_cnt_Light_Q = 0;
-
+			light_time.c_Light_Q = 1;
 		}
-		else if (Vy < 0)
+		else if (Vz < 0)
 		{//< 右转
-			if (light_time.t_cnt_Light_Y++ <= 50)
+			light_time.t_cnt_Light_Q = 0;
+			light_time.c_Light_Q = 1;
+			light_time.t_cnt_Light_Y++;
+			if (light_time.t_cnt_Light_Y <= 50)
 			{
-				exio_output.bit.Light_Y = 1;
-				exio_output.bit.Light_H = 1;
+				exio_output.output |= 0xc0;
 			}
-			else if (light_time.t_cnt_Light_Y++ <= 100)
+			else if (light_time.t_cnt_Light_Y <= 100)
 			{
-				exio_output.bit.Light_Y = 0;
-				exio_output.bit.Light_H = 0;
+				exio_output.output &= ~0xc0;
 				if (light_time.t_cnt_Light_Y == 100)light_time.t_cnt_Light_Y = 0;
 			}
 			else light_time.t_cnt_Light_Y = 0;
-
 		}
-
+		else
+		{
+			if (light_time.c_Light_Q)
+			{
+				light_time.c_Light_Q = 0;
+				light_time.t_cnt_Light_Q = light_time.t_cnt_Light_Y = 0;
+				if (g_ucLightOnFlag)exio_output.output |= 0xf0;
+				else exio_output.output &= 0x0f;
+			}
+		}
+	}
+	if (emergency_stop.SW != exio_input.bit.X0)
+	{
+		if (exio_input.bit.X0)emergency_stop.Rising = 1;
+		else emergency_stop.Descending = 1;
+		emergency_stop.SW = exio_input.bit.X0;
+	}
+	if (exio_input.bit.X0|| emergency_stop.estop_soft)
+	{
+		if (light_time.t_cnt_RGB_G++ >= 15)
+		{
+			exio_output.bit.RGB_G = (exio_output.bit.RGB_G == 1) ? 0 : 1;
+			exio_output.bit.RGB_R = exio_output.bit.RGB_G;
+			light_time.t_cnt_RGB_G = 0;
+			light_time.t_cnt_RGB_B++;
+			if (light_time.t_cnt_RGB_B <= 6)
+			{
+				exio_output.bit.RGB_B = exio_output.bit.RGB_G;
+			}
+			else exio_output.bit.RGB_B = 0;
+		}
+	}
+	else
+	{
+		if (emergency_stop.Descending)
+		{
+			emergency_stop.Descending = 0;
+			exio_output .output &= ~0x7;
+			light_time.t_cnt_RGB_G = 0;
+			light_time.t_cnt_RGB_B = 0;
+			light_time.t_cnt_RGB_G = 0;
+		}
+		exio_output.bit.RGB_G = ((Vx == 0) && (Vz == 0));
 	}
 
 }
@@ -811,10 +876,7 @@ void Balance_task(void* pvParameters)
 		//使用上位机控制的时候，会在usart中断中关闭Remote_ON_Flag标志位
 		if (g_eControl_Mode == CONTROL_MODE_UNKNOW)
 		{
-			motorA_ptr->motor_state = 0;
-			motorB_ptr->motor_state = 0;
-			motorC_ptr->motor_state = 0;
-			motorD_ptr->motor_state = 0;
+
 		}
 		else
 		{
@@ -827,24 +889,17 @@ void Balance_task(void* pvParameters)
 			{
 				// 上位机控制的时候，此时Z轴的速度要进行一个反向，不然左右转弯的时候有问题
 				Ros_Control();
-			}
-			motorA_ptr->motor_state = 1;
-			motorB_ptr->motor_state = 1;
-			motorC_ptr->motor_state = 1;
-			motorD_ptr->motor_state = 1;
-			
+			}			
 		}
 		pdu[CONTROL_MODE_ADDR] = g_eControl_Mode;//
-		if (exio_input.bit.X0)
+		if (exio_input.bit.X0|| emergency_stop.estop_soft)
 		{//< 急停
-			Move_X = Move_Y = 0;
+			Move_X = Move_Y = Move_Z = 0;
 		}
 		if (pdu[robot_forward_direction] == 1)Move_X = -Move_X;
-		if (pdu[robot_turning_direction] == 1)Move_Y = -Move_Y;
-		pdu[61] = (uint16_t)(Move_X * 100);
-		pdu[62] = (uint16_t)(Move_Y * 100);
+		if (pdu[robot_turning_direction] == 1)Move_Z = -Move_Z;
 		Drive_Motor(Move_X, Move_Y, Move_Z);   //小车运动模型解析出每个电机的实际速度
-		Car_Light_Control(Move_X, Move_Y);
+		Car_Light_Control(Move_X, Move_Z);
 		switch (g_emCarMode)
 		{
 		case Mec_Car:        break; //麦克纳姆轮小车

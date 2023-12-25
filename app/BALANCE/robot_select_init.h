@@ -35,7 +35,7 @@ enum CarMode
 struct Motor_parameter
 {
 	int nTarget_Velocity;        //单位r/min,为了便于做电机控制写入驱动器
-	int nFeedback_Velocity;
+	int nFeedback_Velocity;      //< rpm 单位(r/min)
 	float fltTarget_velocity;    //做上下位机通信，传输的是轮子的速度m/s
 	float fltFeedBack_Velocity;
 };
@@ -77,7 +77,7 @@ extern Remote_Control_struct* rc_ptr;
 //电机参数结构体
 typedef struct motor_struct
 {
-	uint16_t motor_state;
+	uint16_t motor_direction;
 	uint16_t motor_per;
 	uint16_t reduction_ratio;
 	uint16_t can_id;
