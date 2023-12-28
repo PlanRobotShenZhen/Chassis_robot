@@ -1397,6 +1397,24 @@ void ModBUS_task(void* pvParameters)
 			Pdu_Init();
 			MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
 		}
+
+
+		if (pdu[software_reset]==0xa5)
+		{
+			pdu[software_reset] = 0;
+			Soft_Reset();
+		}
+		else if (pdu[software_reset] == 0x5a)
+		{
+			pdu[software_reset] = 0;
+			Jump_To_BOOT();
+		}
+		if (pdu[error_get_and_clear] == 1)
+		{
+			pdu[error_get_and_clear] = 0;
+			error_code = 0;
+		}
+
 	}
 }
 

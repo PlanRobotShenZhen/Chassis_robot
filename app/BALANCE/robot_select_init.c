@@ -23,6 +23,7 @@ void Robot_Select(void)
 			break;
 		case Diff_Car:
 			Motor_Number = 2;
+			Slave_Number = 1;
 			break;
 		default:
 			break;

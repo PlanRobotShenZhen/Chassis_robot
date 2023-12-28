@@ -2,6 +2,7 @@
 #define __motor_data__h
 #include "stdint.h"
 extern int Motor_Number;
+extern int Slave_Number;
 #define MAX_MOTOR_NUMBER 10
 typedef union CONTROLWORD__
 {

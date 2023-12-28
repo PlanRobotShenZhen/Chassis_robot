@@ -3,6 +3,7 @@
 #include "485_address.h"
 #include "robot_select_init.h"
 int Motor_Number = 4;
+int Slave_Number = 4;
 MOTOR_TPDO mtd[MAX_MOTOR_NUMBER];//< 发送pdo
 MOTOR_RPDO mrd[MAX_MOTOR_NUMBER];//< 接收pdo
 static uint16_t* pdu;
@@ -40,6 +41,9 @@ void New_Servo_Motor_Init(int i,uint8_t ID)
 	{
 	case 1:// 万泽伺服
 		WANZER_PDO_Config(ID);
+		break;
+	case 2:// 中菱一拖二伺服
+		ZLAC8015D_PDO_Config(ID);
 		break;
 	default://中菱伺服
 		ZLAC8015_PDO_Config(ID);
@@ -119,7 +123,7 @@ void Motor_init_process(void)
 	{
 		if (IsSdoEmpty()==1)
 		{
-			for (i = 0; i < Motor_Number; i++)
+			for (i = 0; i < Slave_Number; i++)
 			{
 				m_ctrl = &mrd[i];
 				m_states = &mtd[i];

@@ -237,7 +237,7 @@ void LED_Init(void)
     rt_thread_delay(5000);   //< 500ms
 #elif(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
 
-    RCC_EnableAPB2PeriphClk(LED1_PORT_RCC| LED2_PORT_RCC | JDQ_PORT_RCC, ENABLE);
+    RCC_EnableAPB2PeriphClk(LED1_PORT_RCC| LED2_PORT_RCC | JDQ_PORT_RCC| CS1_Ttig_RCC, ENABLE);
 
 
     GPIO_InitStructure.Pin = RUN1;
@@ -251,7 +251,7 @@ void LED_Init(void)
     //< 急停输出初始化
     GPIO_InitStructure.Pin = RJ_JT_Pin;
     GPIO_InitPeripheral(RJ_JT_GPIO, &GPIO_InitStructure);
-    GPIO_ResetBits(RJ_JT_GPIO, RJ_JT_Pin);//< 初始化为0
+    GPIO_SetBits(RJ_JT_GPIO, RJ_JT_Pin);//< 初始化为0
     
 
     GPIO_SetBits(JDQ_PORT, JDQ1_PIN);

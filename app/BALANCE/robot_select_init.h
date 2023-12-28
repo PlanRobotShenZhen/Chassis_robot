@@ -191,6 +191,9 @@ void Robot_Select(void);
 
 void Robot_Init(float wheelspacing, float axlespacing, float omni_turn_radiaus, int gearratio,float tyre_diameter);
 void Soft_Reset(void);  // 手动软件复位
+void Jump_To_BOOT(void);
+
+extern uint16_t error_code;
 extern uint16_t* getPDUData(void);
 
 #endif

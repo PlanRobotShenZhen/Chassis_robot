@@ -52,7 +52,6 @@ extern int g_nCurrentVelocity;
 /*—-------------上下位机通信协议相关宏定义--------------*/
 #define FRAME_HEADER 0X7B             //发送数据的帧头,"{"
 #define FRAME_TAIL 0X7D               //发送数据的帧尾,"}"
-#define SEND_DATA_SIZE 34
 #define RECEIVE_DATA_SIZE 11
 
 

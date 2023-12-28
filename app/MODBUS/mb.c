@@ -64,7 +64,6 @@ static UCHAR    ucMBAddress;
 PDUData_TypeDef PduData;
 REG_VALUE R_value;
 static uint16_t mbdata[MB_RTU_DATA_MAX_SIZE];
-extern uint16_t error_code;
 static enum
 {
     STATE_ENABLED,
@@ -190,6 +189,7 @@ void SetSysClock_HSI_PLL(void)
 }
 
 
+
 void Jump_To_BOOT(void)
 {
     uint32_t i, * pVec, * pMark;
@@ -207,12 +207,13 @@ void Jump_To_BOOT(void)
     pMark = (uint32_t*)(BOOT_MARK3_ADDR);
     *pMark = (uint32_t)0x00000011;
 
-    /* Config system clock as 72M with HSI and PLL  */
+    /* Config system clock as 72M with HSI and PLL */
     SetSysClock_HSI_PLL();
 
     /* Reset peripheral used by boot */
     USART_DeInit(USART1);
     GPIO_DeInit(GPIOA);
+
     RCC_EnableAPB1PeriphReset(RCC_APB1_PERIPH_USB, ENABLE);
     RCC_EnableAPB1PeriphReset(RCC_APB1_PERIPH_USB, DISABLE);
 
@@ -226,7 +227,7 @@ void Jump_To_BOOT(void)
 
     /* Get usefull fuction addr */
     pMark = (uint32_t*)BOOT_MARK1_ADDR;
-    if (*pMark != 0xFFFFFFFF)    /*BOOT V2.3 and above*/
+    if (*pMark != 0xFFFFFFFF) /*BOOT V2.3 and above*/
     {
         BootAddr = pMark[0];
         pVec[SysTick_IRQn + 16] = pMark[1];
@@ -236,7 +237,7 @@ void Jump_To_BOOT(void)
     }
     else
     {
-        if (SPAddr != 0xFFFFFFFF)    /*BOOT V2.2*/
+        if (SPAddr != 0xFFFFFFFF) /*BOOT V2.2*/
         {
             pVec[SysTick_IRQn + 16] = 0x1FFF0A67;
             pVec[USART1_IRQn + 16] = 0x1FFF0A9F;
@@ -244,7 +245,7 @@ void Jump_To_BOOT(void)
             pVec[RTC_IRQn + 16] = 0x1FFF0AD3;
             BootAddr = 0x1FFF00D9;
         }
-        else    /*BOOT V2.1*/
+        else /*BOOT V2.1*/
         {
             pVec[SysTick_IRQn + 16] = 0x1FFF10D7;
             pVec[USART1_IRQn + 16] = 0x1FFF115D;
@@ -259,19 +260,12 @@ void Jump_To_BOOT(void)
     /* Enable interrupt */
     __enable_irq();
 
-    /* Set JumpBoot addr */
+    /* Jump to boot */
     pFunction JumpBoot = (pFunction)BootAddr;
-
-    /* Initalize Stack Pointer */
     __set_MSP(SPAddr);
-
-    /* Initialize vector table */
     SCB->VTOR = SRAM_VECTOR_ADDR;
-
-    /* Jump to BOOT */
     JumpBoot();
 }
-
 
 /**
   * 函数功能: 填充内存
@@ -849,15 +843,6 @@ static uint8_t MB_RSP_06H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
     if (isWritableAddr(_AddrOffset))
     {//<  可写地址
         *_AddrAbs = _RegNum;
-    }
-    if (_AddrOffset == software_reset)
-    {
-        if (_RegNum == 0xa5)Soft_Reset();
-        else if (_RegNum == 0x5a)Jump_To_BOOT();
-    }
-    else if (_AddrOffset == error_get_and_clear && _RegNum == 0)
-    {
-        error_code = 0;
     }
     /* 填充返回内容 */
     uart1_send_data[_TxCount++] = PduData.Num >> 8;

@@ -696,9 +696,9 @@ void Car_Light_Control(float Vx, float Vz)
 			if (emergency_stop.estop_soft)
 			{
 				emergency_stop.Descending = 1;
-				GPIO_SetBits(RJ_JT_GPIO, RJ_JT_Pin);//< ¿ªÆôÈí¼±Í£	
+				GPIO_ResetBits(RJ_JT_GPIO, RJ_JT_Pin);//< ¿ªÆôÈí¼±Í£	
 			}
-			else GPIO_ResetBits(RJ_JT_GPIO, RJ_JT_Pin);//< ¹Ø±ÕÈí¼±Í£	
+			else GPIO_SetBits(RJ_JT_GPIO, RJ_JT_Pin);//< ¹Ø±ÕÈí¼±Í£	
 		}
 	}
 

@@ -21,6 +21,7 @@ extern int g_nHeart_Time_RB;
 void Can_Driver_Init(uint16_t baud);
 uint8_t NMT_Control(uint8_t ID, const uint8_t Data0, const uint8_t Data1);//NMT控制
 uint8_t ZLAC8015_PDO_Config(uint16_t id);// 中菱伺服
+uint8_t ZLAC8015D_PDO_Config(uint16_t id);// 中菱伺服
 uint8_t WANZER_PDO_Config(uint16_t id);// 万泽伺服
 uint8_t IsSdoEmpty(void);
 void Can_task(void* pvParameters);
