@@ -41,15 +41,17 @@ void New_Servo_Motor_Init(int i,uint8_t ID)
 	{
 	case 1:// 万泽伺服
 		WANZER_PDO_Config(ID);
+		NMT_Control(ID, 0x01, ID); //开启PDO1传输数据
 		break;
 	case 2:// 中菱一拖二伺服
 		ZLAC8015D_PDO_Config(ID);
+		NMT_Control(0, 0x01, ID); //开启PDO1传输数据
 		break;
 	default://中菱伺服
 		ZLAC8015_PDO_Config(ID);
+		NMT_Control(ID, 0x01, ID); //开启PDO1传输数据
 		break;
 	}
-	NMT_Control(ID, 0x01, ID); //开启PDO1传输数据
 	//delay_ms(1);
 }
 
@@ -111,7 +113,7 @@ void Motor_init_process(void)
 	if (pdu[can_reinitialize] == 5)
 	{
 		pdu[can_reinitialize] = 0;
-		for (i = 0; i < Motor_Number; i++)
+		for (i = 0; i < Slave_Number; i++)
 		{
 			NMT_Control(mrd[i].d.mapping, 0x00, mrd[i].d.mapping); //暂停传输数据
 			mrd[i].d.online = 0;
@@ -201,6 +203,7 @@ void Motor_task(void* pvParameters)
 			}
 			else if (m_states->d.status.sd == 563 ||
 				m_states->d.status.sd == 0x3023 ||
+				m_states->d.status.sd == 0x1023 ||
 				m_states->d.status.sd == 0x5633)
 			{
 				m_ctrl->d.ctrl.cd = 15;

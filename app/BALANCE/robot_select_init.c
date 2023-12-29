@@ -9,7 +9,7 @@ Robot_Parament_InitTypeDef  Robot_Parament;//初始化机器人参数结构体
 **************************************************************************/
 void Robot_Select(void)
 {
-	g_emCarMode = FourWheel_Car;   //设置为4驱差速
+	g_emCarMode = Diff_Car;   //设置为4驱差速
 	g_ucRos_Flag = 0;
 	g_ucRemote_Flag = 0;
 	switch(g_emCarMode)

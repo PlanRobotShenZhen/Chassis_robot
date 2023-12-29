@@ -892,7 +892,7 @@ void Balance_task(void* pvParameters)
 			}			
 		}
 		pdu[CONTROL_MODE_ADDR] = g_eControl_Mode;//
-		if (exio_input.bit.X0|| emergency_stop.estop_soft)
+		if (exio_input.bit.X0|| emergency_stop.estop_soft)	
 		{//< 急停
 			Move_X = Move_Y = Move_Z = 0;
 		}
@@ -902,10 +902,14 @@ void Balance_task(void* pvParameters)
 		Car_Light_Control(Move_X, Move_Z);
 		switch (g_emCarMode)
 		{
-		case Mec_Car:        break; //麦克纳姆轮小车
-		case Omni_Car:       break; //全向轮小车
-		case Akm_Car:        break; //阿克曼小车
-		case Diff_Car:       break; //两轮差速小车
+		case Mec_Car:        
+			break; //麦克纳姆轮小车
+		case Omni_Car:       
+			break; //全向轮小车
+		case Akm_Car:        
+			break; //阿克曼小车
+		case Diff_Car:       
+			break; //两轮差速小车
 		case FourWheel_Car:
 			Set_MotorVelocity(-MOTOR_A.nTarget_Velocity, -MOTOR_B.nTarget_Velocity,
 				MOTOR_C.nTarget_Velocity, MOTOR_D.nTarget_Velocity);

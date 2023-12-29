@@ -10,6 +10,7 @@
 #include "n32g45x.h"
 #include "485_address.h"
 #include "rtthread.h"
+#include "robot_select_init.h"
 
 struct SdoFrame
 {
@@ -265,32 +266,29 @@ uint8_t ZLAC8015D_PDO_Config(uint16_t id)
 	uint16_t s_id;
 	struct SdoFrame* new_sdo_frame;
 	uint8_t Init_sdo[][8] = // 主站(单片机)，恢复从站的初始值 
-	{// 写参数映射		
-		{0x23,0x00,0x14,0x01,id,0x02,0x00,0x80},  // 失能Rpdo： 发送sdo  600+id,23 00 14 01 01 02 00 80
-		{0x2F,0x00,0x14,0x02,0xFE,0x00,0x00,0x00},    //②Hex1400_02，传输形式：0xFE：事件触发；0xFF：定时器触发
-		{0x2F,0x00,0x16,0x00,0x00,0x00,0x00,0x00},  // 清除映射: 发送sdo 600+id,22 00 16 00 00 00 00 00
-		{0x23,0x00,0x16,0x01,0x10,0x00,0x40,0x60},  // 6040 控制字
-		{0x23,0x00,0x16,0x02,0x20,0x01,0xFF,0x60},  // 60FF 01左电机目标速度
-		{0x23,0x00,0x16,0x03,0x20,0x02,0xFF,0x60},  // 60FF 02右电机目标速度
-		{0x2F,0x00,0x16,0x00,0x03,0x00,0x00,0x00},    //映射对象子索引个数	⑥Hex1600_0，启用【映射参数】 【实际映射多少组】 
-		{0x23,0x00,0x14,0x01,id,0x02,0x00,0x00},  // 使能pdo:  发送sdo 600+id,22 00 14 01 01 02 00 00
-		// 读参数映射
-		{0x23,0x00,0x18,0x01,0x80 + id,0x01,0x00,0x80},  // 失能Tpdo： 发送sdo  600+id,22 00 14 01 01 02 00 80
-		{0x2B,0x00,0x18,0x05,0x28,0x00,0x00,0x00},    //定时器触发时间40ms(刷新率为25Hz)
-		{0x2F,0x00,0x1A,0x00,0x00,0x00,0x00,0x00},  // 消去个数: 发送sdo 600+id,22 00 16 00 00 00 00 00
-		{0x23,0x00,0x1A,0x01,0x10,0x00,0x41,0x60},  // 6041 状态字
-		{0x23,0x00,0x1A,0x02,0x20,0x01,0x6C,0x60},  // 606C 01左电机实时反馈速度
-		{0x23,0x00,0x1A,0x03,0x20,0x02,0x6C,0x60},  // 606C 02右电机实时反馈速度
-		{0x23,0x00,0x18,0x01,0x80 + id,0x01,0x00,0x00},  // 使能pdo:  发送sdo 600+id,22 00 14 01 01 02 00 00
+	{	
+		{0x2B,0x0F,0x20,0x00,0x01,0x00,0x00,0x00},	//设置同步控制
 		{0x2F,0x60,0x60,0x00,0x03,0x00,0x00,0x00},	//设置速度模式
-		{0x2F,0x00,0x18,0x02,0xFF,0x00,0x00,0x00},    //②Hex1800_02，传输形式：0xFE：事件触发；0xFF：定时器触发 1个有效数据，设置TPDO1的传输类型，SYNC 
-		{0x2F,0x00,0x1A,0x00,0x03,0x00,0x00,0x00},    //⑥Hex1A00_0，启用【映射参数】 【实际映射多少组】 
-		// 中菱伺服
-		{0x23,0x08,0x20,0x00,0x00,0x00,0x00,0x00},  // 2008 起始速度 设置起始速度为0
+		//// 中菱伺服
 		{0x23,0x83,0x60,0x01,0x64,0x00,0x00,0x00},  // 6083 01左电机设置加速时间100ms
 		{0x23,0x83,0x60,0x02,0x64,0x00,0x00,0x00},  // 6083 02右电机设置加速时间100ms
 		{0x23,0x84,0x60,0x01,0x64,0x00,0x00,0x00},  // 6084 01左电机设置减速时间100ms
 		{0x23,0x84,0x60,0x02,0x64,0x00,0x00,0x00},  // 6084 02右电机设置减速时间100ms
+		// 读参数映射
+		{0x2F,0x00,0x1A,0x00,0x00,0x00,0x00,0x00},  // 消去个数: 发送sdo 600+id,22 00 16 00 00 00 00 00
+		{0x23,0x00,0x1A,0x01,0x20,0x00,0x41,0x60},  // 6041 状态字
+		{0x23,0x00,0x1A,0x02,0x20,0x03,0x6C,0x60},  // 606C 实时反馈速度
+		{0x2F,0x00,0x18,0x02,0xFF,0x00,0x00,0x00},    //②Hex1800_02，传输形式：0xFE：事件触发；0xFF：定时器触发 1个有效数据，设置TPDO1的传输类型，SYNC 
+		{0x2B,0x00,0x18,0x05,0x28,0x00,0x00,0x00},    //定时器触发时间40ms(刷新率为25Hz)
+		{0x2F,0x00,0x1A,0x00,0x02,0x00,0x00,0x00},    //⑥Hex1A00_0，启用【映射参数】 【实际映射多少组】 
+		{0x2B,0x10,0x20,0x00,0x01,0x00,0x00,0x00},  // 保存参数至 EEPROM
+		// 写参数映射	
+		{0x2F,0x01,0x16,0x00,0x00,0x00,0x00,0x00},  // 清除映射: 发送sdo 600+id,22 00 16 00 00 00 00 00
+		{0x23,0x01,0x16,0x01,0x10,0x00,0x40,0x60},  // 6040 控制字
+		{0x23,0x01,0x16,0x02,0x20,0x03,0xFF,0x60},  // 60FF 目标速度
+		{0x2F,0x01,0x16,0x00,0x02,0x00,0x00,0x00},    //映射对象子索引个数	⑥Hex1600_0，启用【映射参数】 【实际映射多少组】 
+		{0x2B,0x10,0x20,0x00,0x01,0x00,0x00,0x00},  // 保存参数至 EEPROM
+
 	};
 	s_id = 0x600 + id;
 	n = sizeof(Init_sdo) / sizeof(Init_sdo[0]);
@@ -455,6 +453,33 @@ uint8_t CAN_SDOSend(CAN_Module* CANx)
  * 说明：     该函数必须在PDO配置完成之后运行。
  * 返回值：   发送成功数量
  **********************************************************/
+void CAN_PDOSendFor8015D(uint32_t number, CAN_Module* CANx)
+{
+	CanTxMessage pTxMessage;
+	int16_t target_velocity;
+	pTxMessage.IDE = CAN_Standard_Id;
+	pTxMessage.RTR = CAN_RTRQ_Data;
+	pTxMessage.DLC = 6;//< 
+	if (mrd[0].d.online)
+	{
+		pTxMessage.StdId = 0x200 + mrd[0].d.mapping;
+		pTxMessage.Data[0] = mrd[0].d.ctrl.cd & 0xff;
+		pTxMessage.Data[1] =(mrd[0].d.ctrl.cd >> 8) & 0xff;
+		target_velocity = (int16_t)mrd[0].d.target_velocity;//< 左电机目标
+		pTxMessage.Data[2] = target_velocity & 0xFF;       // 低八位写入 Data[2]
+		pTxMessage.Data[3] = (target_velocity >> 8) & 0xFF; // 
+		//target_velocity = (int16_t)mrd[1].d.target_velocity;//< 右电机目标速度
+		pTxMessage.Data[4] = target_velocity& 0xFF; // 
+		pTxMessage.Data[5] = (target_velocity >> 8) & 0xFF; // 高八位写入 Data[5]
+		CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0
+	}
+}
+/**********************************************************
+ * 函数功能： CANPDO帧发送函数。
+ * 参数：     number代表节点数量。
+ * 说明：     该函数必须在PDO配置完成之后运行。
+ * 返回值：   发送成功数量
+ **********************************************************/
 uint8_t CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 {
 	CanTxMessage pTxMessage;
@@ -553,7 +578,11 @@ void Can_task(void* pvParameters)
 		{
 			buff_cnt--;
 		}
-		CAN_PDOSend(Motor_Number, CAN1);
+		if (g_emCarMode == Diff_Car)
+		{
+			CAN_PDOSendFor8015D(1, CAN1);
+		}
+		else CAN_PDOSend(Motor_Number, CAN1);
 
 		if (pdu[receive_buff_num] != 0)
 		{
@@ -567,6 +596,45 @@ void Can_task(void* pvParameters)
 		//< 使用点数据
 	}
 
+}
+
+void CanIRQProcessFor8015D(CAN_Module* CANx)
+{
+	CanTxMessage RxMessage;
+	CAN_ReceiveMessage(CANx, 0, &RxMessage);
+	// 电机PDO反馈
+	if (RxMessage.StdId >= 0x181 && RxMessage.StdId <= 0X1FF)
+	{//< 电机PDO反馈
+		int id = RxMessage.StdId - 0x180; //获取CAN ID 号
+		int i = 0;
+		int16_t v;
+		if (id < 10)
+		{
+			mrd[0].d.online = 1;
+			mtd[0].d.heartbeat = 0;
+			mrd[1].d.online = 1;
+			mtd[1].d.heartbeat = 0;
+			mtd[0].d.status.sd = RxMessage.Data[i++];
+			mtd[0].d.status.sd |= RxMessage.Data[i++] << 8;
+			mtd[1].d.status.sd = RxMessage.Data[i++];
+			mtd[1].d.status.sd |= RxMessage.Data[i++] << 8;
+			v = RxMessage.Data[i++];
+			v |= RxMessage.Data[i++] << 8;
+			mtd[0].d.current_velocity = (int)v;
+			v = RxMessage.Data[i++];
+			v |= RxMessage.Data[i++] << 8;
+			mtd[1].d.current_velocity = (int)v;
+		}
+	}
+	else
+	{//< SDO 处理
+		if (RxMessage.StdId >= 0x581 && RxMessage.StdId <= 0X5FF)
+		{
+
+		}
+
+	}
+	CAN_ClearFlag(CANx, CAN_INT_FMP0);
 }
 
 void CanIRQProcess(CAN_Module* CANx)
@@ -610,12 +678,20 @@ void CanIRQProcess(CAN_Module* CANx)
 
 void CAN2_RX0_IRQHandler(void)
 {
-	CanIRQProcess(CAN2);
+	if (g_emCarMode == Diff_Car)
+	{
+		CanIRQProcessFor8015D(CAN1);
+	}
+	else CanIRQProcess(CAN2);
 }
 
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
-	CanIRQProcess(CAN1);
+	if (g_emCarMode == Diff_Car)
+	{
+		CanIRQProcessFor8015D(CAN1);
+	}
+	else CanIRQProcess(CAN1);
 }
 
 
