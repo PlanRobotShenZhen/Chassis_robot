@@ -6,6 +6,7 @@
 #include "usartx.h"
 #include "led.h"
 #include "port.h"
+#include "rc_car.h"
 
 struct Smooth_Control tagSmooth_control;
 LightTime light_time;
@@ -147,6 +148,10 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 		MOTOR_C.nTarget_Velocity = tvc;
 		MOTOR_D.nTarget_Velocity = tvd;
 		
+	}
+	else if (g_emCarMode == RC_Car)
+	{//< 竞赛小车
+
 	}
 }
 
@@ -512,11 +517,11 @@ void  SPI1_ReadWriteByte(void)
 			retry++;
 			if (retry > 2000) return;
 		}
-		pdu[exio_output_set] = exio_output.output;
-		SPI_MASTER->DAT = pdu[exio_output_set];
+		pdu[light_control] = exio_output.output;
+		SPI_MASTER->DAT = pdu[light_control];
 		SPI_ReadWriteCycle = 1;
 		SPI_heartbeat = 0;
-		pdu[car_light_messages] = pdu[exio_output_set];
+		pdu[car_light_messages] = pdu[light_control];
 	}
 	if (SPI_ReadWriteCycle == 1)
 	{
@@ -845,7 +850,7 @@ void Balance_task(void* pvParameters)
 	pdu[motor_num] = Motor_Number;
 	pdu[car_mode] = CONTROL_MODE_REMOTE;
 	i = 0;
-	//7E 0A 01 00 00 30 00 AC 00 00 2C 90
+	//7E 0A 01 00 00 30 00 AC 00 00 2C 90 //< 电池信息初始化读取
 	uart4_send_data[0] = 0x7E;
 	uart4_send_data[1] = 0x0A;
 	uart4_send_data[2] = 0x01;
@@ -859,6 +864,11 @@ void Balance_task(void* pvParameters)
 	uart4_send_data[10] = 0x2C;
 	uart4_send_data[11] = 0x90;
 	uart4_send_flag = 2;//< 
+	if (g_emCarMode == RC_Car)
+	{
+		tmp.ud[0] = 3000;
+		tmp.ud[1] = 0;
+	}
 	while (1)
 	{
 		rt_thread_delay(100);   //< 10ms
@@ -892,14 +902,6 @@ void Balance_task(void* pvParameters)
 			}			
 		}
 		pdu[CONTROL_MODE_ADDR] = g_eControl_Mode;//
-		if (exio_input.bit.X0|| emergency_stop.estop_soft)	
-		{//< 急停
-			Move_X = Move_Y = Move_Z = 0;
-		}
-		if (pdu[robot_forward_direction] == 1)Move_X = -Move_X;
-		if (pdu[robot_turning_direction] == 1)Move_Z = -Move_Z;
-		Drive_Motor(Move_X, Move_Y, Move_Z);   //小车运动模型解析出每个电机的实际速度
-		Car_Light_Control(Move_X, Move_Z);
 		switch (g_emCarMode)
 		{
 		case Mec_Car:        
@@ -910,13 +912,31 @@ void Balance_task(void* pvParameters)
 			break; //阿克曼小车
 		case Diff_Car:       
 			break; //两轮差速小车
-		case FourWheel_Car:
+		case FourWheel_Car://四驱车  室外差速
+			if (exio_input.bit.X0 || emergency_stop.estop_soft)
+			{//< 急停
+				Move_X = Move_Y = Move_Z = 0;
+			}
+			if (pdu[robot_forward_direction] == 1)Move_X = -Move_X;
+			if (pdu[robot_turning_direction] == 1)Move_Z = -Move_Z;
+			Drive_Motor(Move_X, Move_Y, Move_Z);   //小车运动模型解析出每个电机的实际速度
+			Car_Light_Control(Move_X, Move_Z);
 			Set_MotorVelocity(-MOTOR_A.nTarget_Velocity, -MOTOR_B.nTarget_Velocity,
 				MOTOR_C.nTarget_Velocity, MOTOR_D.nTarget_Velocity);
 
-			break; //四驱车 
+			break; 
 		case Tank_Car:
 			break; //履带车
+		case RC_Car:
+		{
+			float m = (100+pdu[reserve_c])*0.01;
+			int p = (int)pdu[reserve_a];
+			uint16_t line_ = (pdu[remote_ch3_value] - 1023)*m + 3000 + p;
+			p = (int)pdu[reserve_b];
+			uint16_t angle_ = (pdu[remote_ch1_value] - 1023)*m + 3000+p;
+			RCCAR_Process(line_, angle_);
+		}
+			break;
 
 		default: break;
 		}

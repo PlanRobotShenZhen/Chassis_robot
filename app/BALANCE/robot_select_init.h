@@ -27,7 +27,8 @@ enum CarMode
 	Akm_Car,            // 阿克曼
 	Diff_Car,           // 差速车
 	FourWheel_Car,      // 四驱车
-	Tank_Car            // 坦克车
+	Tank_Car,           // 坦克车
+	RC_Car              // 竞赛小车
 };
 
 

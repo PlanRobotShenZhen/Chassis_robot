@@ -43,6 +43,7 @@
 #include "motor_data.h"
 #include "485_address.h"
 #include "balance.h"
+#include "rc_car.h"
 
 #ifdef RT_USING_DFS
 /* dfs filesystem:ELM filesystem init */
@@ -134,6 +135,7 @@ static void InitTask(void* parameter)
     uint16_t* pdu = getPDUData();
     //初始化航模参数指针
     rc_ptr = (Remote_Control_struct*)&pdu[turn_off_remote];
+    Robot_Select();                 // 根据电位器的值判断目前正在运行的是哪一款机器人，
     //初始化电机参数指针
     motorA_ptr = (Motor_struct*)&pdu[motor1_direction];
     motorB_ptr = (Motor_struct*)&pdu[motor2_direction];
@@ -160,8 +162,7 @@ static void InitTask(void* parameter)
     Usart5_Init(100000);            //串口5初始化，用于航模控制
     Adc_Init();                     //采集电池电压ADC引脚初始化	
 	Can_Driver_Init(pdu[CAN_baud]);              //底层can协议初始化
-
-	Robot_Select();                 // 根据电位器的值判断目前正在运行的是哪一款机器人，
+    RCCAR_Init();
 	
 
     /* init Balance thread */

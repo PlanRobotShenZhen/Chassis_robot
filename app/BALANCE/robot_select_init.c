@@ -1,5 +1,6 @@
 #include "robot_select_init.h"
 #include "motor_data.h"
+#include "485_address.h"
 Robot_Parament_InitTypeDef  Robot_Parament;//初始化机器人参数结构体
 
 /**************************************************************************
@@ -9,7 +10,12 @@ Robot_Parament_InitTypeDef  Robot_Parament;//初始化机器人参数结构体
 **************************************************************************/
 void Robot_Select(void)
 {
-	g_emCarMode = Diff_Car;   //设置为4驱差速
+	g_emCarMode = getPDUData()[car_model];   //设置为4驱差速
+	if (g_emCarMode< Mec_Car || g_emCarMode>RC_Car)
+	{
+		g_emCarMode = FourWheel_Car;//< 默认为室外差速小车模型
+	}
+	getPDUData()[car_type] = g_emCarMode;
 	g_ucRos_Flag = 0;
 	g_ucRemote_Flag = 0;
 	switch(g_emCarMode)
@@ -24,6 +30,9 @@ void Robot_Select(void)
 		case Diff_Car:
 			Motor_Number = 2;
 			Slave_Number = 1;
+			break;
+		case RC_Car:
+			Motor_Number = 1;
 			break;
 		default:
 			break;
