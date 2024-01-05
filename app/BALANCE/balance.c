@@ -901,7 +901,7 @@ void Balance_task(void* pvParameters)
 				Ros_Control();
 			}			
 		}
-		pdu[CONTROL_MODE_ADDR] = g_eControl_Mode;//
+		pdu[car_current_ctrl_mode] = g_eControl_Mode;//
 		switch (g_emCarMode)
 		{
 		case Mec_Car:        

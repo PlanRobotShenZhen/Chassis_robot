@@ -81,8 +81,9 @@ enum address_485 {
     Ultrasonic1_L,
     Ultrasonic2_H,
     Ultrasonic2_L,
-
-    motor_num = 98,
+    rc_encoder_high,
+    rc_encoder_low,
+    motor_num,
 
 // RW参数
     // 小车参数
@@ -180,6 +181,8 @@ enum address_485 {
     motor4_tar_position = 222,
 
 
+    rc_encoder_reset = 300,//< 该参数写5，脉冲计数和编码器清零
+    rc_encoder_dir,//< 0:按编码器方向加减;1:脉冲计数只累加
 
     empty_buff_num = 348,
     receive_buff_num = 349

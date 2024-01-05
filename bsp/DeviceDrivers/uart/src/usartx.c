@@ -173,6 +173,10 @@ void Usart5_Init(unsigned int unBound)
 	USART_ConfigInt(USARTe, USART_INT_NEF, ENABLE);//开启串口错误中断
 	USART_ConfigInt(USARTe, USART_INT_FEF, ENABLE);//开启串口错误中断
 	USART_Enable(USARTe, ENABLE);                    //使能串口5 
+	tagSBUS_CH.CH1 = 1023;
+	tagSBUS_CH.CH2 = 1023;
+	tagSBUS_CH.CH3 = 1023;
+	tagSBUS_CH.CH4 = 1023;
 }
 
 /**

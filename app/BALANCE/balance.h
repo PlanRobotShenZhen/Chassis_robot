@@ -11,8 +11,7 @@
 #define X_PARAMETER    (sqrt(3)/2.f)               
 #define Y_PARAMETER    (0.5f)    
 #define L_PARAMETER    (1.0f)  
-/* 485宏定义地址 */
-#define CONTROL_MODE_ADDR  156    // 机器人的控制方式485地址
+
 //存放平滑控制后的数据
 struct Smooth_Control
 {
