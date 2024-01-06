@@ -866,9 +866,26 @@ void Balance_task(void* pvParameters)
 	uart4_send_flag = 2;//< 
 	if (g_emCarMode == RC_Car)
 	{
-		tmp.ud[0] = 3000;
-		tmp.ud[1] = 0;
+		i = virtually_remote_ch1_value;
+		pdu[i++] = 1023;
+		pdu[i++] = 1023;
+		pdu[i++] = 1023;
+		pdu[i++] = 1023;
+		pdu[i++] = 1023;
+		pdu[i++] = 240;
+		pdu[i++] = 240;
+		pdu[i++] = 240;
+		pdu[i++] = 240;
+		pdu[i++] = 240;
+		pdu[i++] = 1023;
+		pdu[i++] = 1023;
+		pdu[i++] = 1023;
+		pdu[i++] = 1023;
+		pdu[i++] = 1603;
+		pdu[i++] = 1024;
+		pdu[i++] = 1024;
 	}
+	i = 0;
 	while (1)
 	{
 		rt_thread_delay(100);   //< 10ms
@@ -913,6 +930,7 @@ void Balance_task(void* pvParameters)
 		case Diff_Car:       
 			break; //两轮差速小车
 		case FourWheel_Car://四驱车  室外差速
+		{
 			if (exio_input.bit.X0 || emergency_stop.estop_soft)
 			{//< 急停
 				Move_X = Move_Y = Move_Z = 0;
@@ -923,17 +941,17 @@ void Balance_task(void* pvParameters)
 			Car_Light_Control(Move_X, Move_Z);
 			Set_MotorVelocity(-MOTOR_A.nTarget_Velocity, -MOTOR_B.nTarget_Velocity,
 				MOTOR_C.nTarget_Velocity, MOTOR_D.nTarget_Velocity);
-
+		}
 			break; 
 		case Tank_Car:
 			break; //履带车
 		case RC_Car:
 		{
-			float m = (100+pdu[reserve_c])*0.01;
-			int p = (int)pdu[reserve_a];
-			uint16_t line_ = (pdu[remote_ch3_value] - 1023)*m + 3000 + p;
+			float m = (100+pdu[reserve_c])*10;
+			int p = (int)pdu[reserve_a];			
+			uint16_t line_ = Move_X  *m*0.5 + 3000 + p;
 			p = (int)pdu[reserve_b];
-			uint16_t angle_ = (pdu[remote_ch1_value] - 1023)*m + 3000+p;
+			uint16_t angle_ = Move_Z *m + 3000+p;
 			RCCAR_Process(line_, angle_);
 		}
 			break;

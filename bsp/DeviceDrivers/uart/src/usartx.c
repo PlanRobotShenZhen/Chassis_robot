@@ -8,6 +8,7 @@
 #include "led.h"
 #include "motor_data.h"
 #include "FLASH_WR.h"
+#include "rc_car.h"
 
 /*--------上下位机通信格式数据usart3-----------*/
 SEND_DATA Send_Data;//发送数据的结构体
@@ -63,7 +64,7 @@ float XYZ_Target_Speed_transition(u8 High, u8 Low)
 {
 	short transition; //数据转换的中间变量
 	transition = ((High << 8) + Low); //将高8位和低8位整合成一个16位的short型数据
-	return transition / 1000 + (transition % 1000) * 0.001;    //发送端将数据发送前做了一个*1000的单位换算，这里接收数据后需要还原单位
+	return transition * 0.001f;    //发送端将数据发送前做了一个*1000的单位换算，这里接收数据后需要还原单位
 }
 /**************************************************************************
 函数功能：串口收发收据任务函数,串口3发送数据到上位机，中断接收数据
@@ -85,9 +86,9 @@ void DATA_task(void *pvParameters)
 					{
 						if (Receive_Data.buffer[9] == Check_Sum(&Receive_Data.buffer[0],9, 0))	 //数据校验位计算，模式0是发送数据校验
 						{
-							g_fltRecv_Vel_X = XYZ_Target_Speed_transition(Receive_Data.buffer[3], Receive_Data.buffer[4]);
-							g_fltRecv_Vel_Y = XYZ_Target_Speed_transition(Receive_Data.buffer[5], Receive_Data.buffer[6]);
-							g_fltRecv_Vel_Z = XYZ_Target_Speed_transition(Receive_Data.buffer[7], Receive_Data.buffer[8]);
+							g_fltRecv_Vel_X =(Receive_Data.buffer[3]<<8| Receive_Data.buffer[4]) *0.001f;
+							g_fltRecv_Vel_Y =(Receive_Data.buffer[5]<<8| Receive_Data.buffer[6]) *0.001f;
+							g_fltRecv_Vel_Z =(Receive_Data.buffer[7]<<8| Receive_Data.buffer[8]) *0.001f;
 						}
 					}
 
@@ -643,6 +644,10 @@ void Data_transition(void)
 		  /*Z轴方向上发送的是一个角速度信息，wr = v*/
 	    Send_Data.Z_speed = ((-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + 
 		MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/2/(Axle_spacing+Wheel_spacing))*1000;//小车z轴速度
+		Send_Data.Power_Quantity = pdu[BatteryQuantity];
+		Send_Data.Power_Voltage = pdu[BatteryVoltage]; //电池电压(这里将浮点数放大一千倍传输，相应的在接收端在接收到数据后也会缩小一千倍)
+		Send_Data.Power_Current = pdu[BatteryCurrent];
+		Send_Data.Power_Temperature = pdu[BatteryTemperature];
 		 break; 
 		
 		case Tank_Car:   //履带车
@@ -650,14 +655,17 @@ void Data_transition(void)
 			Send_Data.Y_speed = 0;
 			Send_Data.Z_speed = ((MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity)/(Wheel_spacing)*1000);//小车z轴速度
 			break; 
+		case RC_Car:
+			Send_Data.X_speed = (int16_t)Move_X*1000; //小车x轴速度
+			Send_Data.Y_speed = (int16_t)tire_speed;
+			Send_Data.Z_speed = (int16_t)Move_Z*1000;//小车z轴速度
+			Send_Data.Power_Quantity = (int)mileage >> 16;
+			Send_Data.Power_Voltage = (int)mileage;
+			break;
 		default:
 			break;
 	}
 	
-	Send_Data.Power_Quantity = pdu[BatteryQuantity];
-	Send_Data.Power_Voltage = pdu[BatteryVoltage]; //电池电压(这里将浮点数放大一千倍传输，相应的在接收端在接收到数据后也会缩小一千倍)
-	Send_Data.Power_Current = pdu[BatteryCurrent];
-	Send_Data.Power_Temperature = pdu[BatteryTemperature];
 	i = 0;
 	uart3_send_data[i++] = Send_Data.Frame_Header; //帧头(固定值)
 	uart3_send_data[i++] = Flag_Stop;//电机状态	
@@ -746,7 +754,7 @@ void SetReal_Velocity(uint16_t* pdu)
 	
 	if (g_eControl_Mode == CONTROL_MODE_UART)
 	{
-		SBUS_CH_Struct* uart_sbus = (SBUS_CH_Struct*) & pdu[turn_off_remote];
+		SBUS_CH_Struct* uart_sbus = (SBUS_CH_Struct*) & pdu[virtually_remote_ch1_value];
 		memcpy(&tagSBUS_CH, uart_sbus, sizeof(SBUS_CH_Struct));
 	}
 	SBUSDataRefresh(pdu);
@@ -955,6 +963,7 @@ void Set_Director()
 	{
 		//开关处于打开状态
 		nTemp = tagSBUS_CH.CH6;
+		if (pdu[car_model] == 6)nTemp = 1023;
 		
 		//此时判断是使用低、中、高速度挡位
 		if(Abs_int(nTemp - rc_ptr->speed_level1) < 10)

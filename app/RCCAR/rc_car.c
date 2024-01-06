@@ -1,4 +1,5 @@
-﻿#include "rc_car.h"
+#include "n32g45x.h"
+#include "rc_car.h"
 #include "485_address.h"
 
 
@@ -8,6 +9,16 @@ uint16_t* pdu;
 static int16_t enc_old = 0;
 static int16_t diff_enc = 0;
 long EncPos = 0;
+
+float ratio=60;//< 减速比
+float encoder_accuracy=4;//< 编码器精度
+float tire_diameter=66;//< 轮胎直径
+float tire_speed = 0;//< 轮胎速度，单位公里/小时
+float mileage = 0;//< 里程计，单位米
+
+float tire_speed_factor=1;//< 速度计算因数
+float mileage_factor;//< 里程计算因数
+
 TIM_Module* TIML = TIM1;//< 线速度
 TIM_Module* TIMA = TIM2;//< 角速度
 TIM_Module* TIMx = TIM3;
@@ -114,6 +125,21 @@ void RCCAR_Init(uint16_t* p)
 	GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);
 	GPIO_ConfigPinRemap(GPIO_PART1_RMP_TIM3, ENABLE);
 	EncodeTimeInit();
+
+	ratio = pdu[rc_ratio];
+	if (ratio == 0)ratio = 120;
+	encoder_accuracy = pdu[rc_encoder_accuracy];
+	if (encoder_accuracy == 0)encoder_accuracy = 4;
+	tire_diameter = pdu[rc_tire_diameter];
+	if (tire_diameter == 0)tire_diameter = 66;
+
+	tire_speed_factor = 3.6 * (3.14 * tire_diameter);
+	tire_speed_factor  /= (encoder_accuracy * ratio);
+	if (tire_speed_factor == 0)tire_speed_factor = 1;
+	
+	mileage_factor = 3.14 * tire_diameter*0.01;
+	mileage_factor /= encoder_accuracy * ratio;
+	if (mileage_factor == 0)mileage_factor = 1;
 }
 
 /**
@@ -135,15 +161,23 @@ void PWM_SetCompareTIMA_CH2(uint16_t Compare)
 
 void RCCAR_Process(uint16_t ch1, uint16_t ch2)
 {
-	int16_t enc = TIMx->CNT;
+	int16_t enc;
 	PWM_SetCompareTIML_CH1(ch1);
 	PWM_SetCompareTIMA_CH2(ch2);
+	enc = TIMx->CNT;
 	diff_enc = enc - enc_old;
 	if (pdu[rc_encoder_dir] == 1)diff_enc = abs(diff_enc);
 	enc_old = enc;
 	EncPos += diff_enc;
 	pdu[rc_encoder_high] = EncPos >> 16;
 	pdu[rc_encoder_low] = EncPos;
+
+	tire_speed = diff_enc * tire_speed_factor;
+	mileage = EncPos * mileage_factor;
+	pdu[rc_car_speed] = (int16_t)((int)tire_speed);
+	pdu[rc_car_mileage_high] = ((int)mileage) >> 16;
+	pdu[rc_car_mileage_low] = (int)mileage;
+
 	if (pdu[rc_encoder_reset]==5)
 	{
 		pdu[rc_encoder_reset] = 0;

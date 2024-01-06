@@ -20,6 +20,7 @@ enum address_485 {
     BatteryVoltage,
     BatteryCurrent,
     BatteryTemperature,
+
     // 电机参数
     motor1_state_word = 21,
     motor1_on_line_state,
@@ -52,6 +53,10 @@ enum address_485 {
     motor4_feedback_torque,
     motor4_feedback_speed = 57,
     motor4_feedback_position = 59,
+    //RC小车参数     
+    rc_car_speed = 62,
+    rc_car_mileage_high,
+    rc_car_mileage_low,
     // 航模参数
     remote_ch1_value = 68,
     remote_ch2_value,
@@ -181,8 +186,29 @@ enum address_485 {
     motor4_tar_position = 222,
 
 
+    // 航模参数
+    virtually_remote_ch1_value = 268,
+    virtually_remote_ch2_value,
+    virtually_remote_ch3_value,
+    virtually_remote_ch4_value,
+    virtually_remote_ch5_value,
+    virtually_remote_ch6_value,
+    virtually_remote_ch7_value,
+    virtually_remote_ch8_value,
+    virtually_remote_ch9_value,
+    virtually_remote_ch10_value,
+    virtually_remote_ch11_value,
+    virtually_remote_ch12_value,
+    virtually_remote_ch13_value,
+    virtually_remote_ch14_value,
+    virtually_remote_ch15_value,
+    virtually_remote_ch16_value,
+
     rc_encoder_reset = 300,//< 该参数写5，脉冲计数和编码器清零
     rc_encoder_dir,//< 0:按编码器方向加减;1:脉冲计数只累加
+    rc_ratio,//< 减速比，精度0.01
+    rc_encoder_accuracy,//< 编码器精度，精度1
+    rc_tire_diameter,//< 轮胎直径，单位cm,精度0.01
 
     empty_buff_num = 348,
     receive_buff_num = 349
