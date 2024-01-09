@@ -84,6 +84,7 @@ extern MOTOR_TPDO mtd[MAX_MOTOR_NUMBER];//< 接收pdo
 typedef enum {
     SERVO_ZLAC=0,//< 中菱伺服
     SERVO_WANZE,//< 万泽伺服
+    SERVO_ZLACD,//< 中菱伺服一拖二驱动
     SERVO_PLAN,//< 普蓝伺服
 }MOTOR_MODEL_ENUM;
 /** Watchdog mode for sync manager configuration.

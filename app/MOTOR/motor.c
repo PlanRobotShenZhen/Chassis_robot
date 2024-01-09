@@ -39,13 +39,16 @@ void New_Servo_Motor_Init(int i,uint8_t ID)
 	uint16_t model = pdu[can_model_map[i]];
 	switch (model)
 	{
-	case 1:// 万泽伺服
+	case SERVO_WANZE:// 万泽伺服
 		WANZER_PDO_Config(ID);
 		NMT_Control(ID, 0x01, ID); //开启PDO1传输数据
 		break;
-	case 2:// 中菱一拖二伺服
+	case SERVO_ZLACD:// 中菱一拖二伺服
 		ZLAC8015D_PDO_Config(ID);
 		NMT_Control(0, 0x01, ID); //开启PDO1传输数据
+		break;
+	case SERVO_PLAN:// 普蓝伺服
+
 		break;
 	default://中菱伺服
 		ZLAC8015_PDO_Config(ID);

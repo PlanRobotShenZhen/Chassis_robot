@@ -80,15 +80,26 @@ void DATA_task(void *pvParameters)
 			if (uart3_recv_flag)
 			{
 				uart3_recv_flag = 0;
+				Flag_Stop = 1;
 				if (uart3_recv_len == 11)
 				{
+					Flag_Stop = 2;
 					if (Receive_Data.buffer[10] == FRAME_TAIL) //验证数据包的尾部校验信息
 					{
+						Flag_Stop = 3;
 						if (Receive_Data.buffer[9] == Check_Sum(&Receive_Data.buffer[0],9, 0))	 //数据校验位计算，模式0是发送数据校验
 						{
-							g_fltRecv_Vel_X =(Receive_Data.buffer[3]<<8| Receive_Data.buffer[4]) *0.001f;
-							g_fltRecv_Vel_Y =(Receive_Data.buffer[5]<<8| Receive_Data.buffer[6]) *0.001f;
-							g_fltRecv_Vel_Z =(Receive_Data.buffer[7]<<8| Receive_Data.buffer[8]) *0.001f;
+							Flag_Stop = 4;
+							g_ucRos_Flag = 1;                   // 航模开启的时候，给这个变量赋值为0
+							if (g_ucRemote_Flag == 0)
+							{
+								Flag_Stop = 5;
+								remote_off_line_check = 0;
+								g_eControl_Mode = CONTROL_MODE_ROS;   // 为ROS上位机控制
+							}
+							g_fltRecv_Vel_X =((int16_t)(Receive_Data.buffer[3]<<8| Receive_Data.buffer[4])) *0.001f;
+							g_fltRecv_Vel_Y =((int16_t)(Receive_Data.buffer[5]<<8| Receive_Data.buffer[6])) *0.001f;
+							g_fltRecv_Vel_Z =((int16_t)(Receive_Data.buffer[7]<<8| Receive_Data.buffer[8])) *0.001f;
 						}
 					}
 
@@ -549,11 +560,6 @@ void USARTz_IRQHandler(void)
 		USARTz->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
 		USARTz->DAT; // 清除空闲中断
 		uart3_recv_flag = 1;                // 接收标志置1
-		g_ucRos_Flag = 1;                   // 航模开启的时候，给这个变量赋值为0
-		if (g_ucRemote_Flag == 0 && g_ucRos_Flag == 1)
-		{
-			g_eControl_Mode = CONTROL_MODE_ROS;   // 为ROS上位机控制
-		}
 		// 统计收到的数据的长度
 		uart3_recv_len = USART3_RX_MAXBUFF - DMA_GetCurrDataCounter(USARTz_Rx_DMA_Channel);
 		memcpy(Receive_Data.buffer, uart3_recv_data, uart3_recv_len);
@@ -656,9 +662,9 @@ void Data_transition(void)
 			Send_Data.Z_speed = ((MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity)/(Wheel_spacing)*1000);//小车z轴速度
 			break; 
 		case RC_Car:
-			Send_Data.X_speed = (int16_t)Move_X*1000; //小车x轴速度
+			Send_Data.X_speed = (int16_t)(Move_X*1000); //小车x轴速度
 			Send_Data.Y_speed = (int16_t)tire_speed;
-			Send_Data.Z_speed = (int16_t)Move_Z*1000;//小车z轴速度
+			Send_Data.Z_speed = (int16_t)(Move_Z*1000);//小车z轴速度
 			Send_Data.Power_Quantity = (int)mileage >> 16;
 			Send_Data.Power_Voltage = (int)mileage;
 			break;

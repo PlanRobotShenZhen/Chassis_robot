@@ -196,52 +196,60 @@ void Ros_Control()
 void Get_Motor_Velocity()
 {
 	//这里采集回来的是驱动器反馈回来的数据，要经过相应转换才行
-	float nMotor_A = mtd[0].d.current_velocity;
-	float nMotor_B = mtd[1].d.current_velocity;
-	float nMotor_C = mtd[2].d.current_velocity;
-	float nMotor_D = mtd[3].d.current_velocity;
-	if (pdu[motor1_model] == SERVO_WANZE)nMotor_A = nMotor_A * 60 / 10000;//< 一圈10000脉冲数
-	if (pdu[motor2_model] == SERVO_WANZE)nMotor_B = nMotor_B * 60 / 10000;//< 一圈10000脉冲数
-	if (pdu[motor3_model] == SERVO_WANZE)nMotor_C = nMotor_C * 60 / 10000;//< 一圈10000脉冲数
-	if (pdu[motor4_model] == SERVO_WANZE)nMotor_D = nMotor_D * 60 / 10000;//< 一圈10000脉冲数
+	if (pdu[car_model] == RC_Car)
+	{
+		pdu[car_feedback_lin_speed] = (int16_t)(Move_X * 1000);
+		pdu[car_feedback_ang_speed] = (int16_t)(Move_Z * 1000);
+	}
+	else
+	{
+		float nMotor_A = mtd[0].d.current_velocity;
+		float nMotor_B = mtd[1].d.current_velocity;
+		float nMotor_C = mtd[2].d.current_velocity;
+		float nMotor_D = mtd[3].d.current_velocity;
+		if (pdu[motor1_model] == SERVO_WANZE)nMotor_A = nMotor_A * 60 / 10000;//< 一圈10000脉冲数
+		if (pdu[motor2_model] == SERVO_WANZE)nMotor_B = nMotor_B * 60 / 10000;//< 一圈10000脉冲数
+		if (pdu[motor3_model] == SERVO_WANZE)nMotor_C = nMotor_C * 60 / 10000;//< 一圈10000脉冲数
+		if (pdu[motor4_model] == SERVO_WANZE)nMotor_D = nMotor_D * 60 / 10000;//< 一圈10000脉冲数
 
-	MOTOR_A.nFeedback_Velocity = (int)nMotor_A;
-	MOTOR_B.nFeedback_Velocity = (int)nMotor_B;
-	MOTOR_C.nFeedback_Velocity = (int)nMotor_C;
-	MOTOR_D.nFeedback_Velocity = (int)nMotor_D;
+		MOTOR_A.nFeedback_Velocity = (int)nMotor_A;
+		MOTOR_B.nFeedback_Velocity = (int)nMotor_B;
+		MOTOR_C.nFeedback_Velocity = (int)nMotor_C;
+		MOTOR_D.nFeedback_Velocity = (int)nMotor_D;
 	
-	MOTOR_A.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
-	MOTOR_B.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
-	MOTOR_C.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
-	MOTOR_D.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
-	union {
-		float v;
-		int16_t ud[2];
-	}tmp;
-	int i = motor1_feedback_speed;
-	tmp.v = MOTOR_A.fltFeedBack_Velocity;
-	pdu[i] = tmp.ud[1];
-	pdu[i+1] = tmp.ud[0];
-	i = motor2_feedback_speed;
-	tmp.v = MOTOR_B.fltFeedBack_Velocity;
-	pdu[i] = tmp.ud[1];
-	pdu[i+1] = tmp.ud[0];
-	i = motor3_feedback_speed;
-	tmp.v = MOTOR_C.fltFeedBack_Velocity;
-	pdu[i] = tmp.ud[1];
-	pdu[i+1] = tmp.ud[0];
-	i = motor4_feedback_speed;
-	tmp.v = MOTOR_D.fltFeedBack_Velocity;
-	pdu[i] = tmp.ud[1];
-	pdu[i+1] = tmp.ud[0];
-	i = car_feedback_lin_speed;
-	tmp.v = (MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity+MOTOR_D.fltFeedBack_Velocity)/4;
-	pdu[i] = tmp.ud[1];
-	pdu[i+1] = tmp.ud[0];
-	i = car_feedback_ang_speed;
-	tmp.v = (-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/2/(pdu[wheel_distance]+pdu[axles_distance])/10000;
-	pdu[i] = tmp.ud[1];
-	pdu[i+1] = tmp.ud[0];
+		MOTOR_A.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
+		MOTOR_B.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
+		MOTOR_C.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
+		MOTOR_D.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
+		union {
+			float v;
+			int16_t ud[2];
+		}tmp;
+		int i = motor1_feedback_speed;
+		tmp.v = MOTOR_A.fltFeedBack_Velocity;
+		pdu[i] = tmp.ud[1];
+		pdu[i+1] = tmp.ud[0];
+		i = motor2_feedback_speed;
+		tmp.v = MOTOR_B.fltFeedBack_Velocity;
+		pdu[i] = tmp.ud[1];
+		pdu[i+1] = tmp.ud[0];
+		i = motor3_feedback_speed;
+		tmp.v = MOTOR_C.fltFeedBack_Velocity;
+		pdu[i] = tmp.ud[1];
+		pdu[i+1] = tmp.ud[0];
+		i = motor4_feedback_speed;
+		tmp.v = MOTOR_D.fltFeedBack_Velocity;
+		pdu[i] = tmp.ud[1];
+		pdu[i+1] = tmp.ud[0];
+		i = car_feedback_lin_speed;
+		tmp.v = (MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity+MOTOR_D.fltFeedBack_Velocity)/4;
+		pdu[i] = tmp.ud[1];
+		pdu[i+1] = tmp.ud[0];
+		i = car_feedback_ang_speed;
+		tmp.v = (-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/2/(pdu[wheel_distance]+pdu[axles_distance])/10000;
+		pdu[i] = tmp.ud[1];
+		pdu[i+1] = tmp.ud[0];
+	}
 }
 
 
@@ -897,7 +905,6 @@ void Balance_task(void* pvParameters)
 		tmp1++;
 
 
-		g_eControl_Mode = pdu[car_mode]&0xff;
 		Get_Motor_Velocity();                  //获取驱动器反馈的速度，存放在结构体中
 		SetReal_Velocity(pdu);                  //解析航模数据
 		//使用上位机控制的时候，会在usart中断中关闭Remote_ON_Flag标志位
