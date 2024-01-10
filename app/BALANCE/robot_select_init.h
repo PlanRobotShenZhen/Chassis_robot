@@ -185,6 +185,7 @@ extern enum ENUM_CarControl_Mode g_eControl_Mode;  //机器人的控制方式
 extern unsigned char g_ucRemote_Flag;              //航模开启标志位
 extern unsigned char g_ucRos_Flag;                 // ROS上位机进入标志位 
 
+extern uint8_t motor_en;
 
 extern struct Motor_parameter  MOTOR_A, MOTOR_B, MOTOR_C, MOTOR_D;
 

@@ -415,32 +415,39 @@ void BatteryInformation()
 	if (uart4_recv_flag)
 	{
 		uart4_recv_flag = 0;
-		if (uart4_recv_data[0] == 0x7e)
+		switch (pdu[battery_manufacturer])
 		{
-			uint32_t tmp = 0;
-			//uint16_t r_crc = (uint16_t)uart4_recv_data[uart4_recv_len - 2] | (((uint16_t)uart4_recv_data[uart4_recv_len - 1])<<8);
-			//uint16_t c_crc = usMBCRC16(uart4_recv_data, uart4_recv_len - 2);			
-			//if (r_crc == c_crc)
+		case 1://< 深圳市锂神科技有限公司
+			break;
+		default:
+			if (uart4_recv_data[0] == 0x7e)
 			{
-				int i = 0;
-				pdu[BatteryStatus] = 1;//< 电池读取成功
-				pdu[BatteryQuantity] = (uint16_t)uart4_recv_data[107] | (((uint16_t)uart4_recv_data[108]) << 8);//< 电池电量
-				i = 97;
-				tmp  = (uint32_t)uart4_recv_data[i++];
-				tmp |= (uint32_t)uart4_recv_data[i++]<<8;
-				tmp |= (uint32_t)uart4_recv_data[i++]<<16;
-				tmp |= (uint32_t)uart4_recv_data[i++]<<24;
-				pdu[BatteryVoltage] = tmp;//< 电池电压
-				tmp = (uint32_t)uart4_recv_data[i++];
-				tmp |= (uint32_t)uart4_recv_data[i++] << 8;
-				tmp |= (uint32_t)uart4_recv_data[i++] << 16;
-				tmp |= (uint32_t)uart4_recv_data[i++] << 24;
-				pdu[BatteryCurrent] = tmp;//< 电池电流
-				pdu[BatteryTemperature] = (uint16_t)uart4_recv_data[77] | (((uint16_t)uart4_recv_data[78]) << 8);//< 电池温度
-				
-			}
-		}
+				uint32_t tmp = 0;
+				//uint16_t r_crc = (uint16_t)uart4_recv_data[uart4_recv_len - 2] | (((uint16_t)uart4_recv_data[uart4_recv_len - 1])<<8);
+				//uint16_t c_crc = usMBCRC16(uart4_recv_data, uart4_recv_len - 2);			
+				//if (r_crc == c_crc)
+				{
+					int i = 0;
+					pdu[BatteryStatus] = 1;//< 电池读取成功
+					pdu[BatteryQuantity] = (uint16_t)uart4_recv_data[107] | (((uint16_t)uart4_recv_data[108]) << 8);//< 电池电量
+					i = 97;
+					tmp = (uint32_t)uart4_recv_data[i++];
+					tmp |= (uint32_t)uart4_recv_data[i++] << 8;
+					tmp |= (uint32_t)uart4_recv_data[i++] << 16;
+					tmp |= (uint32_t)uart4_recv_data[i++] << 24;
+					pdu[BatteryVoltage] = tmp;//< 电池电压
+					tmp = (uint32_t)uart4_recv_data[i++];
+					tmp |= (uint32_t)uart4_recv_data[i++] << 8;
+					tmp |= (uint32_t)uart4_recv_data[i++] << 16;
+					tmp |= (uint32_t)uart4_recv_data[i++] << 24;
+					pdu[BatteryCurrent] = tmp;//< 电池电流
+					pdu[BatteryTemperature] = (uint16_t)uart4_recv_data[77] | (((uint16_t)uart4_recv_data[78]) << 8);//< 电池温度
 
+				}
+			}
+
+			break;
+		}
 	}
 	bt++;
 	if (bt >= 100)

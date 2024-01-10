@@ -87,7 +87,7 @@ void DATA_task(void *pvParameters)
 						if (Receive_Data.buffer[9] == Check_Sum(&Receive_Data.buffer[0],9, 0))	 //数据校验位计算，模式0是发送数据校验
 						{
 							g_ucRos_Flag = 1;                   // 航模开启的时候，给这个变量赋值为0
-							if (g_ucRemote_Flag == 0)
+							if (g_eControl_Mode!= CONTROL_MODE_REMOTE)
 							{
 								remote_off_line_check = 0;
 								g_eControl_Mode = CONTROL_MODE_ROS;   // 为ROS上位机控制
@@ -754,6 +754,12 @@ void SetReal_Velocity(uint16_t* pdu)
 		memcpy(&tagSBUS_CH, uart_sbus, sizeof(SBUS_CH_Struct));
 	}
 	SBUSDataRefresh(pdu);
+
+	if (g_eControl_Mode == CONTROL_MODE_UNKNOW||
+		g_eControl_Mode == CONTROL_MODE_ROS)
+	{
+		return;
+	}
 	//判断SWA是否打开
 	rc_ptr = (Remote_Control_struct*)&pdu[turn_off_remote];
 	nTemp = tagSBUS_CH.CH7;
@@ -763,11 +769,13 @@ void SetReal_Velocity(uint16_t* pdu)
 		//g_eControl_Mode = CONTROL_MODE_REMOTE; //航模遥控方式选择
 		//开关处于关闭状态
 		g_nVelocity = 0;
+		motor_en = 0;
 		return;
 	}
 	 
 	else if(Abs_int(nTemp - rc_ptr->turn_on_remote) < 10)
 	{
+		motor_en = 1;
 		g_ucRemote_Flag = 1;                   // 航模开启标志位
 		g_ucRos_Flag = 0;                      // 航模开启，给与最高权限
 		//g_eControl_Mode = CONTROL_MODE_REMOTE; //航模遥控方式选择

@@ -212,7 +212,7 @@ static void InitTask(void* parameter)
         rt_thread_startup(&ModBUS_thread);
     }  
 
-    if (pdu[car_model] == RC_Car)
+    if (pdu[car_model] == Diff_Car)
     {
         result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
         if (result == RT_EOK)
