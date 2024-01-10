@@ -80,20 +80,15 @@ void DATA_task(void *pvParameters)
 			if (uart3_recv_flag)
 			{
 				uart3_recv_flag = 0;
-				Flag_Stop = 1;
 				if (uart3_recv_len == 11)
 				{
-					Flag_Stop = 2;
 					if (Receive_Data.buffer[10] == FRAME_TAIL) //验证数据包的尾部校验信息
 					{
-						Flag_Stop = 3;
 						if (Receive_Data.buffer[9] == Check_Sum(&Receive_Data.buffer[0],9, 0))	 //数据校验位计算，模式0是发送数据校验
 						{
-							Flag_Stop = 4;
 							g_ucRos_Flag = 1;                   // 航模开启的时候，给这个变量赋值为0
 							if (g_ucRemote_Flag == 0)
 							{
-								Flag_Stop = 5;
 								remote_off_line_check = 0;
 								g_eControl_Mode = CONTROL_MODE_ROS;   // 为ROS上位机控制
 							}
@@ -102,9 +97,7 @@ void DATA_task(void *pvParameters)
 							g_fltRecv_Vel_Z =((int16_t)(Receive_Data.buffer[7]<<8| Receive_Data.buffer[8])) *0.001f;
 						}
 					}
-
 				}
-
 			}
 
 			if (uart3_send_flag == 1)
@@ -751,10 +744,7 @@ void SetReal_Velocity(uint16_t* pdu)
 		}
 		else
 		{
-			if ((g_eControl_Mode != CONTROL_MODE_UART)&&(g_eControl_Mode != CONTROL_MODE_ROS))
-			{
-				g_eControl_Mode = CONTROL_MODE_UNKNOW;
-			}
+			g_eControl_Mode = CONTROL_MODE_UNKNOW;
 		}
 	}
 	
@@ -1277,6 +1267,7 @@ void Pdu_Init()
 {
 	int i;
 	pdu[car_type] = FourWheel_Car;
+	pdu[car_model] = FourWheel_Car;
 	pdu[car_version] = 0x88;
 	pdu[moddbus_485_id] = 1;
 	pdu[moddbus_485_baud] = 9;
@@ -1345,9 +1336,6 @@ void Pdu_Init()
 	pdu[i] = 0;
 
 
-	pdu[motor1_radius] = FourWheer_Radiaus * 10000;
-	pdu[motor1_reduction_ratio] = REDUCTION_RATE * 100;
-
 	float Radiaus = pdu[motor1_radius] * 0.0001;
 	float rate = pdu[motor1_reduction_ratio] * 0.01;
 	FourWheer_Perimeter = 2 * PI * Radiaus;//< 车轮周长
@@ -1368,7 +1356,7 @@ void modbus_task_init(void)
 		//初始化pdu数组
 	eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);
 	MyFLASH_ReadByte(FINAL_PAGE_ADDRESS,pdu , MB_RTU_DATA_MAX_SIZE);
-	if (pdu[car_mode] == 0xFFFF)
+	if (pdu[car_type] == 0xFFFF)
 	{//< 芯片首次初始化
 		eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);
 		Pdu_Init();

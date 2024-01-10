@@ -169,14 +169,14 @@ void RCCAR_Process(uint16_t ch1, uint16_t ch2)
 	if (pdu[rc_encoder_dir] == 1)diff_enc = abs(diff_enc);
 	enc_old = enc;
 	EncPos += diff_enc;
-	pdu[rc_encoder_high] = EncPos >> 16;
-	pdu[rc_encoder_low] = EncPos;
+	//pdu[rc_encoder_high] = EncPos >> 16;
+	//pdu[rc_encoder_low] = EncPos;
 
 	tire_speed = diff_enc * tire_speed_factor;
 	mileage = EncPos * mileage_factor;
-	pdu[rc_car_speed] = (int16_t)((int)tire_speed);
-	pdu[rc_car_mileage_high] = ((int)mileage) >> 16;
-	pdu[rc_car_mileage_low] = (int)mileage;
+	//pdu[rc_car_speed] = (int16_t)((int)tire_speed);
+	//pdu[rc_car_mileage_high] = ((int)mileage) >> 16;
+	//pdu[rc_car_mileage_low] = (int)mileage;
 
 	if (pdu[rc_encoder_reset]==5)
 	{

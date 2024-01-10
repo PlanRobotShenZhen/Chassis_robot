@@ -25,7 +25,7 @@ enum CarMode
 	Mec_Car = 0,        // 麦克那母轮小车
 	Omni_Car,           // 麦轮小车
 	Akm_Car,            // 阿克曼
-	Diff_Car,           // 差速车
+	Diff_Car,           // 差速车(圆形底盘)
 	FourWheel_Car,      // 四驱车
 	Tank_Car,           // 坦克车
 	RC_Car              // 竞赛小车

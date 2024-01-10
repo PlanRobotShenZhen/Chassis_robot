@@ -101,7 +101,7 @@ enum address_485 {
     software_reset,
     can_reinitialize,
     para_save,
-    reserve_a,
+    battery_manufacturer,//< 电池厂家
     reserve_b,
     reserve_c,
     reserve_d,
@@ -209,6 +209,9 @@ enum address_485 {
     rc_ratio,//< 减速比，精度0.01
     rc_encoder_accuracy,//< 编码器精度，精度1
     rc_tire_diameter,//< 轮胎直径，单位cm,精度0.01
+    rc_speed_shifting,//< RC速度偏移
+    rc_angle_shifting,//< RC转向偏移
+    rc_magnification,//< RC速度倍率
 
     empty_buff_num = 348,
     receive_buff_num = 349

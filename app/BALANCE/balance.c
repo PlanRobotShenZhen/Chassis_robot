@@ -807,12 +807,46 @@ void Car_Light_Control(float Vx, float Vz)
 			light_time.t_cnt_RGB_B = 0;
 			light_time.t_cnt_RGB_G = 0;
 		}
-		exio_output.bit.RGB_G = ((Vx == 0) && (Vz == 0));
+		exio_output.bit.RGB_R = ((Vx == 0) && (Vz == 0));
 	}
 
 }
 
-
+void BatteryInfoInit(void)
+{
+	int i = 0;
+	int n = 0;
+	uint8_t verifyADD8 = 0;
+	switch (pdu[battery_manufacturer])
+	{
+	case 1://< 深圳市锂神科技有限公司
+		uart4_send_data[i++] = 0x3A;//< 帧头
+		uart4_send_data[i++] = 0x7E;//< 通用：0x7E
+		uart4_send_data[i++] = 0x01;//< 协议版本号
+		uart4_send_data[i++] = 0x01;//< 0：写 1：读
+		uart4_send_data[i++] = 0x1E;//< 功能码 (0x1E)
+		uart4_send_data[i++] = 0x00;//< 长度
+		uart4_send_data[i++] = 0x30;//< 数据内容
+		for (n = 0;n < i;n++)verifyADD8 += uart4_send_data[n];
+		uart4_send_data[i++] = verifyADD8;//< 校验和
+		break;
+	default://7E 0A 01 00 00 30 00 AC 00 00 2C 90 //< 电池信息初始化读取
+		uart4_send_data[i++] = 0x7E;
+		uart4_send_data[i++] = 0x0A;
+		uart4_send_data[i++] = 0x01;
+		uart4_send_data[i++] = 0x00;
+		uart4_send_data[i++] = 0x00;
+		uart4_send_data[i++] = 0x30;
+		uart4_send_data[i++] = 0x00;
+		uart4_send_data[i++] = 0xAC;
+		uart4_send_data[i++] = 0x00;
+		uart4_send_data[i++] = 0x00;
+		uart4_send_data[i++] = 0x2C;
+		uart4_send_data[i++] = 0x90;
+		break;
+	}	
+	uart4_send_flag = 2;//< 
+}
 /**************************************************************************
 函数功能：核心控制相关
 入口参数：
@@ -858,20 +892,7 @@ void Balance_task(void* pvParameters)
 	pdu[motor_num] = Motor_Number;
 	pdu[car_mode] = CONTROL_MODE_REMOTE;
 	i = 0;
-	//7E 0A 01 00 00 30 00 AC 00 00 2C 90 //< 电池信息初始化读取
-	uart4_send_data[0] = 0x7E;
-	uart4_send_data[1] = 0x0A;
-	uart4_send_data[2] = 0x01;
-	uart4_send_data[3] = 0x00;
-	uart4_send_data[4] = 0x00;
-	uart4_send_data[5] = 0x30;
-	uart4_send_data[6] = 0x00;
-	uart4_send_data[7] = 0xAC;
-	uart4_send_data[8] = 0x00;
-	uart4_send_data[9] = 0x00;
-	uart4_send_data[10] = 0x2C;
-	uart4_send_data[11] = 0x90;
-	uart4_send_flag = 2;//< 
+	BatteryInfoInit();
 	if (g_emCarMode == RC_Car)
 	{
 		i = virtually_remote_ch1_value;
@@ -954,10 +975,10 @@ void Balance_task(void* pvParameters)
 			break; //履带车
 		case RC_Car:
 		{
-			float m = (100+pdu[reserve_c])*10;
-			int p = (int)pdu[reserve_a];			
+			float m = (100+pdu[rc_magnification])*10;
+			int p = (int)pdu[rc_speed_shifting];
 			uint16_t line_ = Move_X  *m*0.5 + 3000 + p;
-			p = (int)pdu[reserve_b];
+			p = (int)pdu[rc_angle_shifting];
 			uint16_t angle_ = Move_Z *m + 3000+p;
 			RCCAR_Process(line_, angle_);
 		}

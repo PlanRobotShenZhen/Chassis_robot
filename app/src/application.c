@@ -171,23 +171,33 @@ static void InitTask(void* parameter)
     {
         rt_thread_startup(&Balance_thread);
     }
-    /* init Motor_init thread */
-    result = rt_thread_init(&Motor_init_thread, "Motor_init", Motor_init_task, (void*)pdu, (rt_uint8_t*)&Motor_init_stack[0], sizeof(Motor_init_stack), 10, 10);
-    if (result == RT_EOK)
+    if (pdu[car_model] != RC_Car)
     {
+
+        /* init Motor_init thread */
+        result = rt_thread_init(&Motor_init_thread, "Motor_init", Motor_init_task, (void*)pdu, (rt_uint8_t*)&Motor_init_stack[0], sizeof(Motor_init_stack), 10, 10);
+        if (result == RT_EOK)
+        {
             rt_thread_startup(&Motor_init_thread);
-    }
-    /* init Motor thread */
-    result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
-    if (result == RT_EOK)
-    {
-        rt_thread_startup(&Motor_thread);
-    }
-    /* init Can thread */
-    result = rt_thread_init(&Can_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&Can_stack[0], sizeof(Can_stack), 3, 5);
-    if (result == RT_EOK)
-    {
-        rt_thread_startup(&Can_thread);
+        }
+        /* init Motor thread */
+        result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
+        if (result == RT_EOK)
+        {
+            rt_thread_startup(&Motor_thread);
+        }
+        /* init Can thread */
+        result = rt_thread_init(&Can_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&Can_stack[0], sizeof(Can_stack), 3, 5);
+        if (result == RT_EOK)
+        {
+            rt_thread_startup(&Can_thread);
+        }
+        /* init adc thread */
+        result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
+        if (result == RT_EOK)
+        {
+            rt_thread_startup(&ADC_thread);
+        }
     }
     /* init DATA thread */
     result = rt_thread_init(&DATA_thread, "DATA", DATA_task, (void*)pdu, (rt_uint8_t*)&DATA_stack[0], sizeof(DATA_stack), 8, 5);
@@ -200,23 +210,21 @@ static void InitTask(void* parameter)
     if (result == RT_EOK)
     {
         rt_thread_startup(&ModBUS_thread);
-    }    
-    /* init adc thread */
-    result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
-    if (result == RT_EOK)
+    }  
+
+    if (pdu[car_model] == RC_Car)
     {
-        rt_thread_startup(&ADC_thread);
+        result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
+        if (result == RT_EOK)
+        {
+            rt_thread_startup(&Ultrasonic1_thread);
+        }
+        result = rt_thread_init(&Ultrasonic2_thread, "Ultrasonic", Ultrasonic2_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic2_stack[0], sizeof(Ultrasonic2_stack), 13, 14);
+        if (result == RT_EOK)
+        {
+            rt_thread_startup(&Ultrasonic2_thread);
+        }
     }
-    //<result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
-    //<if (result == RT_EOK)
-    //<{
-    //<    rt_thread_startup(&Ultrasonic1_thread);
-    //<}
-    //<result = rt_thread_init(&Ultrasonic2_thread, "Ultrasonic", Ultrasonic2_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic2_stack[0], sizeof(Ultrasonic2_stack), 13, 14);
-    //<if (result == RT_EOK)
-    //<{
-    //<    rt_thread_startup(&Ultrasonic2_thread);
-    //<}
 
     
 }
