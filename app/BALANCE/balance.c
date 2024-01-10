@@ -47,6 +47,7 @@ struct {
 	unsigned char estop_soft_old : 1;//< 软急停
 }emergency_stop;
 
+static uint8_t battery_send_frame_num = 0;
 /**************************************************************************
 函数功能：对接收到数据进行处理
 入口参数：X和Y Z轴方向的运动速度
@@ -409,6 +410,57 @@ int target_limit_int(int insert,int low,int high)
         return insert;	
 }
 
+void PowerControl(void)
+{
+	static union {
+		struct {
+			uint16_t jdq1 : 1;//< 左电机电源 JDQ1_EN
+			uint16_t jdq2 : 1;//< 右电机电源 JDQ2_EN
+			uint16_t p12v : 1;//< 12V电源 YL_7
+			uint16_t p19v : 1;//< 19V电源 YL_6
+
+		}bit;
+		uint16_t pc;
+	}power_ctrl;
+	if (pdu[power_control] != power_ctrl.pc)
+	{
+		power_ctrl.pc = pdu[power_control];
+		if (power_ctrl.bit.jdq1==1)
+		{
+			GPIO_ResetBits(JDQ_PORT, JDQ1_PIN);
+		}
+		else
+		{
+			GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
+		}
+		if (power_ctrl.bit.jdq2 == 1)
+		{
+			GPIO_ResetBits(JDQ_PORT, JDQ2_PIN);
+		}
+		else
+		{
+			GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
+		}
+		if (power_ctrl.bit.p12v == 1)
+		{
+			GPIO_ResetBits(YL_7_GPIO, YL_7_Pin);//< 
+		}
+		else
+		{
+			GPIO_SetBits(YL_7_GPIO, YL_7_Pin);//< 
+		}
+		if (power_ctrl.bit.p19v == 1)
+		{
+			GPIO_ResetBits(YL_6_GPIO, YL_6_Pin);//< 
+		}
+		else
+		{
+			GPIO_SetBits(YL_6_GPIO, YL_6_Pin);//< 
+		}
+	}
+	//GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
+}
+
 void BatteryInformation()
 {
 	static bt = 0;
@@ -455,7 +507,7 @@ void BatteryInformation()
 		bt = 0;
 		GPIO_SetBits(USARTb_485en_GPIO, USARTb_485enPin);
 		DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);    // 关闭 DMA2 通道5, UART4_TX
-		DMA_SetCurrDataCounter(USARTb_Tx_DMA_Channel, 14);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
+		DMA_SetCurrDataCounter(USARTb_Tx_DMA_Channel, battery_send_frame_num);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
 		DMA_EnableChannel(USARTb_Tx_DMA_Channel, ENABLE);    // 开启 DMA2 通道5, UART4_TX	
 	}
 }
@@ -532,6 +584,8 @@ void  SPI1_ReadWriteByte(void)
 			retry++;
 			if (retry > 2000) return;
 		}
+
+		if(robot_control.bit.light_ctrl_en == 0)
 		pdu[light_control] = exio_output.output;
 		SPI_MASTER->DAT = pdu[light_control];
 		SPI_ReadWriteCycle = 1;
@@ -816,40 +870,39 @@ void Car_Light_Control(float Vx, float Vz)
 		}
 		exio_output.bit.RGB_R = ((Vx == 0) && (Vz == 0));
 	}
-
 }
 
 void BatteryInfoInit(void)
 {
-	int i = 0;
 	int n = 0;
 	uint8_t verifyADD8 = 0;
+	battery_send_frame_num = 0;
 	switch (pdu[battery_manufacturer])
 	{
 	case 1://< 深圳市锂神科技有限公司
-		uart4_send_data[i++] = 0x3A;//< 帧头
-		uart4_send_data[i++] = 0x7E;//< 通用：0x7E
-		uart4_send_data[i++] = 0x01;//< 协议版本号
-		uart4_send_data[i++] = 0x01;//< 0：写 1：读
-		uart4_send_data[i++] = 0x1E;//< 功能码 (0x1E)
-		uart4_send_data[i++] = 0x00;//< 长度
-		uart4_send_data[i++] = 0x30;//< 数据内容
-		for (n = 0;n < i;n++)verifyADD8 += uart4_send_data[n];
-		uart4_send_data[i++] = verifyADD8;//< 校验和
+		uart4_send_data[battery_send_frame_num++] = 0x3A;//< 帧头
+		uart4_send_data[battery_send_frame_num++] = 0x7E;//< 通用：0x7E
+		uart4_send_data[battery_send_frame_num++] = 0x01;//< 协议版本号
+		uart4_send_data[battery_send_frame_num++] = 0x01;//< 0：写 1：读
+		uart4_send_data[battery_send_frame_num++] = 0x1E;//< 功能码 (0x1E)
+		uart4_send_data[battery_send_frame_num++] = 0x00;//< 长度
+		uart4_send_data[battery_send_frame_num++] = 0x30;//< 数据内容
+		for (n = 0;n < battery_send_frame_num;n++)verifyADD8 += uart4_send_data[n];
+		uart4_send_data[battery_send_frame_num++] = verifyADD8;//< 校验和
 		break;
 	default://7E 0A 01 00 00 30 00 AC 00 00 2C 90 //< 电池信息初始化读取
-		uart4_send_data[i++] = 0x7E;
-		uart4_send_data[i++] = 0x0A;
-		uart4_send_data[i++] = 0x01;
-		uart4_send_data[i++] = 0x00;
-		uart4_send_data[i++] = 0x00;
-		uart4_send_data[i++] = 0x30;
-		uart4_send_data[i++] = 0x00;
-		uart4_send_data[i++] = 0xAC;
-		uart4_send_data[i++] = 0x00;
-		uart4_send_data[i++] = 0x00;
-		uart4_send_data[i++] = 0x2C;
-		uart4_send_data[i++] = 0x90;
+		uart4_send_data[battery_send_frame_num++] = 0x7E;
+		uart4_send_data[battery_send_frame_num++] = 0x0A;
+		uart4_send_data[battery_send_frame_num++] = 0x01;
+		uart4_send_data[battery_send_frame_num++] = 0x00;
+		uart4_send_data[battery_send_frame_num++] = 0x00;
+		uart4_send_data[battery_send_frame_num++] = 0x30;
+		uart4_send_data[battery_send_frame_num++] = 0x00;
+		uart4_send_data[battery_send_frame_num++] = 0xAC;
+		uart4_send_data[battery_send_frame_num++] = 0x00;
+		uart4_send_data[battery_send_frame_num++] = 0x00;
+		uart4_send_data[battery_send_frame_num++] = 0x2C;
+		uart4_send_data[battery_send_frame_num++] = 0x90;
 		break;
 	}	
 	uart4_send_flag = 2;//< 
@@ -1003,6 +1056,7 @@ void Balance_task(void* pvParameters)
 		}
 		BatteryInformation();
 		SPI1_ReadWriteByte();
+		PowerControl();
 		//UltrasonicProcess();
 	}
 }

@@ -315,6 +315,12 @@ void UltrasonicSetEnable(int id, uint8_t en);
 #define YL_5_RxPin			GPIO_PIN_15
 #define YL_5_ADC		    ADC4
 #define YL_5_ADC_Channel	ADC4_Channel_05_PB15
+/*YL_5*/
+#define YL_6_GPIO		    GPIOA
+#define YL_6_Pin			GPIO_PIN_12
+/*YL_5*/
+#define YL_7_GPIO		    GPIOA
+#define YL_7_Pin			GPIO_PIN_11
 /*SPI1*/
 #define SPI_MASTER                SPI1
 #define SPI_MASTER_CLK            RCC_APB2_PERIPH_SPI1

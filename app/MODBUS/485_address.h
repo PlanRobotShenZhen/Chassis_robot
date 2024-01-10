@@ -102,7 +102,7 @@ enum address_485 {
     can_reinitialize,
     para_save,
     battery_manufacturer,//< µç³Ø³§¼Ò
-    reserve_b,
+    power_control,
     reserve_c,
     reserve_d,
     reserve_e,

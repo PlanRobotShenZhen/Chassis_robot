@@ -8,7 +8,7 @@ MOTOR_TPDO mtd[MAX_MOTOR_NUMBER];//< 发送pdo
 MOTOR_RPDO mrd[MAX_MOTOR_NUMBER];//< 接收pdo
 static uint16_t* pdu;
 static MOTOR_DATA motor_data[MAX_MOTOR_NUMBER];
-uint8_t motor_en = 0;
+
 uint8_t can_id_map[4] = 
 {
 	LB_CAN_ID,//< 左前
@@ -218,7 +218,7 @@ void Motor_task(void* pvParameters)
 				md->d.on = 1;
 			}
 			//if (g_ucRemote_Flag == 0)
-			if (motor_en == 0)
+			if (robot_control.bit.motor_en == 0)
 			{
 				m_ctrl->d.ctrl.cd = 0;
 			}

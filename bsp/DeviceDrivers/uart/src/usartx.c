@@ -91,6 +91,8 @@ void DATA_task(void *pvParameters)
 							{
 								remote_off_line_check = 0;
 								g_eControl_Mode = CONTROL_MODE_ROS;   // 为ROS上位机控制
+								robot_control.ctrl = Receive_Data.buffer[1];
+								pdu[light_control] = Receive_Data.buffer[2];
 							}
 							g_fltRecv_Vel_X =((int16_t)(Receive_Data.buffer[3]<<8| Receive_Data.buffer[4])) *0.001f;
 							g_fltRecv_Vel_Y =((int16_t)(Receive_Data.buffer[5]<<8| Receive_Data.buffer[6])) *0.001f;
@@ -769,13 +771,13 @@ void SetReal_Velocity(uint16_t* pdu)
 		//g_eControl_Mode = CONTROL_MODE_REMOTE; //航模遥控方式选择
 		//开关处于关闭状态
 		g_nVelocity = 0;
-		motor_en = 0;
+		robot_control.bit.motor_en = 0;
 		return;
 	}
 	 
 	else if(Abs_int(nTemp - rc_ptr->turn_on_remote) < 10)
 	{
-		motor_en = 1;
+		robot_control.bit.motor_en = 1;
 		g_ucRemote_Flag = 1;                   // 航模开启标志位
 		g_ucRos_Flag = 0;                      // 航模开启，给与最高权限
 		//g_eControl_Mode = CONTROL_MODE_REMOTE; //航模遥控方式选择

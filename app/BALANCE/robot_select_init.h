@@ -95,6 +95,21 @@ typedef struct
 	float OmniTurnRadiaus; //全向轮旋转半径
 }Robot_Parament_InitTypeDef;
 
+typedef union __ROBOT_CONTROL
+{
+	struct
+	{
+		uint8_t motor_en:1;//< 电机使能控制位
+		uint8_t light_ctrl_en:1;//< 车灯使能控制位
+		uint8_t res1 : 1;//< 预留位
+		uint8_t res2 : 1;//< 预留位
+		uint8_t res3 : 1;//< 预留位
+		uint8_t res4 : 1;//< 预留位
+		uint8_t res5 : 1;//< 预留位
+		uint8_t res6 : 1;//< 预留位
+	}bit;
+	uint8_t ctrl;
+}ROBOT_CONTROL;
 
 
 //Car_Mode for Mec
@@ -185,7 +200,7 @@ extern enum ENUM_CarControl_Mode g_eControl_Mode;  //机器人的控制方式
 extern unsigned char g_ucRemote_Flag;              //航模开启标志位
 extern unsigned char g_ucRos_Flag;                 // ROS上位机进入标志位 
 
-extern uint8_t motor_en;
+extern ROBOT_CONTROL robot_control;
 
 extern struct Motor_parameter  MOTOR_A, MOTOR_B, MOTOR_C, MOTOR_D;
 

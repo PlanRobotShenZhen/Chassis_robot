@@ -3,6 +3,7 @@
 #include "485_address.h"
 Robot_Parament_InitTypeDef  Robot_Parament;//初始化机器人参数结构体
 
+ROBOT_CONTROL robot_control;
 /**************************************************************************
 函数功能：根据电位器切换需要控制的小车类型
 入口参数：无

@@ -248,10 +248,14 @@ void LED_Init(void)
     GPIO_InitPeripheral(LED2_PORT, &GPIO_InitStructure);
     GPIO_InitStructure.Pin = JDQ1_PIN | JDQ2_PIN;
     GPIO_InitPeripheral(JDQ_PORT, &GPIO_InitStructure);
+    GPIO_InitStructure.Pin = YL_6_Pin | YL_7_Pin;
+    GPIO_InitPeripheral(YL_6_GPIO, &GPIO_InitStructure);
     //< 急停输出初始化
     GPIO_InitStructure.Pin = RJ_JT_Pin;
     GPIO_InitPeripheral(RJ_JT_GPIO, &GPIO_InitStructure);
     GPIO_SetBits(RJ_JT_GPIO, RJ_JT_Pin);//< 初始化为0
+    GPIO_SetBits(YL_6_GPIO, YL_6_Pin);//< 
+    GPIO_SetBits(YL_7_GPIO, YL_7_Pin);//< 
     
 
     GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
