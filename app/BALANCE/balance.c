@@ -458,7 +458,6 @@ void PowerControl(void)
 			GPIO_SetBits(YL_6_GPIO, YL_6_Pin);//< 
 		}
 	}
-	//GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
 }
 
 void BatteryInformation()
@@ -582,11 +581,17 @@ void  SPI1_ReadWriteByte(void)
 		while ((SPI_MASTER->STS & 1 << 1) == 0) //等待发送区空
 		{
 			retry++;
-			if (retry > 2000) return;
+			if (retry > 2000)
+			{
+				error_code = 11;//< SPI错误
+				return;
+			}
 		}
 
-		if(robot_control.bit.light_ctrl_en == 0)
-		pdu[light_control] = exio_output.output;
+		if (robot_control.bit.light_ctrl_en == 0)
+		{//< 默认灯控制权
+			pdu[light_control] = exio_output.output;
+		}
 		SPI_MASTER->DAT = pdu[light_control];
 		SPI_ReadWriteCycle = 1;
 		SPI_heartbeat = 0;
@@ -903,6 +908,7 @@ void BatteryInfoInit(void)
 		uart4_send_data[battery_send_frame_num++] = 0x00;
 		uart4_send_data[battery_send_frame_num++] = 0x2C;
 		uart4_send_data[battery_send_frame_num++] = 0x90;
+		battery_send_frame_num = 14;
 		break;
 	}	
 	uart4_send_flag = 2;//< 

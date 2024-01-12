@@ -746,6 +746,10 @@ void SetReal_Velocity(uint16_t* pdu)
 		}
 		else
 		{
+			g_nDirector = 0;
+			g_nVelocity = 0;
+			//robot_control.bit.motor_en = 0;
+			robot_control.bit.light_ctrl_en = 0;
 			g_eControl_Mode = CONTROL_MODE_UNKNOW;
 		}
 	}
