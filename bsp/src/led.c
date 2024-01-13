@@ -261,9 +261,9 @@ void LED_Init(void)
     GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
     ExioInit();
     UltrasonicInit();
-    rt_thread_delay(20000);   //< 2s
+    rt_thread_delay(5000);   //< 2s
     GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
-    rt_thread_delay(5000);   //< 500ms
+    rt_thread_delay(10000);   //< 500ms
 
 #endif
 }

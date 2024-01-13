@@ -70,9 +70,9 @@ void RCCAR_Init(uint16_t* p)
 	/*GPIO初始化*/
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_InitStructure.Pin = GPIO_PIN_8;//PA8
+	GPIO_InitStructure.Pin = GPIO_PIN_8;//PA8 RJ_JT 前进
 	GPIO_InitPeripheral(GPIOA, &GPIO_InitStructure);
-	GPIO_InitStructure.Pin = GPIO_PIN_3;//PB3
+	GPIO_InitStructure.Pin = GPIO_PIN_3;//PB3 CS2_Ttig 左右
 	GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);
 	GPIO_ConfigPinRemap(GPIO_ALL_RMP_TIM2, ENABLE);
 	/*配置时钟源*/
@@ -121,7 +121,7 @@ void RCCAR_Init(uint16_t* p)
 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.Pin = GPIO_PIN_4| GPIO_PIN_5;
+	GPIO_InitStructure.Pin = GPIO_PIN_4| GPIO_PIN_5; //< CS1_Econ CS2_Econ
 	GPIO_InitPeripheral(GPIOB, &GPIO_InitStructure);
 	GPIO_ConfigPinRemap(GPIO_PART1_RMP_TIM3, ENABLE);
 	EncodeTimeInit();

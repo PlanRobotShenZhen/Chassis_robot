@@ -117,16 +117,16 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 		pdu[i+1] = tmp.ud[0];
 
 		int tva = SpeedVelocityToRotate(MOTOR_A.fltTarget_velocity); //转换为r/min
-		if (pdu[motor1_model] == SERVO_WANZE)tva *= 500;
+		if (pdu[motor1_model] == SERVO_WANZE)tva *= 200;
 		// int tvb = 500 * SpeedVelocityToRotate(MOTOR_B.fltTarget_velocity);
 		int tvb = tva;
 		int tvc = SpeedVelocityToRotate(MOTOR_C.fltTarget_velocity);
-		if (pdu[motor1_model] == SERVO_WANZE)tvc *= 500;
+		if (pdu[motor1_model] == SERVO_WANZE)tvc *=200;
 		//int tvd = 500 * SpeedVelocityToRotate(MOTOR_D.fltTarget_velocity);
 		int tvd = tvc;
 
 		int diff = tva - MOTOR_A.nTarget_Velocity;
-		int acc = 2500;
+		int acc = 1000;
 		if (pdu[motor1_model] == SERVO_WANZE)acc = 25000;
 		if (diff > acc)tva = MOTOR_A.nTarget_Velocity + acc;
 		else if (diff < -acc)tva = MOTOR_A.nTarget_Velocity - acc;
@@ -783,7 +783,7 @@ void Car_Light_Control(float Vx, float Vz)
 
 	if (g_eControl_Mode == CONTROL_MODE_UNKNOW)
 	{//< 等待连接状态
-		if (light_time.t_cnt_Light_Q++ >= 25)
+		if (light_time.t_cnt_Light_Q++ >= 75)
 		{
 			if (exio_output.bit.Light_Q == 0)exio_output.output |= 0xf0;
 			else exio_output.output &= 0x0f;
@@ -862,6 +862,8 @@ void Car_Light_Control(float Vx, float Vz)
 			}
 			else exio_output.bit.RGB_B = 0;
 		}
+		exio_output.bit.Light_Q = exio_output.bit.RGB_G;
+		exio_output.bit.Light_Y = exio_output.bit.RGB_G;
 	}
 	else
 	{
@@ -873,7 +875,7 @@ void Car_Light_Control(float Vx, float Vz)
 			light_time.t_cnt_RGB_B = 0;
 			light_time.t_cnt_RGB_G = 0;
 		}
-		exio_output.bit.RGB_R = ((Vx == 0) && (Vz == 0));
+		if(g_eControl_Mode != CONTROL_MODE_UNKNOW)exio_output.bit.RGB_R = ((Vx == 0) && (Vz == 0));
 	}
 }
 
