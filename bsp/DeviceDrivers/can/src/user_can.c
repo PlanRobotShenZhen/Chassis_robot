@@ -600,7 +600,7 @@ void Can_task(void* pvParameters)
 
 void CanIRQProcessFor8015D(CAN_Module* CANx)
 {
-	CanTxMessage RxMessage;
+	CanRxMessage RxMessage;
 	CAN_ReceiveMessage(CANx, 0, &RxMessage);
 	// 电机PDO反馈
 	if (RxMessage.StdId >= 0x181 && RxMessage.StdId <= 0X1FF)
@@ -639,7 +639,7 @@ void CanIRQProcessFor8015D(CAN_Module* CANx)
 
 void CanIRQProcess(CAN_Module* CANx)
 {
-	CanTxMessage RxMessage;
+	CanRxMessage RxMessage;
 	CAN_ReceiveMessage(CANx, 0, &RxMessage);
 	// 电机PDO反馈
 	if (RxMessage.StdId >= 0x181 && RxMessage.StdId <= 0X1FF)

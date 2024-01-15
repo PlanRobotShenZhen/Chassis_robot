@@ -462,7 +462,7 @@ void PowerControl(void)
 
 void BatteryInformation()
 {
-	static bt = 0;
+	static int bt = 0;
 	if (uart4_recv_flag)
 	{
 		uart4_recv_flag = 0;
