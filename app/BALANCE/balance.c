@@ -999,7 +999,7 @@ void Balance_task(void* pvParameters)
 		//使用上位机控制的时候，会在usart中断中关闭Remote_ON_Flag标志位
 		if (g_eControl_Mode == CONTROL_MODE_UNKNOW)
 		{
-
+			Move_X = Move_Y = Move_Z = 0;
 		}
 		else
 		{

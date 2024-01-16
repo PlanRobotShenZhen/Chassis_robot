@@ -744,7 +744,7 @@ void SetReal_Velocity(uint16_t* pdu)
 	}
 	if (ucRcvReady == 0|| g_ucRos_Flag!=1)
 	{
-		if (remote_off_line_check < 200)
+		if (remote_off_line_check < 20)
 		{
 			remote_off_line_check++;
 		}
