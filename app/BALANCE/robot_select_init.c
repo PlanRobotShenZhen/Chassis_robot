@@ -12,7 +12,7 @@ ROBOT_CONTROL robot_control;
 void Robot_Select(void)
 {
 	g_emCarMode = getPDUData()[car_model];   //设置为4驱差速
-	if (g_emCarMode< Mec_Car || g_emCarMode>RC_Car)
+	if (g_emCarMode< Mec_Car || g_emCarMode>Charger)
 	{
 		g_emCarMode = FourWheel_Car;//< 默认为室外差速小车模型
 	}

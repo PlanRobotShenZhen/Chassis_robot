@@ -659,9 +659,13 @@ void Data_transition(void)
 		case RC_Car:
 			Send_Data.X_speed = (int16_t)(Move_X*1000); //小车x轴速度
 			Send_Data.Y_speed = (int16_t)tire_speed;
-			Send_Data.Z_speed = (int16_t)(Move_Z*1000);//小车z轴速度
+			Send_Data.Z_speed = (int16_t)(Move_Z*1000);//小车z轴速度 EncPos
 			Send_Data.Power_Quantity = (int)mileage >> 16;
 			Send_Data.Power_Voltage = (int)mileage;
+			Send_Data.Power_Current = (int)EncPos >> 16;
+			Send_Data.Power_Temperature = (int)EncPos;
+		
+		
 			break;
 		default:
 			break;

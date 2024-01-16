@@ -206,9 +206,9 @@ enum address_485 {
 
     rc_encoder_reset = 300,//< 该参数写5，脉冲计数和编码器清零
     rc_encoder_dir,//< 0:按编码器方向加减;1:脉冲计数只累加
-    rc_ratio,//< 减速比，精度0.01
+    rc_ratio,//< 减速比，精度0.001
     rc_encoder_accuracy,//< 编码器精度，精度1
-    rc_tire_diameter,//< 轮胎直径，单位cm,精度0.01
+    rc_tire_diameter,//< 轮胎直径，单位mm
     rc_speed_shifting,//< RC速度偏移
     rc_angle_shifting,//< RC转向偏移
     rc_magnification,//< RC速度倍率

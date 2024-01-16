@@ -126,7 +126,7 @@ void RCCAR_Init(uint16_t* p)
 	GPIO_ConfigPinRemap(GPIO_PART1_RMP_TIM3, ENABLE);
 	EncodeTimeInit();
 
-	ratio = pdu[rc_ratio];
+	ratio = pdu[rc_ratio]*0.001;
 	if (ratio == 0)ratio = 120;
 	encoder_accuracy = pdu[rc_encoder_accuracy];
 	if (encoder_accuracy == 0)encoder_accuracy = 4;

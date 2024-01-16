@@ -28,7 +28,8 @@ enum CarMode
 	Diff_Car,           // 差速车(圆形底盘)
 	FourWheel_Car,      // 四驱车
 	Tank_Car,           // 坦克车
-	RC_Car              // 竞赛小车
+	RC_Car,              // 竞赛小车
+	Charger              // 充电桩
 };
 
 
