@@ -117,17 +117,24 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 		pdu[i+1] = tmp.ud[0];
 
 		int tva = SpeedVelocityToRotate(MOTOR_A.fltTarget_velocity); //×ª»»Îªr/min
-		if (pdu[motor1_model] == SERVO_WANZE)tva *= 200;
+		if (pdu[motor1_model] == SERVO_WANZE)tva *= 500;
 		// int tvb = 500 * SpeedVelocityToRotate(MOTOR_B.fltTarget_velocity);
 		int tvb = tva;
 		int tvc = SpeedVelocityToRotate(MOTOR_C.fltTarget_velocity);
-		if (pdu[motor1_model] == SERVO_WANZE)tvc *=200;
+		if (pdu[motor1_model] == SERVO_WANZE)tvc *=500;
 		//int tvd = 500 * SpeedVelocityToRotate(MOTOR_D.fltTarget_velocity);
 		int tvd = tvc;
 
 		int diff = tva - MOTOR_A.nTarget_Velocity;
-		int acc = 1000;
-		if (pdu[motor1_model] == SERVO_WANZE)acc = 25000;
+		int acc = 500;
+		if (pdu[motor1_model] == SERVO_WANZE)
+		{
+			if (exio_input.bit.X0 || emergency_stop.estop_soft)
+			{//< ¼±Í£
+				acc = 25000;
+			}
+			else acc = 5000;
+		}
 		if (diff > acc)tva = MOTOR_A.nTarget_Velocity + acc;
 		else if (diff < -acc)tva = MOTOR_A.nTarget_Velocity - acc;
 
