@@ -54,7 +54,7 @@ float g_fltRecv_Vel_Z = 0.0;
 static uint16_t* pdu;
 int remote_off_line_check = 0;
 
-
+void Modbus_Respond(MBModify* modify);
 /**************************************************************************
 函数功能：将上位机发过来的高8位和低8位数据整合成一个short型数据后，再做单位还原换算
 入口参数：高8位，低8位
@@ -1386,6 +1386,7 @@ void modbus_task_init(void)
 
 void ModBUS_task(void* pvParameters)
 {
+	MBModify modify;
 	/* Enable the Modbus Protocol Stack. */
 	eMBEnable();
 
@@ -1398,7 +1399,7 @@ void ModBUS_task(void* pvParameters)
 			uart1_recv_flag = 0;
 			pxMBFrameCBByteReceived();
 		}
-		eMBPoll();
+		eMBPoll(&modify);
 		if (uart1_send_flag == 2)
 		{//< 回复帧
 			uart1_send_flag = 0;
@@ -1409,9 +1410,10 @@ void ModBUS_task(void* pvParameters)
 			DMA_EnableChannel(USARTy_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
 			DMA_SetCurrDataCounter(USARTy_Rx_DMA_Channel, USART1_RX_MAXBUFF);
 			DMA_EnableChannel(USARTy_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
+			Modbus_Respond(&modify);
 		}
 		if (pdu[para_save]==1)
-		{//< 保存当前参数
+		{//< 保存当前所有参数
 			pdu[para_save] = 0;
 			MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
 		}
@@ -1444,3 +1446,19 @@ void ModBUS_task(void* pvParameters)
 }
 
 
+// 写入所有可读可写参数
+void Modbus_Respond(MBModify* modify) 
+{
+	if (modify->is_modify == 0)return;
+	if (pdu[para_save] == 3)
+	{//< 当前修改参数写入flash
+		pdu[para_save] = 0;
+		switch (modify->modify_addr)
+		{
+		case motor1_direction:
+			pdu[motor1_direction];
+			break;
+		}
+	}
+
+}

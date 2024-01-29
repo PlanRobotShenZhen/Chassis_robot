@@ -1247,7 +1247,7 @@ eMBDisable( void )
     return eStatus;
 }
 
-eMBErrorCode eMBPoll( void )
+eMBErrorCode eMBPoll(MBModify* modify)
 {
     static UCHAR   *ucMBFrame;
     static UCHAR    ucRcvAddress;
@@ -1256,6 +1256,7 @@ eMBErrorCode eMBPoll( void )
     eMBErrorCode    eStatus = MB_ENOERR;
     eMBEventType    eEvent;
 
+    modify->is_modify = 0;
     /* Check if the protocol stack is ready. */
     if( eMBState != STATE_ENABLED )
     {
@@ -1294,6 +1295,16 @@ eMBErrorCode eMBPoll( void )
                     else
                     {
                         MB_RSP(PduData.Code);
+                        if ((PduData.Code == FUN_CODE_06H) || (PduData.Code == FUN_CODE_10H))
+                        {
+                            modify->is_modify = 1;
+                            modify->modify_addr = PduData.Addr;
+                            modify->modify_len = 1;
+                        }
+                        else
+                        {
+                            modify->is_modify = 0;
+                        }
                     }
                 }
                 else

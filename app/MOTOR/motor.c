@@ -192,20 +192,20 @@ void Motor_task(void* pvParameters)
 			//	m_ctrl->d.ctrl.cd = 0;
 			//	continue;
 			//}
-			if (m_states->d.status.sd == 592 ||
+			if (m_states->d.status.sd == 0x250 ||
 				m_states->d.status.sd == 0x1040 ||
 				m_states->d.status.sd == 0x1060 ||
 				m_states->d.status.sd == 0x5650)
 			{
 				m_ctrl->d.ctrl.cd = 6;
 			}
-			else if (m_states->d.status.sd == 561 ||
+			else if (m_states->d.status.sd == 0x231 ||
 				m_states->d.status.sd == 0x1021 ||
 				m_states->d.status.sd == 0x5631)
 			{
 				m_ctrl->d.ctrl.cd = 7;
 			}
-			else if (m_states->d.status.sd == 563 ||
+			else if (m_states->d.status.sd == 0x233 ||
 				m_states->d.status.sd == 0x3023 ||
 				m_states->d.status.sd == 0x1023 ||
 				m_states->d.status.sd == 0x5633)

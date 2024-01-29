@@ -67,7 +67,12 @@ PR_BEGIN_EXTERN_C
  */
 
  /* ----------------------- Defines ------------------------------------------*/
-
+typedef struct
+{
+    uint8_t  is_modify;
+    uint16_t modify_addr;
+    uint8_t  modify_len;
+} MBModify;
  /*! \ingroup modbus
   * \brief Use the default Modbus TCP port (502)
   */
@@ -225,7 +230,7 @@ eMBErrorCode    eMBDisable( void );
  *   returns eMBErrorCode::MB_EILLSTATE. Otherwise it returns 
  *   eMBErrorCode::MB_ENOERR.
  */
-eMBErrorCode    eMBPoll( void );
+eMBErrorCode    eMBPoll(MBModify* modify);
 
 /*! \ingroup modbus
  * \brief Configure the slave id of the device.
