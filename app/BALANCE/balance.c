@@ -89,10 +89,6 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 	{	
 		//用的时候motora和motorb要设置的为负数
 		float tmp_value = Vz * (Wheel_spacing +  Axle_spacing) / 2.0f;
-		//MOTOR_A.fltTarget_velocity  = Vx + Vz * (Wheel_spacing +  Axle_spacing) / 2.0f; //计算出左后轮的目标速度
-		//MOTOR_B.fltTarget_velocity = Vx + Vz * (Wheel_spacing +  Axle_spacing) / 2.0f; //计算出左前轮的目标速度
-		//MOTOR_C.fltTarget_velocity  = Vx - Vz * (Wheel_spacing +  Axle_spacing) / 2.0f; //计算出右前轮的目标速度
-		//MOTOR_D.fltTarget_velocity  = Vx - Vz * (Wheel_spacing +  Axle_spacing) / 2.0f; //计算出右后轮的目标速度
 		MOTOR_A.fltTarget_velocity = Vx + tmp_value;
 		MOTOR_B.fltTarget_velocity = MOTOR_A.fltTarget_velocity; //计算出左前轮的目标速度
 		MOTOR_C.fltTarget_velocity = Vx - tmp_value;
@@ -118,11 +114,9 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 
 		int tva = SpeedVelocityToRotate(MOTOR_A.fltTarget_velocity); //转换为r/min
 		if (pdu[motor1_model] == SERVO_WANZE)tva *= 500;
-		// int tvb = 500 * SpeedVelocityToRotate(MOTOR_B.fltTarget_velocity);
 		int tvb = tva;
 		int tvc = SpeedVelocityToRotate(MOTOR_C.fltTarget_velocity);
 		if (pdu[motor1_model] == SERVO_WANZE)tvc *=500;
-		//int tvd = 500 * SpeedVelocityToRotate(MOTOR_D.fltTarget_velocity);
 		int tvd = tvc;
 
 		int diff = tva - MOTOR_A.nTarget_Velocity;
@@ -133,8 +127,11 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 			{//< 急停
 				acc = 25000;
 			}
-			else acc = 5000;
+			else acc = pdu[robot_acceleration];
 		}
+
+
+
 		if (diff > acc)tva = MOTOR_A.nTarget_Velocity + acc;
 		else if (diff < -acc)tva = MOTOR_A.nTarget_Velocity - acc;
 
@@ -989,6 +986,7 @@ void Balance_task(void* pvParameters)
 		pdu[i++] = 1024;
 		pdu[i++] = 1024;
 	}
+	if (pdu[robot_acceleration] < 5000)pdu[robot_acceleration] = 5000;
 	i = 0;
 	while (1)
 	{

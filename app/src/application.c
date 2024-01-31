@@ -160,7 +160,10 @@ static void InitTask(void* parameter)
 	Usart3_Init(115200);            //上下位机通信初始化，串口3
     Usart4_Init(9600);              //串口4初始化，用于读取电池信息
     Usart5_Init(100000);            //串口5初始化，用于航模控制
-    if (pdu[car_model] != RC_Car)Adc_Init();                     //采集电池电压ADC引脚初始化	
+    if (pdu[car_model] == Akm_Car|| 
+        pdu[car_model] == Diff_Car || 
+        pdu[car_model] == FourWheel_Car)
+        Adc_Init();                     //采集电池电压ADC引脚初始化	
 	Can_Driver_Init(pdu[CAN_baud]);              //底层can协议初始化
     if(pdu[car_model]== RC_Car)RCCAR_Init(pdu);
 	
@@ -171,9 +174,10 @@ static void InitTask(void* parameter)
     {
         rt_thread_startup(&Balance_thread);
     }
-    if (pdu[car_model] != RC_Car)
+    if (pdu[car_model] == Akm_Car ||
+        pdu[car_model] == Diff_Car ||
+        pdu[car_model] == FourWheel_Car)
     {
-
         /* init Motor_init thread */
         result = rt_thread_init(&Motor_init_thread, "Motor_init", Motor_init_task, (void*)pdu, (rt_uint8_t*)&Motor_init_stack[0], sizeof(Motor_init_stack), 10, 10);
         if (result == RT_EOK)
@@ -198,12 +202,12 @@ static void InitTask(void* parameter)
         {
             rt_thread_startup(&ADC_thread);
         }
-    }
-    /* init DATA thread */
-    result = rt_thread_init(&DATA_thread, "DATA", DATA_task, (void*)pdu, (rt_uint8_t*)&DATA_stack[0], sizeof(DATA_stack), 8, 5);
-    if (result == RT_EOK)
-    {
-        rt_thread_startup(&DATA_thread);
+        /* init DATA thread */
+        result = rt_thread_init(&DATA_thread, "DATA", DATA_task, (void*)pdu, (rt_uint8_t*)&DATA_stack[0], sizeof(DATA_stack), 8, 5);
+        if (result == RT_EOK)
+        {
+            rt_thread_startup(&DATA_thread);
+        }
     }
     /* init ModBUS thread */
     result = rt_thread_init(&ModBUS_thread, "ModBUS", ModBUS_task, RT_NULL, (rt_uint8_t*)&ModBUS_stack[0], sizeof(ModBUS_stack), 7, 5);

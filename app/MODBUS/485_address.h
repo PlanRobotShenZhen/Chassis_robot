@@ -116,6 +116,7 @@ enum address_485 {
     car_tar_ang_speed = 126,
 
 
+    robot_acceleration = 133,
     robot_forward_direction=134,
     robot_turning_direction,
     moddbus_485_id,

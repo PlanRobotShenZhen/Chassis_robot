@@ -977,7 +977,8 @@ void Set_Director()
 	{
 		//开关处于打开状态
 		nTemp = tagSBUS_CH.CH6;
-		if (pdu[car_model] == 6)nTemp = 1023;
+		if (pdu[car_model] == RC_Car)nTemp = 1023;
+		if (pdu[car_model] == FourWheel_Car)nTemp = 240;
 		
 		//此时判断是使用低、中、高速度挡位
 		if(Abs_int(nTemp - rc_ptr->speed_level1) < 10)
