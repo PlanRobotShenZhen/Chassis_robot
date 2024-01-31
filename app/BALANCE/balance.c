@@ -468,7 +468,7 @@ void PowerControl(void)
 void BatteryInformation()
 {
 	static int bt = 0;
-	static int bt_times = 0;
+	static int bt_times = 100;
 	int i = 0; //起始索引
 	float MOVE_XorZ = 0;
 	union 
@@ -491,7 +491,7 @@ void BatteryInformation()
 			tmp.ud[0] = pdu[i++];
 			bt_times = MOVE_XorZ > (tmp.v / 1.2) ? 8 : MOVE_XorZ > (tmp.v / 2) ? 16 : MOVE_XorZ > (tmp.v / 4) ? 32 : MOVE_XorZ > (tmp.v / 8) ? 64 : 100;
 
-			if (uart4_recv_data[0] == 0x3A)
+			if (uart4_recv_data[0] == 0x3B)
 			{
 				pdu[BatteryStatus] 	= 1;//< 电池读取成功
 				pdu[BatteryVoltage] = uart4_recv_data[6] | (uart4_recv_data[7] << 8);//< 电池电压
@@ -925,6 +925,7 @@ void BatteryInfoInit(void)
 		uart4_send_data[battery_send_frame_num++] = 0x1E;//< 功能码 (0x1E)
 		uart4_send_data[battery_send_frame_num++] = 0x00;//< 长度
 		uart4_send_data[battery_send_frame_num++] = 0xD8;//< 校验和
+		battery_send_frame_num = 9;
 		break;
 	default://7E 0A 01 00 00 30 00 AC 00 00 2C 90 //< 电池信息初始化读取
 		uart4_send_data[battery_send_frame_num++] = 0x7E;
