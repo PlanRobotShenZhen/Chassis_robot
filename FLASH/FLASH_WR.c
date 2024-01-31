@@ -21,13 +21,14 @@ int MyFLASH_WriteWord(uint32_t faddr, uint16_t* p, uint16_t Count_To_Write)
         d = p[dataIndex];
 		dataIndex++;
         d |= p[dataIndex] << 16;
-        FLASH_ProgramWord(faddr, d);
+        FLASH_ProgramWord(faddr , 8);
         faddr += 4;
     }
     FLASH_Lock();
     __enable_irq();
     return dataIndex;
 }
+
 
 /**************************************************************************
 函数功能：从指定地址读取数据

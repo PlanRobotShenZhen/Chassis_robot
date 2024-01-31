@@ -15,11 +15,13 @@ enum address_485 {
     exio_input_status,
     car_feedback_lin_speed = 8,
     car_feedback_ang_speed = 10,
-    BatteryStatus = 16,
+    BatteryStatus = 12,
     BatteryQuantity,
     BatteryVoltage,
     BatteryCurrent,
     BatteryTemperature,
+    BatteryHealth,
+    BatteryProtectStatus,
 
     // 电机参数
     motor1_state_word = 21,

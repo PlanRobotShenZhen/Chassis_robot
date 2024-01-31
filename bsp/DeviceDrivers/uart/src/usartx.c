@@ -1290,6 +1290,7 @@ void Pdu_Init()
 	pdu[car_version] = 0x88;
 	pdu[moddbus_485_id] = 1;
 	pdu[moddbus_485_baud] = 9;
+	pdu[battery_manufacturer] = 1;
 
 	//初始化航模参数
 	i = turn_off_remote;
