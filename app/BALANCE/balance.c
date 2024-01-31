@@ -7,6 +7,7 @@
 #include "led.h"
 #include "port.h"
 #include "rc_car.h"
+#include <math.h>
 
 struct Smooth_Control tagSmooth_control;
 LightTime light_time;
@@ -470,21 +471,49 @@ void PowerControl(void)
 void BatteryInformation()
 {
 	static int bt = 0;
+	static int bt_times = 0;
+	int i = 0; //起始索引
+	float MOVE_XorZ = 0;
+	union 
+	{
+	float v;
+	uint16_t ud[2];
+	uint8_t u8d[8];
+	}tmp;
 	if (uart4_recv_flag)
 	{
 		uart4_recv_flag = 0;
 		switch (pdu[battery_manufacturer])
 		{
 		case 1://< 深圳市锂神科技有限公司
+			//小车线速度和角速度比较
+			if(fabsf(Move_X) > fabsf(Move_Z))	{MOVE_XorZ = Move_X;				i = car_max_lin_speed;} //起始索引
+			else 								{MOVE_XorZ = Move_Z;				i = car_max_ang_speed;}
+			if(MOVE_XorZ < 0) 					{MOVE_XorZ = - MOVE_XorZ;}
+			tmp.ud[1] = pdu[i++];
+			tmp.ud[0] = pdu[i++];
+			bt_times = MOVE_XorZ > (tmp.v / 1.2) ? 8 : MOVE_XorZ > (tmp.v / 2) ? 16 : MOVE_XorZ > (tmp.v / 4) ? 32 : MOVE_XorZ > (tmp.v / 8) ? 64 : 100;
+
+			if (uart4_recv_data[0] == 0x3A)
+			{
+				pdu[BatteryStatus] 	= 1;//< 电池读取成功
+				pdu[BatteryVoltage] = uart4_recv_data[6] | (uart4_recv_data[7] << 8);//< 电池电压
+				pdu[BatteryCurrent] = uart4_recv_data[8] | (uart4_recv_data[9] << 8);//< 电池电流
+				pdu[BatteryQuantity] = uart4_recv_data[10] | (uart4_recv_data[11] << 8);//< 电池电量
+				pdu[BatteryHealth] = uart4_recv_data[12] | (uart4_recv_data[13] << 8);//< 电池健康度
+				pdu[BatteryTemperature] = uart4_recv_data[24] | (uart4_recv_data[25] << 8);//< 电池温度
+				pdu[BatteryProtectStatus] = uart4_recv_data[36] | (uart4_recv_data[37] << 8);//< 电池保护状态
+			}
 			break;
 		default:
+			bt_times = 100;//< 1000ms刷新1次
 			if (uart4_recv_data[0] == 0x7e)
 			{
 				uint32_t tmp = 0;
 				//uint16_t r_crc = (uint16_t)uart4_recv_data[uart4_recv_len - 2] | (((uint16_t)uart4_recv_data[uart4_recv_len - 1])<<8);
 				//uint16_t c_crc = usMBCRC16(uart4_recv_data, uart4_recv_len - 2);			
 				//if (r_crc == c_crc)
-				{
+				// {
 					int i = 0;
 					pdu[BatteryStatus] = 1;//< 电池读取成功
 					pdu[BatteryQuantity] = (uint16_t)uart4_recv_data[107] | (((uint16_t)uart4_recv_data[108]) << 8);//< 电池电量
@@ -500,16 +529,14 @@ void BatteryInformation()
 					tmp |= (uint32_t)uart4_recv_data[i++] << 24;
 					pdu[BatteryCurrent] = tmp;//< 电池电流
 					pdu[BatteryTemperature] = (uint16_t)uart4_recv_data[77] | (((uint16_t)uart4_recv_data[78]) << 8);//< 电池温度
-
-				}
+				// }
 			}
-
 			break;
 		}
 	}
 	bt++;
-	if (bt >= 100)
-	{//< 1秒刷新1次
+	if (bt >= bt_times)
+	{
 		bt = 0;
 		GPIO_SetBits(USARTb_485en_GPIO, USARTb_485enPin);
 		DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);    // 关闭 DMA2 通道5, UART4_TX
@@ -900,9 +927,7 @@ void BatteryInfoInit(void)
 		uart4_send_data[battery_send_frame_num++] = 0x01;//< 0：写 1：读
 		uart4_send_data[battery_send_frame_num++] = 0x1E;//< 功能码 (0x1E)
 		uart4_send_data[battery_send_frame_num++] = 0x00;//< 长度
-		uart4_send_data[battery_send_frame_num++] = 0x30;//< 数据内容
-		for (n = 0;n < battery_send_frame_num;n++)verifyADD8 += uart4_send_data[n];
-		uart4_send_data[battery_send_frame_num++] = verifyADD8;//< 校验和
+		uart4_send_data[battery_send_frame_num++] = 0xD8;//< 校验和
 		break;
 	default://7E 0A 01 00 00 30 00 AC 00 00 2C 90 //< 电池信息初始化读取
 		uart4_send_data[battery_send_frame_num++] = 0x7E;
