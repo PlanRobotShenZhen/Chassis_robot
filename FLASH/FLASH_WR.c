@@ -21,7 +21,7 @@ int MyFLASH_WriteWord(uint32_t faddr, uint16_t* p, uint16_t Count_To_Write)
         d = p[dataIndex];
 		dataIndex++;
         d |= p[dataIndex] << 16;
-        FLASH_ProgramWord(faddr , 8);
+        FLASH_ProgramWord(faddr , d);
         faddr += 4;
     }
     FLASH_Lock();
