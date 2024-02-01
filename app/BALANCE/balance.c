@@ -496,9 +496,9 @@ void BatteryInformation()
 				pdu[BatteryStatus] 	= 1;//< 电池读取成功
 				pdu[BatteryVoltage] = uart4_recv_data[6] | (uart4_recv_data[7] << 8);//< 电池电压
 				pdu[BatteryCurrent] = uart4_recv_data[8] | (uart4_recv_data[9] << 8);//< 电池电流
-				pdu[BatteryQuantity] = uart4_recv_data[10] | (uart4_recv_data[11] << 8);//< 电池电量
+				pdu[BatteryQuantity] = (uart4_recv_data[10] | (uart4_recv_data[11] << 8))/2;//< 电池电量
 				pdu[BatteryHealth] = uart4_recv_data[12] | (uart4_recv_data[13] << 8);//< 电池健康度
-				pdu[BatteryTemperature] = uart4_recv_data[24] | (uart4_recv_data[25] << 8);//< 电池温度
+				pdu[BatteryTemperature] = (uart4_recv_data[24] | (uart4_recv_data[25] << 8)) - 2731;//< 电池温度
 				pdu[BatteryProtectStatus] = uart4_recv_data[36] | (uart4_recv_data[37] << 8);//< 电池保护状态
 			}
 			break;
