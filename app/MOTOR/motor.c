@@ -42,21 +42,18 @@ void New_Servo_Motor_Init(int i,uint8_t ID)
 	{
 	case SERVO_WANZE:// 万泽伺服
 		WANZER_PDO_Config(ID);
-		NMT_Control(ID, 0x01, ID); //开启PDO1传输数据
 		break;
 	case SERVO_ZLACD:// 中菱一拖二伺服
 		ZLAC8015D_PDO_Config(ID);
-		NMT_Control(0, 0x01, ID); //开启PDO1传输数据
 		break;
 	case SERVO_PLAN:// 普蓝伺服
-
+		PLAN_PDO_Config(ID);
 		break;
 	default://中菱伺服
 		ZLAC8015_PDO_Config(ID);
-		NMT_Control(ID, 0x01, ID); //开启PDO1传输数据
 		break;
 	}
-	//delay_ms(1);
+	NMT_Control(ID, 0x01, ID); //开启PDO1传输数据
 }
 
 void MotorDataRefresh()
@@ -80,10 +77,10 @@ void MotorDataRefresh()
 		md = &motor_data[k];
 		pdu[n++] = mt->d.status.sd;	
 		pdu[n++] = ((uint16_t)md->d.step << 2 | md->d.on&3) | ((uint16_t)mr->d.online << 8);
-		pdu[n++] = 0;
-		pdu[n++] = 0;
-		pdu[n++] = 0;
-		pdu[n++] = 0;
+		pdu[n++] = (uint16_t)(mt->d.error_code);
+		pdu[n++] = (uint16_t)(mt->d.mode);
+		pdu[n++] = (uint16_t)(mt->d.current_torque);
+		pdu[n++] = (uint16_t)(mt->d.current_rpm);
 		pdu[n++] = (uint16_t)(mt->d.current_velocity >> 16);
 		pdu[n++] = (uint16_t)(mt->d.current_velocity);
 		pdu[n++] = (uint16_t)(mt->d.current_pos >> 16);

@@ -315,7 +315,7 @@ uint8_t ZLAC8015_PDO_Config(uint16_t id)
 	int i,k;
 	uint16_t s_id;
 	struct SdoFrame* new_sdo_frame;
-	uint8_t Init_sdo[19][8] = // 主站(单片机)，恢复从站的初始值 
+	uint8_t Init_sdo[][8] = // 主站(单片机)，恢复从站的初始值 
 	{// 写参数映射		
 		{0x23,0x00,0x14,0x01,id,0x02,0x00,0x80},  // 失能Rpdo： 发送sdo  600+id,23 00 14 01 01 02 00 80
 		{0x2F,0x00,0x14,0x02,0xFE,0x00,0x00,0x00},    //②Hex1400_02，传输形式：0xFE：事件触发；0xFF：定时器触发
@@ -340,7 +340,7 @@ uint8_t ZLAC8015_PDO_Config(uint16_t id)
 		{0x23,0x84,0x60,0x00,0x64,0x00,0x00,0x00},  // 6084 设置电机减速时间100ms
 	};
 	s_id = 0x600 + id;	
-	for (i = 0; i < 19; i++)
+	for (i = 0; i < sizeof(Init_sdo) / sizeof(Init_sdo[0]); i++)
 	{
 		new_sdo_frame = SdoFramCereat();
 		if (new_sdo_frame != NULL)
@@ -357,7 +357,7 @@ uint8_t WANZER_PDO_Config(uint16_t id)// 万泽伺服
 	int i, k;
 	uint16_t s_id;	
 	struct SdoFrame* new_sdo_frame;
-	uint8_t Init_sdo[20][8] = // 主站(单片机)，恢复从站的初始值 
+	uint8_t Init_sdo[][8] = // 主站(单片机)，恢复从站的初始值 
 	{// 写参数映射		
 		{0x23,0x00,0x14,0x01,id,0x02,0x00,0x80},  // 失能Rpdo： 发送sdo  600+id,23 00 14 01 01 02 00 80
 		{0x2F,0x00,0x14,0x02,0xFE,0x00,0x00,0x00},    //②Hex1400_02，传输形式：0xFE：事件触发；0xFF：定时器触发
@@ -383,7 +383,7 @@ uint8_t WANZER_PDO_Config(uint16_t id)// 万泽伺服
 		{0x23,0xa4,0x60,0x02,0xA0,0x86,0x01,0x00},  // 60a4 02 写入参数轮廓加加速度 100000
 	};
 	s_id = 0x600 + id;
-	for (i = 0; i < 20; i++)
+	for (i = 0; i < sizeof(Init_sdo) / sizeof(Init_sdo[0]); i++)
 	{
 		new_sdo_frame = SdoFramCereat();
 		if (new_sdo_frame != NULL)
@@ -392,6 +392,71 @@ uint8_t WANZER_PDO_Config(uint16_t id)// 万泽伺服
 			new_sdo_frame->mode = 0;
 			for (k = 0;k < 8;k++)new_sdo_frame->data[k] = Init_sdo[i][k];
 			
+		}
+	}
+	return 0x00;
+}
+uint8_t PLAN_PDO_Config(uint16_t id)// 普蓝伺服
+{
+	int i, k;
+	uint16_t s_id;
+	struct SdoFrame* new_sdo_frame;
+	uint8_t Init_sdo[][8] = // 主站(单片机)，恢复从站的初始值 
+	{// 写参数映射		
+		{0x23,0x00,0x14,0x01,id,0x02,0x00,0x80},  // 失能Rpdo： 发送sdo  600+id,23 00 14 01 01 02 00 80
+		{0x2F,0x00,0x14,0x02,0xFE,0x00,0x00,0x00},    //②Hex1400_02，传输形式：0xFE：事件触发；0xFF：定时器触发
+		{0x2F,0x00,0x16,0x00,0x00,0x00,0x00,0x00},  // 清除映射: 发送sdo 600+id,22 00 16 00 00 00 00 00
+		{0x23,0x00,0x16,0x01,0x10,0x00,0x40,0x60},  // 6040 控制字
+		{0x23,0x00,0x16,0x02,0x20,0x00,0xFF,0x60},  // 60FF 目标速度
+		{0x2F,0x00,0x16,0x00,0x02,0x00,0x00,0x00},    //映射对象子索引个数	⑥Hex1600_0，启用【映射参数】 【实际映射多少组】 
+		{0x23,0x00,0x14,0x01,id,0x02,0x00,0x00},  // 使能pdo:  发送sdo 600+id,22 00 14 01 01 02 00 00
+		// 读参数映射TPDO0
+		{0x23,0x00,0x18,0x01,0x80 + id,0x01,0x00,0x80},  // 失能Tpdo： 发送sdo  600+id,22 00 14 01 01 02 00 80
+		{0x2B,0x00,0x18,0x05,0x10,0x00,0x00,0x00},    //定时器触发时间 4*0.5ms
+		{0x2F,0x00,0x1A,0x00,0x00,0x00,0x00,0x00},  // 消去个数: 发送sdo 600+id,22 00 16 00 00 00 00 00
+		{0x23,0x00,0x1A,0x01,0x10,0x00,0x41,0x60},  // 6041 状态字
+		{0x23,0x00,0x1A,0x02,0x20,0x00,0x6C,0x60},  // 606C 实时反馈速度
+		{0x23,0x00,0x18,0x01,0x80 + id,0x01,0x00,0x00},  // 使能pdo:  发送sdo 600+id,22 00 14 01 01 02 00 00
+		{0x2F,0x60,0x60,0x00,0x03,0x00,0x00,0x00},	//设置速度模式
+		{0x2F,0x00,0x18,0x02,0xFF,0x00,0x00,0x00},    //②Hex1800_02，传输形式：0xFE：事件触发；0xFF：定时器触发 1个有效数据，设置TPDO1的传输类型，SYNC 
+		{0x2F,0x00,0x1A,0x00,0x02,0x00,0x00,0x00},    //⑥Hex1A00_0，启用【映射参数】 【实际映射多少组】
+
+		// 读参数映射（TPDO1）
+		{0x23,0x01,0x18,0x01,0x80 + id,0x02,0x00,0x80}, //失能Tpdo1
+		{0x2B,0x01,0x18,0x05,0x20,0x00,0x00,0x00},    	//定时器触发时间 50ms(刷新率为20Hz)
+		{0x2F,0x01,0x1A,0x00,0x00,0x00,0x00,0x00},  	//清除映射
+		{0x23,0x01,0x1A,0x01,0x10,0x0d,0x00,0x20},  	//2000 0d RPM		
+		{0x23,0x01,0x1A,0x02,0x10,0x00,0x78,0x60},  	//6078 00 电流反馈	
+		{0x23,0x01,0x1A,0x03,0x20,0x00,0x64,0x60},  	//606C 00 位置反馈	
+		{0x23,0x01,0x18,0x01,0x80 + id,0x02,0x00,0x00}, //设置PDO的COB-ID
+		{0x2F,0x01,0x18,0x02,0xFF,0x00,0x00,0x00},    //②Hex1801_02，传输形式：0xFE：事件触发；0xFF：定时器触发 1个有效数据，设置TPDO1的传输类型，SYNC 
+		{0x2F,0x01,0x1A,0x00,0x03,0x00,0x00,0x00},    //⑥Hex1A01_0，启用【映射参数】 【实际映射多少组】 
+		// 读参数映射（TPDO2）
+		{0x23,0x02,0x18,0x01,0x80 + id,0x03,0x00,0x80}, //失能Tpdo1
+		{0x2B,0x02,0x18,0x05,0x30,0x00,0x00,0x00},    	//定时器触发时间 50ms(刷新率为20Hz)
+		{0x2F,0x02,0x1A,0x00,0x00,0x00,0x00,0x00},  	//清除映射
+		{0x23,0x02,0x1A,0x01,0x10,0x00,0x3f,0x60},  	//603f 00 Errorcode		
+		{0x23,0x02,0x1A,0x02,0x00,0x00,0x61,0x60},  	//6061 00 模式
+		{0x23,0x02,0x18,0x01,0x80 + id,0x03,0x00,0x00}, //设置PDO的COB-ID
+		{0x2F,0x02,0x18,0x02,0xFF,0x00,0x00,0x00},    //②Hex1801_02，传输形式：0xFE：事件触发；0xFF：定时器触发 1个有效数据，设置TPDO1的传输类型，SYNC 
+		{0x2F,0x02,0x1A,0x00,0x02,0x00,0x00,0x00},    //⑥Hex1A01_0，启用【映射参数】 【实际映射多少组】 
+
+
+		{0x23,0x83,0x60,0x00,0x10,0x27,0x00,0x00},  // 6083 写入参数轮廓位置模式加速度 10000
+		{0x23,0x84,0x60,0x00,0x10,0x27,0x00,0x00},  // 6084 写入参数轮廓位置模式减速度 10000
+		{0x23,0xa4,0x60,0x01,0xA0,0x86,0x01,0x00},  // 60a4 01 写入参数轮廓加加速度 100000
+		{0x23,0xa4,0x60,0x02,0xA0,0x86,0x01,0x00},  // 60a4 02 写入参数轮廓加加速度 100000
+	};
+	s_id = 0x600 + id;
+	for (i = 0; i < sizeof(Init_sdo) / 8; i++)
+	{
+		new_sdo_frame = SdoFramCereat();
+		if (new_sdo_frame != NULL)
+		{
+			new_sdo_frame->ID = s_id;
+			new_sdo_frame->mode = 0;
+			for (k = 0;k < 8;k++)new_sdo_frame->data[k] = Init_sdo[i][k];
+
 		}
 	}
 	return 0x00;
@@ -603,7 +668,7 @@ void CanIRQProcessFor8015D(CAN_Module* CANx)
 	CanRxMessage RxMessage;
 	CAN_ReceiveMessage(CANx, 0, &RxMessage);
 	// 电机PDO反馈
-	if (RxMessage.StdId >= 0x181 && RxMessage.StdId <= 0X1FF)
+	if (RxMessage.StdId >= 0x181 && RxMessage.StdId <= 0x1FF)
 	{//< 电机PDO反馈
 		int id = RxMessage.StdId - 0x180; //获取CAN ID 号
 		int i = 0;
@@ -626,6 +691,18 @@ void CanIRQProcessFor8015D(CAN_Module* CANx)
 			mtd[1].d.current_velocity = (int)v;
 		}
 	}
+	else if (RxMessage.StdId >= 0x281 && RxMessage.StdId <= 0X2FF)
+	{
+
+	}
+	else if (RxMessage.StdId >= 0x381 && RxMessage.StdId <= 0X3FF)
+	{
+
+	}
+	else if (RxMessage.StdId >= 0x481 && RxMessage.StdId <= 0X4FF)
+	{
+
+	}
 	else
 	{//< SDO 处理
 		if (RxMessage.StdId >= 0x581 && RxMessage.StdId <= 0X5FF)
@@ -640,23 +717,17 @@ void CanIRQProcessFor8015D(CAN_Module* CANx)
 void CanIRQProcess(CAN_Module* CANx)
 {
 	CanRxMessage RxMessage;
+	int i, id;
+	MOTOR_TPDO* md;
 	CAN_ReceiveMessage(CANx, 0, &RxMessage);
-	// 电机PDO反馈
 	if (RxMessage.StdId >= 0x181 && RxMessage.StdId <= 0X1FF)
-	{//< 电机PDO反馈
-		int id = RxMessage.StdId - 0x180; //获取CAN ID 号
-		int i = 0;
-		MOTOR_TPDO* md;
+	{//< 电机TPDO0反馈
+		//6041 00 状态字	
+		//606C 00 速度反馈
+		id = RxMessage.StdId - 0x180; //获取CAN ID 号
 		if (id < 10)
 		{
-			for (i = 0;i < MAX_MOTOR_NUMBER;i++)
-			{
-				if (id == mrd[i].d.mapping)
-				{
-					// 找到映射后的ID
-					break;
-				}
-			}
+			for (i = 0;i < MAX_MOTOR_NUMBER;i++)if (id == mrd[i].d.mapping)break;// 找到映射后的ID
 			mrd[i].d.online = 1;
 			md = &mtd[i];
 			md->d.heartbeat = 0;
@@ -669,6 +740,45 @@ void CanIRQProcess(CAN_Module* CANx)
 			md->d.current_velocity |= RxMessage.Data[i++] << 24;
 		}
 	}
+	else if (RxMessage.StdId >= 0x281 && RxMessage.StdId <= 0X2FF)
+	{
+		id = RxMessage.StdId - 0x280; //获取CAN ID 号
+		if (id < 10)
+		{
+			for (i = 0;i < MAX_MOTOR_NUMBER;i++)if (id == mrd[i].d.mapping)break;// 找到映射后的ID
+			mrd[i].d.online = 1;
+			md = &mtd[i];
+			md->d.heartbeat = 0;
+			i = 0;
+			md->d.current_rpm = RxMessage.Data[i++];
+			md->d.current_rpm |= RxMessage.Data[i++] << 8;
+			md->d.current_torque = RxMessage.Data[i++];
+			md->d.current_torque |= RxMessage.Data[i++] << 8;
+			md->d.current_pos = RxMessage.Data[i++];
+			md->d.current_pos |= RxMessage.Data[i++] << 8;
+			md->d.current_pos |= RxMessage.Data[i++] << 16;
+			md->d.current_pos |= RxMessage.Data[i++] << 24;
+		}
+	}
+	else if (RxMessage.StdId >= 0x381 && RxMessage.StdId <= 0X3FF)
+	{
+		id = RxMessage.StdId - 0x380; //获取CAN ID 号
+		if (id < 10)
+		{
+			for (i = 0;i < MAX_MOTOR_NUMBER;i++)if (id == mrd[i].d.mapping)break;// 找到映射后的ID
+			mrd[i].d.online = 1;
+			md = &mtd[i];
+			md->d.heartbeat = 0;
+			i = 0;
+			md->d.error_code = RxMessage.Data[i++];
+			md->d.error_code |= RxMessage.Data[i++] << 8;
+			md->d.mode = RxMessage.Data[i++];
+		}
+	}
+	else if (RxMessage.StdId >= 0x481 && RxMessage.StdId <= 0X4FF)
+	{
+
+	}
 	else
 	{//< SDO 处理
 
@@ -680,7 +790,7 @@ void CAN2_RX0_IRQHandler(void)
 {
 	if (g_emCarMode == Diff_Car)
 	{
-		CanIRQProcessFor8015D(CAN1);
+		CanIRQProcessFor8015D(CAN2);
 	}
 	else CanIRQProcess(CAN2);
 }

@@ -52,11 +52,13 @@ typedef union MOTOR_TPDO__
         int current_pos;		    //当前位置
         int current_velocity;	    //当前速度
         uint16_t error_code;	    //错误代码 
+        uint8_t mode;	            //< 6061模式  
+        uint16_t current_rpm;       //当前转速
         uint16_t current_torque;    //当前转矩
         uint8_t heartbeat;      //< 心跳
         uint8_t mapping;	  //< 映射  
     }d;
-    uint8_t data[11];
+    uint8_t data[18];
 
 }MOTOR_TPDO;
 typedef union MOTOR_RPDO__

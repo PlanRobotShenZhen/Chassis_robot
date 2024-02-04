@@ -114,19 +114,19 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 		pdu[i+1] = tmp.ud[0];
 
 		int tva = SpeedVelocityToRotate(MOTOR_A.fltTarget_velocity); //转换为r/min
-		if (pdu[motor1_model] == SERVO_WANZE)tva *= 500;
+		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tva *= 500;
 		int tvb = tva;
 		int tvc = SpeedVelocityToRotate(MOTOR_C.fltTarget_velocity);
-		if (pdu[motor1_model] == SERVO_WANZE)tvc *=500;
+		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tvc *=500;
 		int tvd = tvc;
 
 		int diff = tva - MOTOR_A.nTarget_Velocity;
 		int acc = 500;
-		if (pdu[motor1_model] == SERVO_WANZE)
+		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)
 		{
 			if (exio_input.bit.X0 || emergency_stop.estop_soft)
 			{//< 急停
-				acc = 25000;
+				acc = 50000;
 			}
 			else acc = pdu[robot_acceleration];
 		}
@@ -204,19 +204,20 @@ void Get_Motor_Velocity()
 	//这里采集回来的是驱动器反馈回来的数据，要经过相应转换才行
 	if (pdu[car_model] == RC_Car)
 	{
-		pdu[car_feedback_lin_speed] = (int16_t)(Move_X * 1000);
-		pdu[car_feedback_ang_speed] = (int16_t)(Move_Z * 1000);
+		pdu[car_setting_lin_speed] = (int16_t)(Move_X * 1000);
+		pdu[car_setting_ang_speed] = (int16_t)(Move_Z * 1000);
 	}
-	else
-	{
+	else if (pdu[car_model] == FourWheel_Car)
+	{//< 室外差速
+		uint32_t vel_;
 		float nMotor_A = mtd[0].d.current_velocity;
 		float nMotor_B = mtd[1].d.current_velocity;
 		float nMotor_C = mtd[2].d.current_velocity;
 		float nMotor_D = mtd[3].d.current_velocity;
-		if (pdu[motor1_model] == SERVO_WANZE)nMotor_A = nMotor_A * 60 / 10000;//< 一圈10000脉冲数
-		if (pdu[motor2_model] == SERVO_WANZE)nMotor_B = nMotor_B * 60 / 10000;//< 一圈10000脉冲数
-		if (pdu[motor3_model] == SERVO_WANZE)nMotor_C = nMotor_C * 60 / 10000;//< 一圈10000脉冲数
-		if (pdu[motor4_model] == SERVO_WANZE)nMotor_D = nMotor_D * 60 / 10000;//< 一圈10000脉冲数
+		if (pdu[motor1_model] == SERVO_WANZE||pdu[motor1_model] == SERVO_PLAN)nMotor_A = nMotor_A * 60 / 10000;//< 一圈10000脉冲数
+		if (pdu[motor2_model] == SERVO_WANZE||pdu[motor2_model] == SERVO_PLAN)nMotor_B = nMotor_B * 60 / 10000;//< 一圈10000脉冲数
+		if (pdu[motor3_model] == SERVO_WANZE||pdu[motor3_model] == SERVO_PLAN)nMotor_C = nMotor_C * 60 / 10000;//< 一圈10000脉冲数
+		if (pdu[motor4_model] == SERVO_WANZE||pdu[motor4_model] == SERVO_PLAN)nMotor_D = nMotor_D * 60 / 10000;//< 一圈10000脉冲数
 
 		MOTOR_A.nFeedback_Velocity = (int)nMotor_A;
 		MOTOR_B.nFeedback_Velocity = (int)nMotor_B;
@@ -231,30 +232,20 @@ void Get_Motor_Velocity()
 			float v;
 			int16_t ud[2];
 		}tmp;
-		int i = motor1_feedback_speed;
-		tmp.v = MOTOR_A.fltFeedBack_Velocity;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
-		i = motor2_feedback_speed;
-		tmp.v = MOTOR_B.fltFeedBack_Velocity;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
-		i = motor3_feedback_speed;
-		tmp.v = MOTOR_C.fltFeedBack_Velocity;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
-		i = motor4_feedback_speed;
-		tmp.v = MOTOR_D.fltFeedBack_Velocity;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
-		i = car_feedback_lin_speed;
-		tmp.v = (MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity+MOTOR_D.fltFeedBack_Velocity)/4;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
-		i = car_feedback_ang_speed;
-		tmp.v = (-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/2/(pdu[wheel_distance]+pdu[axles_distance])/10000;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
+		pdu[motor1_feedback_speed_high] = mtd[0].d.current_velocity>>16;
+		pdu[motor1_feedback_speed_low]  = mtd[0].d.current_velocity;
+		pdu[motor2_feedback_speed_high] = mtd[1].d.current_velocity >> 16;
+		pdu[motor2_feedback_speed_low]  = mtd[1].d.current_velocity;
+		pdu[motor3_feedback_speed_high] = mtd[2].d.current_velocity >> 16;
+		pdu[motor3_feedback_speed_low]  = mtd[2].d.current_velocity;
+		pdu[motor4_feedback_speed_high] = mtd[3].d.current_velocity >> 16;
+		pdu[motor4_feedback_speed_low]  = mtd[3].d.current_velocity;
+		float fv = (MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity+MOTOR_D.fltFeedBack_Velocity)/4;
+		int32_t iv = fv * 1000;
+		pdu[car_feedback_lin_speed] = iv;
+		fv = (-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity) / 2 / (pdu[wheel_distance] + pdu[axles_distance]) / 10000;
+		iv = fv * 1000;
+		pdu[car_feedback_ang_speed] = iv;
 	}
 }
 
@@ -514,17 +505,18 @@ void BatteryInformation()
 					int i = 0;
 					pdu[BatteryStatus] = 1;//< 电池读取成功
 					pdu[BatteryQuantity] = (uint16_t)uart4_recv_data[107] | (((uint16_t)uart4_recv_data[108]) << 8);//< 电池电量
+					pdu[BatteryQuantity] *= 10;
 					i = 97;
 					tmp = (uint32_t)uart4_recv_data[i++];
 					tmp |= (uint32_t)uart4_recv_data[i++] << 8;
 					tmp |= (uint32_t)uart4_recv_data[i++] << 16;
 					tmp |= (uint32_t)uart4_recv_data[i++] << 24;
-					pdu[BatteryVoltage] = tmp;//< 电池电压
+					pdu[BatteryVoltage] = tmp*0.1;//< 电池电压
 					tmp = (uint32_t)uart4_recv_data[i++];
 					tmp |= (uint32_t)uart4_recv_data[i++] << 8;
 					tmp |= (uint32_t)uart4_recv_data[i++] << 16;
 					tmp |= (uint32_t)uart4_recv_data[i++] << 24;
-					pdu[BatteryCurrent] = tmp;//< 电池电流
+					pdu[BatteryCurrent] = (int16_t)((int)tmp*0.1);//< 电池电流
 					pdu[BatteryTemperature] = (uint16_t)uart4_recv_data[77] | (((uint16_t)uart4_recv_data[78]) << 8);//< 电池温度
 				// }
 			}

@@ -2,7 +2,6 @@
 #define __485_ADDRESS__h
 
 enum address_485 {
-
     // RO参数
     // 小车参数
     car_type = 0,
@@ -13,52 +12,73 @@ enum address_485 {
     car_light_messages,
     car_current_ctrl_mode,
     exio_input_status,
-    car_feedback_lin_speed = 8,
-    car_feedback_ang_speed = 10,
-    BatteryStatus = 12,
+    car_setting_lin_speed,
+    car_setting_ang_speed,
+    car_feedback_lin_speed,
+    car_feedback_ang_speed,
+    BatteryStatus,
     BatteryQuantity,
     BatteryVoltage,
     BatteryCurrent,
     BatteryTemperature,
     BatteryHealth,
     BatteryProtectStatus,
-
+    undefined19,
+    undefined20,
     // 电机参数
     motor1_state_word = 21,
     motor1_on_line_state,
     motor1_error_messages,
     motor1_ctrl_mode,
     motor1_feedback_torque,
-    motor1_feedback_speed = 27,
-    motor1_feedback_position = 29,
+    motor1_feedback_rpm,
+    motor1_feedback_speed_high,
+    motor1_feedback_speed_low,
+    motor1_feedback_position_high,
+    motor1_feedback_position_low,
 
     motor2_state_word = 31,
     motor2_on_line_state,
     motor2_error_messages,
     motor2_ctrl_mode,
     motor2_feedback_torque,
-    motor2_feedback_speed = 37,
-    motor2_feedback_position = 39,
+    motor2_feedback_rpm,
+    motor2_feedback_speed_high,
+    motor2_feedback_speed_low,
+    motor2_feedback_position_high,
+    motor2_feedback_position_low,
 
     motor3_state_word = 41,
     motor3_on_line_state,
     motor3_error_messages,
     motor3_ctrl_mode,
     motor3_feedback_torque,
-    motor3_feedback_speed = 47,
-    motor3_feedback_position = 49,
+    motor3_feedback_rpm,
+    motor3_feedback_speed_high,
+    motor3_feedback_speed_low,
+    motor3_feedback_position_high,
+    motor3_feedback_position_low,
 
     motor4_state_word = 51,
     motor4_on_line_state,
     motor4_error_messages,
     motor4_ctrl_mode,
     motor4_feedback_torque,
-    motor4_feedback_speed = 57,
-    motor4_feedback_position = 59,
-    //RC小车参数     
+    motor4_feedback_rpm,
+    motor4_feedback_speed_high,
+    motor4_feedback_speed_low,
+    motor4_feedback_position_high,
+    motor4_feedback_position_low,
+
+    undefined60,
+    undefined61,
+    //RC小车参数
     rc_car_speed = 62,
     rc_car_mileage_high,
     rc_car_mileage_low,
+    undefined65,
+    undefined66,
+    undefined67,
     // 航模参数
     remote_ch1_value = 68,
     remote_ch2_value,
@@ -92,8 +112,8 @@ enum address_485 {
     rc_encoder_low,
     motor_num,
 
-// RW参数
-    // 小车参数
+    // RW参数
+        // 小车参数
     car_mode = 100,
     car_default_mode,
     car_model,//< 小车模型
@@ -117,9 +137,8 @@ enum address_485 {
     car_tar_lin_speed = 124,
     car_tar_ang_speed = 126,
 
-
     robot_acceleration = 133,
-    robot_forward_direction=134,
+    robot_forward_direction = 134,
     robot_turning_direction,
     moddbus_485_id,
     moddbus_485_baud,
