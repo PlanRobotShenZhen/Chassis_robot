@@ -63,55 +63,15 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 		uint16_t ud[2];
 		uint8_t u8d[8];
 	}tmp;
-	int i = car_max_lin_speed; //起始索引
-	//小车线速度和角速度限幅
-	tmp.ud[1] = pdu[i++];
-	tmp.ud[0] = pdu[i++];
-	Move_X = Move_X > tmp.v ? tmp.v : Move_X;
-	tmp.ud[1] = pdu[i++];
-	tmp.ud[0] = pdu[i++];
-	Move_X = Move_X < tmp.v ? tmp.v : Move_X;
-	tmp.ud[1] = pdu[i++];
-	tmp.ud[0] = pdu[i++];
-	Move_Z = Move_Z > tmp.v ? tmp.v : Move_Z;
-	tmp.ud[1] = pdu[i++];
-	tmp.ud[0] = pdu[i++];
-	Move_Z = Move_Z < tmp.v ? tmp.v : Move_Z;
-	//更新小车的目标线速度和角速度
-	tmp.v = Move_X;
-	i = 158;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = Move_Z;
-	pdu[i++] = tmp.ud[1];
-	pdu[i] = tmp.ud[0];
+	int i;
 	//四驱车 ---- 当前所用到的车
 	if(g_emCarMode == FourWheel_Car) 
-	{	
-		//用的时候motora和motorb要设置的为负数
+	{	//用的时候motora和motorb要设置的为负数		
 		float tmp_value = Vz * (Wheel_spacing +  Axle_spacing) / 2.0f;
 		MOTOR_A.fltTarget_velocity = Vx + tmp_value;
 		MOTOR_B.fltTarget_velocity = MOTOR_A.fltTarget_velocity; //计算出左前轮的目标速度
 		MOTOR_C.fltTarget_velocity = Vx - tmp_value;
 		MOTOR_D.fltTarget_velocity = MOTOR_C.fltTarget_velocity;
-		//更新四个电机的目标速度
-		i = motor1_tar_speed;
-		int length = motor2_tar_speed-motor1_tar_speed;
-		tmp.v = MOTOR_A.fltTarget_velocity;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
-		i = i + length;
-		tmp.v = MOTOR_B.fltTarget_velocity;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
-		i = i + length;
-		tmp.v = MOTOR_C.fltTarget_velocity;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
-		i = i + length;
-		tmp.v = MOTOR_D.fltTarget_velocity;
-		pdu[i] = tmp.ud[1];
-		pdu[i+1] = tmp.ud[0];
 
 		int tva = SpeedVelocityToRotate(MOTOR_A.fltTarget_velocity); //转换为r/min
 		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tva *= 500;
@@ -130,9 +90,6 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 			}
 			else acc = pdu[robot_acceleration];
 		}
-
-
-
 		if (diff > acc)tva = MOTOR_A.nTarget_Velocity + acc;
 		else if (diff < -acc)tva = MOTOR_A.nTarget_Velocity - acc;
 
@@ -222,24 +179,11 @@ void Get_Motor_Velocity()
 		MOTOR_A.nFeedback_Velocity = (int)nMotor_A;
 		MOTOR_B.nFeedback_Velocity = (int)nMotor_B;
 		MOTOR_C.nFeedback_Velocity = (int)nMotor_C;
-		MOTOR_D.nFeedback_Velocity = (int)nMotor_D;
-	
+		MOTOR_D.nFeedback_Velocity = (int)nMotor_D;	
 		MOTOR_A.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
 		MOTOR_B.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
 		MOTOR_C.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
 		MOTOR_D.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
-		union {
-			float v;
-			int16_t ud[2];
-		}tmp;
-		pdu[motor1_feedback_speed_high] = mtd[0].d.current_velocity>>16;
-		pdu[motor1_feedback_speed_low]  = mtd[0].d.current_velocity;
-		pdu[motor2_feedback_speed_high] = mtd[1].d.current_velocity >> 16;
-		pdu[motor2_feedback_speed_low]  = mtd[1].d.current_velocity;
-		pdu[motor3_feedback_speed_high] = mtd[2].d.current_velocity >> 16;
-		pdu[motor3_feedback_speed_low]  = mtd[2].d.current_velocity;
-		pdu[motor4_feedback_speed_high] = mtd[3].d.current_velocity >> 16;
-		pdu[motor4_feedback_speed_low]  = mtd[3].d.current_velocity;
 		float fv = (MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity+MOTOR_D.fltFeedBack_Velocity)/4;
 		int32_t iv = fv * 1000;
 		pdu[car_feedback_lin_speed] = iv;
@@ -462,12 +406,7 @@ void BatteryInformation()
 	static int bt_times = 100;
 	int i = 0; //起始索引
 	float MOVE_XorZ = 0;
-	union 
-	{
-	float v;
-	uint16_t ud[2];
-	uint8_t u8d[8];
-	}tmp;
+	float temp;
 	if (uart4_recv_flag)
 	{
 		uart4_recv_flag = 0;
@@ -475,16 +414,24 @@ void BatteryInformation()
 		{
 		case 1://< 深圳市锂神科技有限公司
 			//小车线速度和角速度比较
-			if(fabsf(Move_X) > fabsf(Move_Z))	{MOVE_XorZ = Move_X;				i = car_max_lin_speed;} //起始索引
-			else 								{MOVE_XorZ = Move_Z;				i = car_max_ang_speed;}
-			if(MOVE_XorZ < 0) 					{MOVE_XorZ = - MOVE_XorZ;}
-			tmp.ud[1] = pdu[i++];
-			tmp.ud[0] = pdu[i++];
-			bt_times = MOVE_XorZ > (tmp.v / 1.2) ? 8 : MOVE_XorZ > (tmp.v / 2) ? 16 : MOVE_XorZ > (tmp.v / 4) ? 32 : MOVE_XorZ > (tmp.v / 8) ? 64 : 100;
-
+			if (fabsf(Move_X) > fabsf(Move_Z))
+			{
+				MOVE_XorZ = Move_X;
+				temp = ((int16_t)pdu[car_max_lin_speed]) * 0.001;
+			} //起始索引
+			else
+			{
+				MOVE_XorZ = Move_Z;
+				temp = ((int16_t)pdu[car_max_ang_speed]) * 0.001;
+			}
+			if (MOVE_XorZ < 0)
+			{
+				MOVE_XorZ = -MOVE_XorZ;
+			}
+			bt_times = MOVE_XorZ > (temp / 1.2) ? 8 : MOVE_XorZ > (temp / 2) ? 16 : MOVE_XorZ > (temp / 4) ? 32 : MOVE_XorZ > (temp / 8) ? 64 : 100;
 			if (uart4_recv_data[0] == 0x3B)
 			{
-				pdu[BatteryStatus] 	= 1;//< 电池读取成功
+				pdu[BatteryStatus] = 1;//< 电池读取成功
 				pdu[BatteryVoltage] = uart4_recv_data[6] | (uart4_recv_data[7] << 8);//< 电池电压
 				pdu[BatteryCurrent] = uart4_recv_data[8] | (uart4_recv_data[9] << 8);//< 电池电流
 				pdu[BatteryQuantity] = (uart4_recv_data[10] | (uart4_recv_data[11] << 8)) * 2;//< 电池电量
@@ -946,30 +893,8 @@ void Balance_task(void* pvParameters)
 {
 	uint8_t tmp1 = 0;
 	pdu = (uint16_t*)pvParameters;
-	// pdu[61] 电机1车轮半径 pdu[62] 电机1减速比
-	//FourWheer_Perimeter = 2 * PI * FourWheer_Radiaus;
-	union {
-		float v;
-		int16_t ud[2];
-	}tmp;
-	int i = car_max_lin_speed; //起始索引
-	tmp.v = 0.802;//< 机器人最大线速度初始化
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = -0.802;//< 机器人最小线速度
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = 0.8014;//< 机器人最大角速度
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = -0.8014;//< 机器人最小角速度
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-
-
 	pdu[motor1_radius] = FourWheer_Radiaus * 10000;
 	pdu[motor1_reduction_ratio] = REDUCTION_RATE * 100;
-
 	float Radiaus = pdu[motor1_radius] * 0.0001;
 	float rate = pdu[motor1_reduction_ratio] * 0.01;
 	FourWheer_Perimeter = 2 * PI * Radiaus;//< 车轮周长
@@ -981,31 +906,8 @@ void Balance_task(void* pvParameters)
 	pdu[axles_distance] = (uint16_t)(Axle_spacing * 10000);
 	pdu[motor_num] = Motor_Number;
 	pdu[car_mode] = CONTROL_MODE_REMOTE;
-	i = 0;
 	BatteryInfoInit();
-	if (g_emCarMode == RC_Car)
-	{
-		i = virtually_remote_ch1_value;
-		pdu[i++] = 1023;
-		pdu[i++] = 1023;
-		pdu[i++] = 1023;
-		pdu[i++] = 1023;
-		pdu[i++] = 1023;
-		pdu[i++] = 240;
-		pdu[i++] = 240;
-		pdu[i++] = 240;
-		pdu[i++] = 240;
-		pdu[i++] = 240;
-		pdu[i++] = 1023;
-		pdu[i++] = 1023;
-		pdu[i++] = 1023;
-		pdu[i++] = 1023;
-		pdu[i++] = 1603;
-		pdu[i++] = 1024;
-		pdu[i++] = 1024;
-	}
 	if (pdu[robot_acceleration] < 5000)pdu[robot_acceleration] = 5000;
-	i = 0;
 	while (1)
 	{
 		rt_thread_delay(100);   //< 10ms
@@ -1035,7 +937,16 @@ void Balance_task(void* pvParameters)
 			{
 				// 上位机控制的时候，此时Z轴的速度要进行一个反向，不然左右转弯的时候有问题
 				Ros_Control();
-			}			
+			}
+			//小车线速度和角速度限幅
+			float temp = ((int16_t)pdu[car_max_lin_speed]) * 0.001f;
+			Move_X = Move_X > temp ? temp : Move_X;
+			temp = ((int16_t)pdu[car_min_lin_speed]) * 0.001f;
+			Move_X = Move_X < temp ? temp : Move_X;
+			temp = ((int16_t)pdu[car_max_ang_speed]) * 0.001f;
+			Move_Z = Move_Z > temp ? temp : Move_Z;
+			temp = ((int16_t)pdu[car_min_ang_speed]) * 0.001f;
+			Move_Z = Move_Z < temp ? temp : Move_Z;
 		}
 		pdu[car_current_ctrl_mode] = g_eControl_Mode;//
 		switch (g_emCarMode)

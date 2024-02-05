@@ -1312,6 +1312,24 @@ void Pdu_Init()
 	pdu[i++] = LIGHT_BASE;
 	pdu[i++] = LIGHT_MAX;
 	pdu[i++] = LIGHT_MIN;
+
+	pdu[virtually_remote_ch1_value] = 1023;
+	pdu[virtually_remote_ch2_value] = 1023;
+	pdu[virtually_remote_ch3_value] = 1023;
+	pdu[virtually_remote_ch4_value] = 1023;
+	pdu[virtually_remote_ch5_value] = 1023;
+	pdu[virtually_remote_ch6_value] = 240;
+	pdu[virtually_remote_ch7_value] = 240;
+	pdu[virtually_remote_ch8_value] = 240;
+	pdu[virtually_remote_ch9_value] = 240;
+	pdu[virtually_remote_ch10_value] = 240;
+	pdu[virtually_remote_ch11_value] = 1023;
+	pdu[virtually_remote_ch12_value] = 1023;
+	pdu[virtually_remote_ch13_value] = 1023;
+	pdu[virtually_remote_ch14_value] = 1023;
+	pdu[virtually_remote_ch15_value] = 1603;
+	pdu[virtually_remote_ch16_value] = 1024;
+
 	//初始化电机参数
 	int length = motor2_direction - motor1_direction;
 	int m_bast_addr;
@@ -1333,34 +1351,17 @@ void Pdu_Init()
 		pdu[i++] = 0;						  //目标位置
 	}
 	//初始化小车速度限幅参数
-	i = car_max_lin_speed;
-	union {
-		float v;
-		int16_t ud[2];
-	}tmp;
-	tmp.v = 0.802;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = -0.802;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = 0.8014;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	tmp.v = -0.8014;
-	pdu[i++] = tmp.ud[1];
-	pdu[i++] = tmp.ud[0];
-	pdu[i++] = 0;
-	pdu[i++] = 0;
-	pdu[i++] = 0;
-	pdu[i] = 0;
-
-
-	float Radiaus = pdu[motor1_radius] * 0.0001;
-	float rate = pdu[motor1_reduction_ratio] * 0.01;
-	FourWheer_Perimeter = 2 * PI * Radiaus;//< 车轮周长
-	FourWheer_Conversion = FourWheer_Perimeter / 60 / rate;
-	VelocityToRpmConversion = (60 * rate) / FourWheer_Perimeter;
+	pdu[car_max_lin_speed] = 802;
+	pdu[car_min_lin_speed] = -802;
+	pdu[car_max_ang_speed] = 801;
+	pdu[car_min_ang_speed] = -801;
+	pdu[car_tar_lin_speed] = 0;
+	pdu[car_tar_ang_speed] = 0;
+	pdu[motor1_radius] = FourWheer_Radiaus * 10000;
+	pdu[motor1_reduction_ratio] = REDUCTION_RATE * 100;
+	FourWheer_Perimeter = 2 * PI * FourWheer_Radiaus;//< 车轮周长
+	FourWheer_Conversion = FourWheer_Perimeter / 60 / REDUCTION_RATE;
+	VelocityToRpmConversion = (60 * REDUCTION_RATE) / FourWheer_Perimeter;
 	AngularVelocityConversion = DIRECTOR_BASE * (PI / 4);
 	pdu[car_default_mode] = g_eControl_Mode;
 	pdu[wheel_distance] = (uint16_t)(Wheel_spacing * 10000);
