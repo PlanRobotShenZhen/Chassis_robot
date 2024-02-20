@@ -99,7 +99,7 @@ enum ENUM_CarControl_Mode g_eControl_Mode = CONTROL_MODE_UNKNOW;  // »úÆ÷ÈËµÄ¿ØÖ
 unsigned char g_ucRemote_Flag = 0;              //º½Ä£¿ªÆô±êÖ¾Î»
 unsigned char g_ucRos_Flag = 0;                 // ROSÉÏÎ»»ú½øÈë±êÖ¾Î» 
 
-struct Motor_parameter  MOTOR_A, MOTOR_B, MOTOR_C, MOTOR_D;
+struct Motor_parameter  MOTOR_A, MOTOR_B, MOTOR_C, MOTOR_D;//< ×óÇ°¡¢×óºó¡¢ÓÒÇ°¡¢ÓÒºó
 // ÊÖ¶¯Èí¼þ¸´Î»
 void Soft_Reset()
 {

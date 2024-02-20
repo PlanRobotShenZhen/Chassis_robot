@@ -167,6 +167,8 @@ void Get_Motor_Velocity()
 	else if (pdu[car_model] == FourWheel_Car)
 	{//< 室外差速
 		uint32_t vel_;
+		pdu[car_setting_lin_speed] = (int16_t)(-Move_X * 1000);
+		pdu[car_setting_ang_speed] = (int16_t)(-Move_Z * 1000);
 		float nMotor_A = mtd[0].d.current_velocity;
 		float nMotor_B = mtd[1].d.current_velocity;
 		float nMotor_C = mtd[2].d.current_velocity;
@@ -175,6 +177,10 @@ void Get_Motor_Velocity()
 		if (pdu[motor2_model] == SERVO_WANZE||pdu[motor2_model] == SERVO_PLAN)nMotor_B = nMotor_B * 60 / 10000;//< 一圈10000脉冲数
 		if (pdu[motor3_model] == SERVO_WANZE||pdu[motor3_model] == SERVO_PLAN)nMotor_C = nMotor_C * 60 / 10000;//< 一圈10000脉冲数
 		if (pdu[motor4_model] == SERVO_WANZE||pdu[motor4_model] == SERVO_PLAN)nMotor_D = nMotor_D * 60 / 10000;//< 一圈10000脉冲数
+		if (pdu[motor1_model] == SERVO_WANZE)mtd[0].d.current_rpm=(int16_t)nMotor_A;
+		if (pdu[motor2_model] == SERVO_WANZE)mtd[1].d.current_rpm=(int16_t)nMotor_B;
+		if (pdu[motor3_model] == SERVO_WANZE)mtd[2].d.current_rpm=(int16_t)nMotor_C;
+		if (pdu[motor4_model] == SERVO_WANZE)mtd[3].d.current_rpm=(int16_t)nMotor_D;
 
 		MOTOR_A.nFeedback_Velocity = (int)nMotor_A;
 		MOTOR_B.nFeedback_Velocity = (int)nMotor_B;
@@ -185,10 +191,10 @@ void Get_Motor_Velocity()
 		MOTOR_C.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
 		MOTOR_D.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
 		float fv = (MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity+MOTOR_D.fltFeedBack_Velocity)/4;
-		int32_t iv = fv * 1000;
+		int16_t iv = (int16_t)(fv * 1000);
 		pdu[car_feedback_lin_speed] = iv;
 		fv = (-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity) / 2 / (pdu[wheel_distance] + pdu[axles_distance]) / 10000;
-		iv = fv * 1000;
+		iv = (int16_t)(fv * 1000);
 		pdu[car_feedback_ang_speed] = iv;
 	}
 }

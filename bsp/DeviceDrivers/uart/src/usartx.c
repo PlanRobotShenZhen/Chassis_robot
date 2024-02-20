@@ -639,12 +639,10 @@ void Data_transition(void)
 			break; 
 		
 		case FourWheel_Car: //四驱车 
-      Send_Data.X_speed = ((MOTOR_A.fltFeedBack_Velocity + MOTOR_B.fltFeedBack_Velocity 
-									+MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/4)*1000; //小车x轴速度
+      Send_Data.X_speed = pdu[car_feedback_lin_speed]; //小车x轴速度	  
 	    Send_Data.Y_speed = 0;
 		  /*Z轴方向上发送的是一个角速度信息，wr = v*/
-	    Send_Data.Z_speed = ((-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + 
-		MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity)/2/(Axle_spacing+Wheel_spacing))*1000;//小车z轴速度
+	    Send_Data.Z_speed = pdu[car_feedback_ang_speed];//小车z轴速度
 		Send_Data.Power_Quantity = pdu[BatteryQuantity];
 		Send_Data.Power_Voltage = pdu[BatteryVoltage]; //电池电压(这里将浮点数放大一千倍传输，相应的在接收端在接收到数据后也会缩小一千倍)
 		Send_Data.Power_Current = pdu[BatteryCurrent];
