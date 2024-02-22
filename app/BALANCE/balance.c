@@ -74,22 +74,27 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 		MOTOR_D.fltTarget_velocity = MOTOR_C.fltTarget_velocity;
 
 		int tva = SpeedVelocityToRotate(MOTOR_A.fltTarget_velocity); //×ª»»Îªr/min
-		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tva *= 500;
+		//if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tva *= 500;
 		int tvb = tva;
 		int tvc = SpeedVelocityToRotate(MOTOR_C.fltTarget_velocity);
-		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tvc *=500;
+		//if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tvc *=500;
 		int tvd = tvc;
 
 		int diff = tva - MOTOR_A.nTarget_Velocity;
 		int acc = 500;
-		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)
-		{
-			if (exio_input.bit.X0 || emergency_stop.estop_soft)
-			{//< ¼±Í£
-				acc = 50000;
-			}
-			else acc = pdu[robot_acceleration];
+		//if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)
+		//{
+		//	if (exio_input.bit.X0 || emergency_stop.estop_soft)
+		//	{//< ¼±Í£
+		//		acc = 50000;
+		//	}
+		//	else acc = pdu[robot_acceleration];
+		//}
+		if (exio_input.bit.X0 || emergency_stop.estop_soft)
+		{//< ¼±Í£
+			acc = 50000;
 		}
+		else acc = pdu[robot_acceleration];
 		if (diff > acc)tva = MOTOR_A.nTarget_Velocity + acc;
 		else if (diff < -acc)tva = MOTOR_A.nTarget_Velocity - acc;
 
@@ -188,14 +193,15 @@ void Get_Motor_Velocity()
 		MOTOR_D.nFeedback_Velocity = (int)nMotor_D;	
 		MOTOR_A.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
 		MOTOR_B.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
-		MOTOR_C.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
-		MOTOR_D.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
-		float fv = (MOTOR_A.fltFeedBack_Velocity+MOTOR_B.fltFeedBack_Velocity+MOTOR_C.fltFeedBack_Velocity+MOTOR_D.fltFeedBack_Velocity)/4;
+		MOTOR_C.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_C);
+		MOTOR_D.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_D);
+		float fv = (MOTOR_A.fltFeedBack_Velocity-MOTOR_C.fltFeedBack_Velocity)/2;
 		int16_t iv = (int16_t)(fv * 1000);
 		pdu[car_feedback_lin_speed] = iv;
-		fv = (-MOTOR_B.fltFeedBack_Velocity - MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity + MOTOR_D.fltFeedBack_Velocity) / 2 / (pdu[wheel_distance] + pdu[axles_distance]) / 10000;
+		fv = (MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity) / 2 / (pdu[wheel_distance] + pdu[axles_distance]) / 10000;
 		iv = (int16_t)(fv * 1000);
 		pdu[car_feedback_ang_speed] = iv;
+
 	}
 }
 
