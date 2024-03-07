@@ -8,7 +8,7 @@
 #include "port.h"
 #include "rc_car.h"
 #include <math.h>
-
+#include "Charger.h"
 struct Smooth_Control tagSmooth_control;
 LightTime light_time;
 float Move_X = 0,Move_Y = 0,Move_Z = 0;
@@ -39,6 +39,16 @@ int SPI_heartbeat = 0;
 uint8_t SPI_ReadWriteCycle = 0;
 EXIO_INPUT exio_input;
 EXIO_OUTPUT exio_output;
+
+/*红外通讯发送部分参数*/
+uint8_t IrDA_SendState = 1;		//0：关闭红外传感器；1：红外对接；2：红外通讯；
+uint8_t SendCout = 0;			//发送计次
+uint8_t SendGuide_Flag = 0;		//引导位状态
+int Send_i = 3;					//发送数据指针，从高位开始发送
+int BitFree = 1;				//发送通道空闲
+uint8_t SendData = 0x01;		//要发送的数据
+/*红外通讯接收部分参数*/
+uint8_t ReceiveData;			//接收到的数据
 struct {
 	unsigned char SW : 2;//《 急停开关
 	unsigned char Rising : 1;
@@ -897,6 +907,127 @@ void BatteryInfoInit(void)
 	uart4_send_flag = 2;//< 
 }
 /**************************************************************************
+函数功能：MCU_INF_RX接收到来自小车的红外信号之后，开启充电桩的红外发送功能
+入口参数：无
+引脚信息：未接收到信号时，RX信号端低，ADCJT(PA0)高；
+**************************************************************************/
+void Sensor_TX_Control()
+{
+	//接收到红外信号
+	if (GPIO_ReadInputDataBit(MCU_INF_RX_GPIO, MCU_INF_RX_PIN) == RESET)
+	{
+		//1启动红外传感器发送端
+		exio_output.bit.MCU_INF_TX = 1;
+	}
+	else
+	{
+		exio_output.bit.MCU_INF_TX = 0;
+	}
+}
+/*******************  *******************************************************
+函数功能：红外通讯发送数据部分
+入口参数：无/要发送的数据
+引脚信息：发送信号端低电平时，TX信号端高，RGBG低；
+**************************************************************************/
+
+void IrDA_Guide(void)
+{
+	SendCout++;
+	//高电平100ms
+	if (SendCout <= 10)
+	{
+		exio_output.bit.MCU_INF_TX = 1;
+		SendGuide_Flag = 0;
+		BitFree = 0;
+	}
+	else if (SendCout <= 14)
+	{
+		exio_output.bit.MCU_INF_TX = 0;
+	}
+	else
+	{
+		SendCout = 0;
+		SendGuide_Flag = 1;
+		BitFree = 1;
+	}
+
+}
+void IrDA_Send0(void)
+{
+	SendCout++;
+	//高电平30ms
+	if (SendCout <= 3)
+	{
+		exio_output.bit.MCU_INF_TX = 1;
+		BitFree = 0;
+	}
+	else if (SendCout <= 10)
+	{
+		exio_output.bit.MCU_INF_TX = 0;
+		BitFree = 0;
+	}
+	else
+	{
+		exio_output.bit.MCU_INF_TX = 0;
+		SendCout = 0;
+		BitFree = 1;
+	}
+}
+void IrDA_Send1(void)
+{
+	SendCout++;
+	//高电平70ms
+	if (SendCout <= 7)
+	{
+		exio_output.bit.MCU_INF_TX = 1;
+		BitFree = 0;
+	}
+	else if (SendCout <= 10)
+	{
+		exio_output.bit.MCU_INF_TX = 0;
+		BitFree = 0;
+	}
+	else
+	{
+		exio_output.bit.MCU_INF_TX = 0;
+		SendCout = 0;
+		BitFree = 1;
+	}
+}
+void IrDA_SendData(uint8_t SendData)
+{
+	if (SendGuide_Flag == 0)//0:未发送引导位；1：已发送引导位；
+	{
+		IrDA_Guide();
+	}
+	else
+	{
+		uint8_t bit = (SendData >> Send_i) & 0x01;
+		if (bit)
+		{
+			IrDA_Send1();
+			if (BitFree)//等待发送完成
+			{
+				Send_i--;//指针指向低位				
+			}
+		}
+		else
+		{
+			IrDA_Send0();
+			if (BitFree)//等待发送完成
+			{
+				Send_i--;//指针指向低位				
+			}
+		}
+		if (Send_i == -1)
+		{
+			//数据发送完成
+			Send_i = 3;//指针重置到数据高位
+			SendGuide_Flag = 0;//置零引导位
+		}
+	}
+}
+/**************************************************************************
 函数功能：核心控制相关
 入口参数：
 返回  值：
@@ -920,11 +1051,22 @@ void Balance_task(void* pvParameters)
 	pdu[car_mode] = CONTROL_MODE_REMOTE;
 	BatteryInfoInit();
 	if (pdu[robot_acceleration] < 5000)pdu[robot_acceleration] = 5000;
+	if (pdu[car_model] == Charger)
+	{
+		/*红外发送端初始化*/
+		exio_output.bit.MCU_INF_TX = 0;		
+		relay_Init();
+		Key_Init();
+		RGB_Init();
+	}
+
+
 	while (1)
 	{
 		rt_thread_delay(100);   //< 10ms
 		if (tmp1 == 50)
 		{
+			if (g_emCarMode == Charger)
 			LedBlink(LED2_PORT, RUN2);
 			tmp1 = 0;
 		}
@@ -997,7 +1139,57 @@ void Balance_task(void* pvParameters)
 			RCCAR_Process(line_, angle_);
 		}
 			break;
-
+		case Charger:
+		{
+			/*红外发送端功能切换*/
+			switch (IrDA_SendState)
+			{//0：关闭发送端；1：红外对接；2：红外通讯；
+			case 0:
+				break;
+			case 1:
+				Sensor_TX_Control();
+				//对接成功，转通讯	
+				if (exio_output.bit.MCU_INF_TX == 1)
+				{
+					IrDA_SendState = 2;
+				}
+				break;
+			case 2:
+				IrDA_SendData(SendData);
+				break;
+			}
+			
+			ReceiveData = IrDA_ReceiveData(pdu);
+			/*红外接收端解码*/
+			switch (ReceiveData)
+			{
+			case 0:
+				break;
+			case 0x01://开始充电
+				GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+				exio_output.bit.MCU_RELAY2 = 1;
+				SendData = 1;
+				IrDA_SendData(SendData);
+				break;
+			case 0x02://关闭充电
+				GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+				exio_output.bit.MCU_RELAY2 = 0;
+				SendData = 2;
+				IrDA_SendData(SendData);
+				break;
+			case 0x03://充电异常
+				GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+				exio_output.bit.MCU_RELAY2 = 0;
+				SendData = 3;
+				IrDA_SendData(SendData);
+				break;
+			default:
+				break;
+			}
+			//按键切换RGB颜色
+			Key_Change_RGB();
+		}
+		break;
 		default: break;
 		}
 		

@@ -12,6 +12,12 @@
 #define Y_PARAMETER    (0.5f)    
 #define L_PARAMETER    (1.0f)  
 
+//充电桩相关参数
+#define LED_LEFT 			Light_Q
+#define LED_RIGHT 			Light_H
+#define MCU_INF_TX 			RGB_G
+#define MCU_RELAY2 			RGB_B
+
 //存放平滑控制后的数据
 struct Smooth_Control
 {
@@ -64,7 +70,11 @@ void Smooth_control(float vx,float vy,float vz); //全向轮小车速度平滑
 unsigned char Turn_Off(void);                    //根据电池电量来操作
 float RotateToSpeedVelocity(float nRotateSpeed);   //电机转速转换为轮子线速度，m/s
 int SpeedVelocityToRotate(float fltSpeed);       //轮子速度转换为电机转速r/min
-
+void Sensor_TX_Control(void);
+void IrDA_Guide(void);
+void IrDA_Send0(void);
+void IrDA_Send1(void);
+void IrDA_SendData(uint8_t data);
 
 /*----------------------辅助功能函数--------------------------*/
 uint32_t myabs(long int a);

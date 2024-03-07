@@ -1283,8 +1283,8 @@ void DMA1_Channel4_IRQHandler(void)
 void Pdu_Init()
 {
 	int i;
-	pdu[car_type] = FourWheel_Car;
-	pdu[car_model] = FourWheel_Car;
+	pdu[car_type] = Charger;
+	pdu[car_model] = Charger;
 	pdu[car_version] = 0x88;
 	pdu[moddbus_485_id] = 1;
 	pdu[moddbus_485_baud] = 9;
