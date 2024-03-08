@@ -41,7 +41,7 @@ EXIO_INPUT exio_input;
 EXIO_OUTPUT exio_output;
 
 /*红外通讯发送部分参数*/
-uint8_t IrDA_SendState = 1;		//0：关闭红外传感器；1：红外对接；2：红外通讯；
+uint8_t IrDA_SendState = 0;		//0：关闭红外传感器；1：红外对接；2：红外通讯；
 uint8_t SendCout = 0;			//发送计次
 uint8_t SendGuide_Flag = 0;		//引导位状态
 int Send_i = 3;					//发送数据指针，从高位开始发送
@@ -49,6 +49,8 @@ int BitFree = 1;				//发送通道空闲
 uint8_t SendData = 0x01;		//要发送的数据
 /*红外通讯接收部分参数*/
 uint8_t ReceiveData;			//接收到的数据
+int LimitSwitch_OK = 0;		//限位开关，断开0，闭合1；
+
 struct {
 	unsigned char SW : 2;//《 急停开关
 	unsigned char Rising : 1;
@@ -917,11 +919,11 @@ void Sensor_TX_Control()
 	if (GPIO_ReadInputDataBit(MCU_INF_RX_GPIO, MCU_INF_RX_PIN) == RESET)
 	{
 		//1启动红外传感器发送端
-		exio_output.bit.MCU_INF_TX = 1;
+		MCU_INF_TX = 1;
 	}
 	else
 	{
-		exio_output.bit.MCU_INF_TX = 0;
+		MCU_INF_TX = 0;
 	}
 }
 /*******************  *******************************************************
@@ -936,13 +938,13 @@ void IrDA_Guide(void)
 	//高电平100ms
 	if (SendCout <= 10)
 	{
-		exio_output.bit.MCU_INF_TX = 1;
+		MCU_INF_TX = 1;
 		SendGuide_Flag = 0;
 		BitFree = 0;
 	}
 	else if (SendCout <= 14)
 	{
-		exio_output.bit.MCU_INF_TX = 0;
+		MCU_INF_TX = 0;
 	}
 	else
 	{
@@ -958,17 +960,17 @@ void IrDA_Send0(void)
 	//高电平30ms
 	if (SendCout <= 3)
 	{
-		exio_output.bit.MCU_INF_TX = 1;
+		MCU_INF_TX = 1;
 		BitFree = 0;
 	}
 	else if (SendCout <= 10)
 	{
-		exio_output.bit.MCU_INF_TX = 0;
+		MCU_INF_TX = 0;
 		BitFree = 0;
 	}
 	else
 	{
-		exio_output.bit.MCU_INF_TX = 0;
+		MCU_INF_TX = 0;
 		SendCout = 0;
 		BitFree = 1;
 	}
@@ -979,17 +981,17 @@ void IrDA_Send1(void)
 	//高电平70ms
 	if (SendCout <= 7)
 	{
-		exio_output.bit.MCU_INF_TX = 1;
+		MCU_INF_TX = 1;
 		BitFree = 0;
 	}
 	else if (SendCout <= 10)
 	{
-		exio_output.bit.MCU_INF_TX = 0;
+		MCU_INF_TX = 0;
 		BitFree = 0;
 	}
 	else
 	{
-		exio_output.bit.MCU_INF_TX = 0;
+		MCU_INF_TX = 0;
 		SendCout = 0;
 		BitFree = 1;
 	}
@@ -1027,11 +1029,27 @@ void IrDA_SendData(uint8_t SendData)
 		}
 	}
 }
+
+void Relay_Switch(void)
+{
+	if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == RESET)
+	{
+		//开启继电器
+		GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+		MCU_RELAY2 = 1;
+	}
+	else
+	{
+		GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+		MCU_RELAY2 = 0;
+	}
+}
 /**************************************************************************
 函数功能：核心控制相关
 入口参数：
 返回  值：
 **************************************************************************/
+
 void Balance_task(void* pvParameters)
 {
 	uint8_t tmp1 = 0;
@@ -1053,11 +1071,17 @@ void Balance_task(void* pvParameters)
 	if (pdu[robot_acceleration] < 5000)pdu[robot_acceleration] = 5000;
 	if (pdu[car_model] == Charger)
 	{
-		/*红外发送端初始化*/
-		exio_output.bit.MCU_INF_TX = 0;		
-		relay_Init();
+		/*红外发送端初始化关闭*/
+		IrDA_TX = 0;
+		/*风扇初始化开启*/
+		FAN1 = 1;
+		FAN2 = 1;
+		LimitSwitch_Init();
+		Relay_Init();
 		Key_Init();
 		RGB_Init();
+		LimitSwitch_Init();
+		ChargeDetection_Init();
 	}
 
 
@@ -1149,37 +1173,48 @@ void Balance_task(void* pvParameters)
 			case 1:
 				Sensor_TX_Control();
 				//对接成功，转通讯	
-				if (exio_output.bit.MCU_INF_TX == 1)
+				if (MCU_INF_TX == 1)
 				{
 					IrDA_SendState = 2;
 				}
 				break;
 			case 2:
 				IrDA_SendData(SendData);
+
 				break;
 			}
 			
-			ReceiveData = IrDA_ReceiveData(pdu);
+			//ReceiveData = IrDA_ReceiveData(pdu);
+			ReceiveData = 1;
 			/*红外接收端解码*/
 			switch (ReceiveData)
 			{
 			case 0:
 				break;
-			case 0x01://开始充电
-				GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
-				exio_output.bit.MCU_RELAY2 = 1;
+			case 0x01://红外对接正常
 				SendData = 1;
 				IrDA_SendData(SendData);
+				//等待限位开关信号
+				if (GPIO_ReadInputDataBit(MCU_SW_DET_GPIO, MCU_SW_DET_PIN) == RESET)
+				{
+					LimitSwitch_OK = 1;
+					GPIO_ResetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+				}
+				else
+				{
+					GPIO_SetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+					LimitSwitch_OK = 0;
+				}
 				break;
 			case 0x02://关闭充电
 				GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
-				exio_output.bit.MCU_RELAY2 = 0;
+				MCU_RELAY2 = 0;
 				SendData = 2;
 				IrDA_SendData(SendData);
 				break;
 			case 0x03://充电异常
 				GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
-				exio_output.bit.MCU_RELAY2 = 0;
+				MCU_RELAY2 = 0;
 				SendData = 3;
 				IrDA_SendData(SendData);
 				break;
@@ -1188,6 +1223,7 @@ void Balance_task(void* pvParameters)
 			}
 			//按键切换RGB颜色
 			Key_Change_RGB();
+			Relay_Switch();
 		}
 		break;
 		default: break;

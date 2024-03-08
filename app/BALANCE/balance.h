@@ -15,9 +15,16 @@
 //充电桩相关参数
 #define LED_LEFT 			Light_Q
 #define LED_RIGHT 			Light_H
-#define MCU_INF_TX 			RGB_G
-#define MCU_RELAY2 			RGB_B
-
+#define MCU_INF_TX 			exio_output.bit.RGB_G
+#define MCU_RELAY2 			exio_output.bit.RGB_B
+#define IrDA_TX 			MCU_INF_TX
+//风扇相关参数
+#define MCU_FAN1			exio_output.bit.Light_Y
+#define MCU_FAN2			exio_output.bit.Light_Z
+#define FAN1				MCU_FAN1
+#define FAN2				MCU_FAN2
+//充电电极短路检测
+#define MCU_CH_DET			exio_input.bit.CS2_Ttig
 //存放平滑控制后的数据
 struct Smooth_Control
 {
@@ -75,6 +82,7 @@ void IrDA_Guide(void);
 void IrDA_Send0(void);
 void IrDA_Send1(void);
 void IrDA_SendData(uint8_t data);
+void Relay_Switch(void);
 
 /*----------------------辅助功能函数--------------------------*/
 uint32_t myabs(long int a);
