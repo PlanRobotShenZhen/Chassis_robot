@@ -49,8 +49,10 @@ int BitFree = 1;				//发送通道空闲
 uint8_t SendData = 0x01;		//要发送的数据
 /*红外通讯接收部分参数*/
 uint8_t ReceiveData;			//接收到的数据
-int LimitSwitch_OK = 0;		//限位开关，断开0，闭合1；
+uint8_t IrDA_AlignOK = 0;		//红外对齐，断开0，闭合1；
 
+uint8_t LimitSwitch_OK = 0;		//限位开关，断开0，闭合1；
+uint8_t CH_ON = 0;				//充电电极短路检测模块开启信号
 struct {
 	unsigned char SW : 2;//《 急停开关
 	unsigned char Rising : 1;
@@ -1039,7 +1041,7 @@ void IrDA_RX_Decode(void)
 {
 	ReceiveData = IrDA_ReceiveData(pdu);
 	//test
-	ReceiveData = 1;
+	//ReceiveData = 1;
 	/*红外接收端解码*/
 	switch (ReceiveData)
 	{
@@ -1048,44 +1050,75 @@ void IrDA_RX_Decode(void)
 	case 0x01://红外对接正常
 		SendData = 1;
 		IrDA_SendData(SendData);
-		RGB_Charging();
-		//等待限位开关信号
-		if (GPIO_ReadInputDataBit(MCU_SW_DET_GPIO, MCU_SW_DET_PIN) == RESET)
-		{
-			GPIO_ResetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
-		}
-		else
-		{
-			GPIO_SetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
-		}
+		RGB_ShowCharging();
+		IrDA_AlignOK = 1;
 		break;
 	case 0x02://关闭充电
 		SendData = 2;
 		IrDA_SendData(SendData);
-		GPIO_SetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+		RGB_ShowCharged();
+		IrDA_AlignOK = 0; 
 		break;
 	case 0x03://充电异常
 		SendData = 3;
 		IrDA_SendData(SendData);
-		GPIO_SetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+		RGB_ShowError();
+		IrDA_AlignOK = 0;
 		break;
 	default:
 		break;
 	}
+	/*等待限位开关信号*/
+	if (GPIO_ReadInputDataBit(MCU_SW_DET_GPIO, MCU_SW_DET_PIN) == RESET)
+	{
+		LimitSwitch_OK = 1;	
+	}		
+	else
+	{
+		LimitSwitch_OK = 0;
+	}
+	//小车与充电桩对接成功(红外对接成功+限位开关闭合)，MCU关闭MCU_CH_DET_ON
+	if (IrDA_AlignOK == 1 && LimitSwitch_OK == 1)
+	{
+		GPIO_ResetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+	}
+	else
+	{
+		GPIO_SetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+	}
 }
 void Relay_Switch(void)
 {
-	if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == RESET)
+	
+	if (GPIO_ReadOutputDataBit(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN) == RESET)
 	{
-		//开启继电器
-		GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
-		MCU_RELAY2 = 1;
+		CH_ON = 1;
+	}
+	else
+	{
+		CH_ON = 0;
+	}
+	//只有在CH_ON高电平时才判断充电电极是否短路
+	if (CH_ON == 1)
+	{
+		if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == RESET)
+		{
+			//开启继电器
+			GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+			MCU_RELAY2 = 1;
+		}
+		else
+		{
+			GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+			MCU_RELAY2 = 0;
+		}
 	}
 	else
 	{
 		GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
 		MCU_RELAY2 = 0;
 	}
+	
 }
 /**************************************************************************
 函数功能：核心控制相关
