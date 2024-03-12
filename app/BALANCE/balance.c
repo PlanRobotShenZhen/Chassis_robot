@@ -362,6 +362,20 @@ int target_limit_int(int insert,int low,int high)
         return insert;	
 }
 
+void setGPIO(GPIO_Module* GPIOx, uint16_t GPIO_Pin, uint8_t value)
+{
+    if (value == 1){
+   		GPIO_ResetBits(GPIOx, GPIO_Pin);
+    }else{
+        GPIO_SetBits(GPIOx, GPIO_Pin);
+    }
+}
+
+/**************************************************************************
+函数功能：电源控制
+入口参数：void
+返回  值：void
+**************************************************************************/
 void PowerControl(void)
 {
 	static union {
@@ -377,41 +391,44 @@ void PowerControl(void)
 	if (pdu[power_control] != power_ctrl.pc)
 	{
 		power_ctrl.pc = pdu[power_control];
-		if (power_ctrl.bit.jdq1==1)
-		{
-			GPIO_ResetBits(JDQ_PORT, JDQ1_PIN);
-		}
-		else
-		{
-			GPIO_SetBits(JDQ_PORT, JDQ1_PIN);
-		}
-		if (power_ctrl.bit.jdq2 == 1)
-		{
-			GPIO_ResetBits(JDQ_PORT, JDQ2_PIN);
-		}
-		else
-		{
-			GPIO_SetBits(JDQ_PORT, JDQ2_PIN);
-		}
-		if (power_ctrl.bit.p12v == 1)
-		{
-			GPIO_ResetBits(YL_7_GPIO, YL_7_Pin);//< 
-		}
-		else
-		{
-			GPIO_SetBits(YL_7_GPIO, YL_7_Pin);//< 
-		}
-		if (power_ctrl.bit.p19v == 1)
-		{
-			GPIO_ResetBits(YL_6_GPIO, YL_6_Pin);//< 
-		}
-		else
-		{
-			GPIO_SetBits(YL_6_GPIO, YL_6_Pin);//< 
-		}
+		setGPIO(JDQ_PORT, JDQ1_PIN, power_ctrl.bit.jdq1);
+		setGPIO(JDQ_PORT, JDQ2_PIN, power_ctrl.bit.jdq2);
+		setGPIO(YL_7_GPIO, YL_7_Pin, power_ctrl.bit.p12v);
+		setGPIO(YL_6_GPIO, YL_6_Pin, power_ctrl.bit.p19v);
 	}
 }
 
+/**************************************************************************
+函数功能：电池阈值报警
+入口参数：void
+返回  值：void
+**************************************************************************/
+void BatteryThresholdAlarm(void)
+{
+	static int BTA_Time = 0;
+	static int BTA_Times = 1000;	
+	u8 LowTimes = 50; //响铃500ms
+	u8 MiddleTimes = 25; //响铃250ms
+	//pdu[BatteryCurrent] = 0;//< 电池电流
+	if((pdu[Low_battery_threshold] * 50 > pdu[BatteryQuantity]) && (BTA_Time < LowTimes)) {//电池电量低于低阈值
+		// exio_output.bit.RGB_R = 1; //不清楚是RGB中的哪个
+		BTA_Times = 500;
+	}else if((pdu[Middle_battery_threshold] * 50 > pdu[BatteryQuantity]) && (BTA_Time < MiddleTimes)) {
+		//exio_output.bit.RGB_R = 1; //不清楚是RGB中的哪个
+		BTA_Times = 1000;
+	}
+	if(BTA_Time >= BTA_Times) {
+		BTA_Time = 0;
+	}else {
+		BTA_Time ++;
+	}
+}
+
+/**************************************************************************
+函数功能：电池信息处理函数
+入口参数：void
+返回  值：void
+**************************************************************************/
 void BatteryInformation()
 {
 	static int bt = 0;
@@ -424,7 +441,7 @@ void BatteryInformation()
 		uart4_recv_flag = 0;
 		switch (pdu[battery_manufacturer])
 		{
-		case 1://< 深圳市锂神科技有限公司
+		case 1://< 深圳市锂神科技有限公司 24Voltage
 			//小车线速度和角速度比较
 			if (fabsf(Move_X) > fabsf(Move_Z))
 			{
@@ -452,7 +469,7 @@ void BatteryInformation()
 				pdu[BatteryProtectStatus] = uart4_recv_data[36] | (uart4_recv_data[37] << 8);//< 电池保护状态
 			}
 			break;
-		default:
+		default: //48Voltage
 			bt_times = 100;//< 1000ms刷新1次
 			if (uart4_recv_data[0] == 0x7e)
 			{
@@ -492,7 +509,12 @@ void BatteryInformation()
 		DMA_EnableChannel(USARTb_Tx_DMA_Channel, ENABLE);    // 开启 DMA2 通道5, UART4_TX	
 	}
 }
-//< 超声波检测
+
+/**************************************************************************
+函数功能：超声波检测
+入口参数：void
+返回  值：void
+**************************************************************************/
 void UltrasonicProcess(void)
 {
 	if (ultrasonic_t1tig >= 1)
@@ -546,7 +568,12 @@ void UltrasonicProcess(void)
 		}
 	}
 }
-//SPI读写函数
+
+/**************************************************************************
+函数功能：SPI读写函数
+入口参数：void
+返回  值：void
+**************************************************************************/
 void  SPI1_ReadWriteByte(void)
 {
 	if (SPI_ReadWriteCycle == 0)
@@ -590,6 +617,11 @@ void  SPI1_ReadWriteByte(void)
 	}
 }
 
+/**************************************************************************
+函数功能：超声波检测定时器1
+入口参数：void
+返回  值：void
+**************************************************************************/
 void Ultrasonic1_task(void* pvParameters)
 {
 	uint32_t tig_time = 0;
@@ -650,8 +682,13 @@ void Ultrasonic1_task(void* pvParameters)
 
 
 	}
-
 }
+
+/**************************************************************************
+函数功能：超声波检测定时器2
+入口参数：void
+返回  值：void
+**************************************************************************/
 void Ultrasonic2_task(void* pvParameters)
 {
 	uint32_t tig_time = 0;
@@ -719,7 +756,6 @@ void Ultrasonic2_task(void* pvParameters)
 * 函数功能：车灯数据解析函数，使用VRA来控制，获取通道10来获取数据
 * 返回值：
 ****************************************************************/
-
 void Car_Light_Control(float Vx, float Vz)
 {
 	unsigned short usTemp = 0;
@@ -896,6 +932,7 @@ void BatteryInfoInit(void)
 	}	
 	uart4_send_flag = 2;//< 
 }
+
 /**************************************************************************
 函数功能：核心控制相关
 入口参数：
@@ -1009,6 +1046,7 @@ void Balance_task(void* pvParameters)
 			pdu[car_system_state] = 2;
 		}
 		BatteryInformation();
+		BatteryThresholdAlarm();
 		SPI1_ReadWriteByte();
 		PowerControl();
 		//UltrasonicProcess();
