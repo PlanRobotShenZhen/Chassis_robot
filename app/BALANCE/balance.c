@@ -410,10 +410,10 @@ void BatteryThresholdAlarm(void)
 	u8 LowTimes = 50; //响铃500ms
 	u8 MiddleTimes = 25; //响铃250ms
 	//pdu[BatteryCurrent] = 0;//< 电池电流
-	if((pdu[Low_battery_threshold] * 50 > pdu[BatteryQuantity]) && (BTA_Time < LowTimes)) {//电池电量低于低阈值
+	if((pdu[Low_battery_threshold] * 100 > pdu[BatteryQuantity]) && (BTA_Time < LowTimes)) {//电池电量低于低阈值
 		// exio_output.bit.RGB_R = 1; //不清楚是RGB中的哪个
 		BTA_Times = 500;
-	}else if((pdu[Middle_battery_threshold] * 50 > pdu[BatteryQuantity]) && (BTA_Time < MiddleTimes)) {
+	}else if((pdu[Middle_battery_threshold] * 100 > pdu[BatteryQuantity]) && (BTA_Time < MiddleTimes)) {
 		//exio_output.bit.RGB_R = 1; //不清楚是RGB中的哪个
 		BTA_Times = 1000;
 	}

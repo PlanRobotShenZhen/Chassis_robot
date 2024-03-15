@@ -880,15 +880,10 @@ void SetReal_Velocity(uint16_t* pdu)
 **************************************************/
 int Abs_int(int nValue)
 {
-	if(nValue < 0)
-	{
-		return (-nValue);
-	}
-	else
-	{
-		return nValue;
-	}
+	if(nValue < 0)	return (-nValue);
+	else						return nValue;
 }
+
 
 
 
@@ -1366,6 +1361,10 @@ void Pdu_Init()
 	pdu[axles_distance] = (uint16_t)(Axle_spacing * 10000);
 	pdu[motor_num] = Motor_Number=4;
 	pdu[car_mode] = CONTROL_MODE_REMOTE;
+
+	pdu[Middle_battery_threshold] = 40;
+	pdu[Low_battery_threshold] = 25;
+
 }
 
 void modbus_task_init(void)
