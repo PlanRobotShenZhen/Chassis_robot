@@ -629,31 +629,17 @@ struct PointFrame* PointFramCereat(void)
 void Can_task(void* pvParameters)
 {
 	uint16_t* pdu = (uint16_t*)pvParameters;
-	int buff_cnt = 0;//<
 	while (1)
 	{
 		rt_thread_delay(20);   //< 1ms
 		CAN_SDOSend(CAN1);
-		if (buff_cnt > 0)
-		{
-			buff_cnt--;
-		}
+
 		if (g_emCarMode == Diff_Car)
 		{
 			CAN_PDOSendFor8015D(1, CAN1);
 		}
 		else CAN_PDOSend(Motor_Number, CAN1);
 
-		if (pdu[receive_buff_num] != 0)
-		{
-			buff_cnt += pdu[receive_buff_num];
-			//< 数据拷贝过来
-			//PointFramCereat()
-			pdu[receive_buff_num] = 0;
-		}
-
-		pdu[empty_buff_num] = 30 - buff_cnt;
-		//< 使用点数据
 	}
 
 }

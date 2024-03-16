@@ -270,8 +270,8 @@ enum address_485 {
     rc_angle_shifting,//< RC转向偏移
     rc_magnification,//< RC速度倍率
 
-    empty_buff_num = 348,
-    receive_buff_num = 349
+    Middle_battery_threshold = 310,
+    Low_battery_threshold,
 };
 
 #endif

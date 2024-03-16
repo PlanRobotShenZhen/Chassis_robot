@@ -76,7 +76,7 @@ void MotorDataRefresh()
 		mr = &mrd[i];
 		md = &motor_data[k];
 		pdu[n++] = mt->d.status.sd;	
-		pdu[n++] = ((uint16_t)md->d.step << 2 | md->d.on&3) | ((uint16_t)mr->d.online << 8);
+		pdu[n++] = ((uint16_t)md->d.step << 2 | (md->d.on&3)) | ((uint16_t)mr->d.online << 8);
 		pdu[n++] = (uint16_t)(mt->d.error_code);
 		pdu[n++] = (uint16_t)(mt->d.mode);
 		pdu[n++] = (uint16_t)(mt->d.current_torque);
@@ -167,64 +167,72 @@ void Motor_init_task(void* pvParameters)
 }
 void Motor_task(void* pvParameters)
 {
-	int i;
 	pdu = (uint16_t*)pvParameters;
 	MOTOR_RPDO* m_ctrl;
 	MOTOR_TPDO* m_states;
 	MOTOR_DATA* md;
 
-
 	while (1)
 	{
 		rt_thread_delay(10);   //< 1ms
 		MotorDataRefresh();
-		for (i = 0; i < Motor_Number; i++)
-		{
-			m_ctrl = &mrd[i];
-			m_states = &mtd[i];
-			md = &motor_data[i];
-			md->d.on = 0;
-			//if (m_ctrl->d.online == 0)
-			//{
-			//	m_ctrl->d.ctrl.cd = 0;
-			//	continue;
-			//}
-			if (m_states->d.status.sd == 0x250 ||
-				m_states->d.status.sd == 0x1040 ||
-				m_states->d.status.sd == 0x1060 ||
-				m_states->d.status.sd == 0x5650)
-			{
-				m_ctrl->d.ctrl.cd = 6;
-			}
-			else if (m_states->d.status.sd == 0x231 ||
-				m_states->d.status.sd == 0x1021 ||
-				m_states->d.status.sd == 0x5631)
-			{
-				m_ctrl->d.ctrl.cd = 7;
-			}
-			else if (m_states->d.status.sd == 0x233 ||
-				m_states->d.status.sd == 0x3023 ||
-				m_states->d.status.sd == 0x1023 ||
-				m_states->d.status.sd == 0x5633)
-			{
-				m_ctrl->d.ctrl.cd = 15;
-			}
-			else if (m_states->d.status.sd == 567||
-				m_states->d.status.sd == 0x5637)
-			{
-				md->d.on = 1;
-			}
-			//if (g_ucRemote_Flag == 0)
-			if (robot_control.bit.motor_en == 0)
-			{
-				m_ctrl->d.ctrl.cd = 0;
-			}
-			else if (pdu[error_get_and_clear] == 1)
-			{//< 伺服清除报警
-				m_ctrl->d.ctrl.cd = 0x80;
-			}
-		}
+		
+    if (Abs_int(pdu[remote_ch7_value] - pdu[speed_level3]) < 10)                        //开关处于打开状态
+    {           
+            for(unsigned char count = 0; count < Motor_Number; count++)    
+            {
+								m_ctrl = &mrd[count];
+								m_states = &mtd[count];
+								md = &motor_data[count];
+								md->d.on = 0;
+                if((m_states->d.status.sd  & 0x0F) == 0x00)          {m_ctrl->d.ctrl.cd = 0x06;}
+                else if((m_states->d.status.sd  & 0x0F) == 0x01)     {m_ctrl->d.ctrl.cd = 0x07;}
+                else if((m_states->d.status.sd  & 0x0F) == 0x03)     {m_ctrl->d.ctrl.cd = 0x0F;}                    
+                else if((m_states->d.status.sd  & 0x0F) == 0x07)     {                         }        //标志位置1            
+								if (m_states->d.status.sd == 567||
+									m_states->d.status.sd == 0x5637)
+								{
+									md->d.on = 1;
+								}
+								//if (g_ucRemote_Flag == 0)
+								if (robot_control.bit.motor_en == 0)
+								{
+									m_ctrl->d.ctrl.cd = 0;
+								}
+								else if (pdu[error_get_and_clear] == 1)
+								{//< 伺服清除报警
+									m_ctrl->d.ctrl.cd = 0x80;
+								}							
+            }
+    }
+    else if (Abs_int(pdu[remote_ch7_value] - pdu[speed_level1]) < 10)       
+    {        
+            for(unsigned char count = 0; count < Motor_Number; count++)  
+            {
+								m_ctrl = &mrd[count];
+								m_states = &mtd[count];
+								md = &motor_data[count];
+								md->d.on = 0;
+                if((m_states->d.status.sd  & 0x0F) == 0x07)          {m_ctrl->d.ctrl.cd = 0x07;}
+                else if((m_states->d.status.sd  & 0x0F) == 0x03)     {m_ctrl->d.ctrl.cd = 0x06;}
+                else if((m_states->d.status.sd  & 0x0F) == 0x01)     {m_ctrl->d.ctrl.cd = 0x00;}                    
+                else if((m_states->d.status.sd  & 0x0F) == 0x00)     {                         }        //标志位置0
+								if (m_states->d.status.sd == 567||
+									m_states->d.status.sd == 0x5637)
+								{
+									md->d.on = 1;
+								}
+								//if (g_ucRemote_Flag == 0)
+								if (robot_control.bit.motor_en == 0)
+								{
+									m_ctrl->d.ctrl.cd = 0;
+								}
+								else if (pdu[error_get_and_clear] == 1)
+								{//< 伺服清除报警
+									m_ctrl->d.ctrl.cd = 0x80;
+								}							
+            }                    
+    }      
 		if (pdu[error_get_and_clear] == 1)pdu[error_get_and_clear] = 0;
 	}
-
 }
