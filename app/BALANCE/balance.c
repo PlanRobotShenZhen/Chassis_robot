@@ -1089,7 +1089,7 @@ void IrDA_RX_Decode(void)
 }
 void Relay_Switch(void)
 {
-	
+	// CH_ON = 1:小车与充电桩对接成功(红外通讯正常和限位开关闭合)
 	if (GPIO_ReadOutputDataBit(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN) == RESET)
 	{
 		CH_ON = 1;
@@ -1098,25 +1098,16 @@ void Relay_Switch(void)
 	{
 		CH_ON = 0;
 	}
-	//只有在CH_ON高电平时才判断充电电极是否短路
-	if (CH_ON == 1)
+	if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == SET)
 	{
-		if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == RESET)
-		{
-			//开启继电器
-			GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
-			MCU_RELAY2 = 1;
-		}
-		else
-		{
-			GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
-			MCU_RELAY2 = 0;
-		}
+		//开启继电器
+		GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+		MCU_RELAY2 = 1;
 	}
 	else
 	{
 		GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
-		MCU_RELAY2 = 0;
+		MCU_RELAY2 = 0; 
 	}
 	
 }
