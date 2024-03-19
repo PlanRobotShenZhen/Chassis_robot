@@ -44,7 +44,7 @@
 #include "485_address.h"
 #include "balance.h"
 #include "rc_car.h"
-
+#include "Charger.h"
 #ifdef RT_USING_DFS
 /* dfs filesystem:ELM filesystem init */
 #include <dfs_elm.h>
@@ -59,6 +59,11 @@
 #include <rtgui/driver.h>
 #include <rtgui/calibration.h>
 #endif
+
+//JTAG模式设置定义
+#define JTAG_SWD_DISABLE   0X02	
+#define SWD_ENABLE         0X01	
+#define JTAG_SWD_ENABLE    0X00
 
 ALIGN(RT_ALIGN_SIZE)
 static rt_uint8_t InitStack[512];
@@ -166,7 +171,13 @@ static void InitTask(void* parameter)
         Adc_Init();                     //采集电池电压ADC引脚初始化	
 	Can_Driver_Init(pdu[CAN_baud]);              //底层can协议初始化
     if(pdu[car_model]== RC_Car)RCCAR_Init(pdu);
-	
+    if (pdu[car_model] == Charger)
+    {
+        NVIC_Config();
+        IR_RX_Init();
+        IC_Init();
+        JTAG_Set(SWD_ENABLE);
+    }
 
     /* init Balance thread */
     result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);
