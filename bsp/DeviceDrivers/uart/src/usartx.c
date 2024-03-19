@@ -1337,12 +1337,17 @@ void Pdu_Init()
 		pdu[i++] = 1000;					  //CAN波特率，除以100后
 		pdu[i++] = 0;						  //心跳  
 		pdu[i++] = model;					  //伺服厂家型号
-		pdu[i++] = 0;						  //目标转矩
+		pdu[i++] = 500;						  //编码器精度
 		pdu[i++] = 0;
 		pdu[i++] = 0;						  //目标转速
 		pdu[i++] = 0;
 		pdu[i++] = 0;						  //目标位置
 	}
+	pdu[motor1_CAN_id] = 6;
+	pdu[motor2_CAN_id] = 2;	
+	pdu[motor3_CAN_id] = 5;
+	pdu[motor4_CAN_id] = 1;	
+	
 	//初始化小车速度限幅参数
 	pdu[car_max_lin_speed] = 802;
 	pdu[car_min_lin_speed] = -802;

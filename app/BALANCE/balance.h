@@ -8,7 +8,7 @@
 #define DIRECTOR_BASE       784   //Z轴角速度的基准
 
 //全向轮机器人数学模型参数
-#define X_PARAMETER    (sqrt(3)/2.f)               
+#define X_PARAMETER    (sqrtf(3.0f)/2.0f)               
 #define Y_PARAMETER    (0.5f)    
 #define L_PARAMETER    (1.0f)  
 

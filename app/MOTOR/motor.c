@@ -188,19 +188,8 @@ void Motor_task(void* pvParameters)
                 if((m_states->d.status.sd  & 0x0F) == 0x00)          {m_ctrl->d.ctrl.cd = 0x06;}
                 else if((m_states->d.status.sd  & 0x0F) == 0x01)     {m_ctrl->d.ctrl.cd = 0x07;}
                 else if((m_states->d.status.sd  & 0x0F) == 0x03)     {m_ctrl->d.ctrl.cd = 0x0F;}                    
-                else if((m_states->d.status.sd  & 0x0F) == 0x07)     {                         }        //标志位置1            
-								if (m_states->d.status.sd == 567||
-									m_states->d.status.sd == 0x5637)
-								{
-									md->d.on = 1;
-								}
-								//if (g_ucRemote_Flag == 0)
-								if (robot_control.bit.motor_en == 0)
-								{
-									m_ctrl->d.ctrl.cd = 0;
-								}
-								else if (pdu[error_get_and_clear] == 1)
-								{//< 伺服清除报警
+                else if((m_states->d.status.sd  & 0x0F) == 0x07)     {md->d.on = 1;            }        //标志位置1            
+								if (pdu[error_get_and_clear] == 1){//< 伺服清除报警
 									m_ctrl->d.ctrl.cd = 0x80;
 								}							
             }
@@ -216,19 +205,8 @@ void Motor_task(void* pvParameters)
                 if((m_states->d.status.sd  & 0x0F) == 0x07)          {m_ctrl->d.ctrl.cd = 0x07;}
                 else if((m_states->d.status.sd  & 0x0F) == 0x03)     {m_ctrl->d.ctrl.cd = 0x06;}
                 else if((m_states->d.status.sd  & 0x0F) == 0x01)     {m_ctrl->d.ctrl.cd = 0x00;}                    
-                else if((m_states->d.status.sd  & 0x0F) == 0x00)     {                         }        //标志位置0
-								if (m_states->d.status.sd == 567||
-									m_states->d.status.sd == 0x5637)
-								{
-									md->d.on = 1;
-								}
-								//if (g_ucRemote_Flag == 0)
-								if (robot_control.bit.motor_en == 0)
-								{
-									m_ctrl->d.ctrl.cd = 0;
-								}
-								else if (pdu[error_get_and_clear] == 1)
-								{//< 伺服清除报警
+                else if((m_states->d.status.sd  & 0x0F) == 0x00)     {md->d.on = 0;            }        //标志位置0
+								else if (pdu[error_get_and_clear] == 1){//< 伺服清除报警
 									m_ctrl->d.ctrl.cd = 0x80;
 								}							
             }                    

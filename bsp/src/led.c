@@ -93,8 +93,6 @@ void LedInit(GPIO_Module* GPIOx, uint16_t Pin)
 #if(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
 void ExioInit(void)
 {
-    EXIO_INPUT in;
-    EXIO_OUTPUT out;
     SPI_InitType SPI_InitStructure;
     NVIC_InitType NVIC_InitStruct;
     GPIO_InitType GPIO_InitStructure;
@@ -148,10 +146,10 @@ void UltrasonicSetEnable(int id,uint8_t en)
 //< ³¬Éù²¨³õÊ¼»¯
 void UltrasonicInit(void)
 {
-    TIM_TimeBaseInitType TIM_TimeBaseStructure;
+    //TIM_TimeBaseInitType TIM_TimeBaseStructure;
     GPIO_InitType GPIO_InitStructure;
-    EXTI_InitType EXTI_InitStructure;
-    NVIC_InitType NVIC_InitStructure;
+    //EXTI_InitType EXTI_InitStructure;
+    //NVIC_InitType NVIC_InitStructure;
 
     /* TIM1, TIM3 and TIM4 clock enable */
     RCC_EnableAPB1PeriphClk(RCC_APB1_PERIPH_TIM3 | RCC_APB1_PERIPH_TIM4, ENABLE);
@@ -216,8 +214,8 @@ void UltrasonicInit(void)
 void LED_Init(void)
 {
     GPIO_InitType GPIO_InitStructure;
-    NVIC_InitType NVIC_InitStruct;
-    EXTI_InitType EXTI_InitStructure;
+    //NVIC_InitType NVIC_InitStruct;
+    //EXTI_InitType EXTI_InitStructure;
 
 #if(PLAN_CONTROL_BOARD_V==10)
     RCC_EnableAPB2PeriphClk(LED1_PORT_RCC | JDQ_PORT_RCC, ENABLE);

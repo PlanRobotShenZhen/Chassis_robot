@@ -628,7 +628,7 @@ struct PointFrame* PointFramCereat(void)
 **************************************************************************/
 void Can_task(void* pvParameters)
 {
-	uint16_t* pdu = (uint16_t*)pvParameters;
+	//uint16_t* pdu = (uint16_t*)pvParameters;
 	while (1)
 	{
 		rt_thread_delay(20);   //< 1ms

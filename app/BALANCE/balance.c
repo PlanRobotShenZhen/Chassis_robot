@@ -74,10 +74,10 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 		MOTOR_D.fltTarget_velocity = MOTOR_C.fltTarget_velocity;
 
 		int tva = SpeedVelocityToRotate(MOTOR_A.fltTarget_velocity); //×ª»»Îªr/min
-		//if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tva *= 500;
+		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tva *= pdu[encoder_accuracy1];
 		int tvb = tva;
 		int tvc = SpeedVelocityToRotate(MOTOR_C.fltTarget_velocity);
-		//if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tvc *=500;
+		if (pdu[motor3_model] == SERVO_WANZE || pdu[motor3_model] == SERVO_PLAN)tvc *= pdu[encoder_accuracy3];
 		int tvd = tvc;
 
 		int diff = tva - MOTOR_A.nTarget_Velocity;
