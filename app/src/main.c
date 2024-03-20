@@ -83,6 +83,7 @@ void rtthread_startup(void)
  */
 int main(void)
 {
+	  SCB->VTOR = FLASH_BASE | 0x4000; /* Vector Table Relocation in Internal FLASH. */
     // 然后进行对应的参数初始化    
     modbus_task_init();
     /* disable interrupt first */

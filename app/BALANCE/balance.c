@@ -77,7 +77,7 @@ void Drive_Motor(float Vx,float Vy,float Vz)
 		uint16_t ud[2];
 		uint8_t u8d[8];
 	}tmp;
-	int i;
+
 	//四驱车 ---- 当前所用到的车
 	if(g_emCarMode == FourWheel_Car) 
 	{	//用的时候motora和motorb要设置的为负数		
@@ -447,7 +447,6 @@ void BatteryInformation()
 {
 	static int bt = 0;
 	static int bt_times = 100;
-	int i = 0; //起始索引
 	float MOVE_XorZ = 0;
 	float temp;
 	if (uart4_recv_flag)
@@ -913,7 +912,6 @@ void Car_Light_Control(float Vx, float Vz)
 
 void BatteryInfoInit(void)
 {
-	int n = 0;
 	uint8_t verifyADD8 = 0;
 	battery_send_frame_num = 0;
 	switch (pdu[battery_manufacturer])

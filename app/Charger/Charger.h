@@ -44,7 +44,7 @@
 #define MCU_CH_DET_ON_PIN			GPIO_PIN_5
 void IR_RX_Init(void); 
 void NVIC_Config(void);
-void IC_Init();
+void IC_Init(void);
 uint8_t IrDA_ReceiveData(uint16_t *pdu);
 void Key_Init(void);
 void Relay_Init(void);
@@ -56,5 +56,5 @@ void RGB_ShowCharged(void);
 void RGB_ShowError(void);
 void LimitSwitch_Init(void);
 void ChargeDetection_Init(void);
-
+void Key_Change_RGB(void);
 #endif

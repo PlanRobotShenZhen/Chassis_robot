@@ -177,7 +177,7 @@ void Motor_task(void* pvParameters)
 		rt_thread_delay(10);   //< 1ms
 		MotorDataRefresh();
 		
-    if (Abs_int(pdu[remote_ch7_value] - pdu[speed_level3]) < 10)                        //开关处于打开状态
+    if (robot_control.bit.motor_en)                        //开关处于打开状态
     {           
             for(unsigned char count = 0; count < Motor_Number; count++)    
             {
@@ -194,7 +194,7 @@ void Motor_task(void* pvParameters)
 								}							
             }
     }
-    else if (Abs_int(pdu[remote_ch7_value] - pdu[speed_level1]) < 10)       
+    else     
     {        
             for(unsigned char count = 0; count < Motor_Number; count++)  
             {
@@ -206,11 +206,13 @@ void Motor_task(void* pvParameters)
                 else if((m_states->d.status.sd  & 0x0F) == 0x03)     {m_ctrl->d.ctrl.cd = 0x06;}
                 else if((m_states->d.status.sd  & 0x0F) == 0x01)     {m_ctrl->d.ctrl.cd = 0x00;}                    
                 else if((m_states->d.status.sd  & 0x0F) == 0x00)     {md->d.on = 0;            }        //标志位置0
-								else if (pdu[error_get_and_clear] == 1){//< 伺服清除报警
+								if (pdu[error_get_and_clear] == 1){//< 伺服清除报警
 									m_ctrl->d.ctrl.cd = 0x80;
 								}							
             }                    
     }      
-		if (pdu[error_get_and_clear] == 1)pdu[error_get_and_clear] = 0;
+		if (pdu[error_get_and_clear] == 1){
+			pdu[error_get_and_clear] = 0;	
+		}
 	}
 }

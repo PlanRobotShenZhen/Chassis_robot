@@ -160,7 +160,7 @@ void Set_Director(void);                             //设置电机的转向
 int Abs_int(int nValue);
 int Target_Velocity_get(unsigned short usValue);
 int Target_Direct_get(unsigned short usValue);
-
+void JTAG_Set(uint8_t mode);
 
 void Usart3_Init(uint32_t baud);         //usart3作为上下位机通信模块
 void USART3_IRQHandler(void);       //中断中作为数据接收处理
