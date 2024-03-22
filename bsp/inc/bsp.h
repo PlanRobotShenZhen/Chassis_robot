@@ -331,13 +331,13 @@ void UltrasonicSetEnable(int id, uint8_t en);
 #define SPI_MASTER_PIN_MOSI       GPIO_PIN_7
 #define SPI_MASTER_PIN_MISO       GPIO_PIN_6
 
-extern uint8_t SPI_Master_Rx_Buffer;
-extern uint8_t SPI_ReadWriteCycle;
+extern unsigned char SPI_Master_Rx_Buffer;
+extern unsigned char SPI_ReadWriteCycle;
 
 #endif
 
 
-
+void MY_NVIC_SetVectorTable(unsigned int NVIC_VectTab, unsigned int Offset);//…Ë÷√∆´“∆µÿ÷∑
 void rt_hw_board_init(void);
 
 #define PRINT_RCC_FREQ_INFO

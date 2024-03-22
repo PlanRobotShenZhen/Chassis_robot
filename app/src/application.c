@@ -220,12 +220,12 @@ static void InitTask(void* parameter)
             rt_thread_startup(&DATA_thread);
         }
     }
-    /* init ModBUS thread */
-    result = rt_thread_init(&ModBUS_thread, "ModBUS", ModBUS_task, RT_NULL, (rt_uint8_t*)&ModBUS_stack[0], sizeof(ModBUS_stack), 7, 5);
-    if (result == RT_EOK)
-    {
-        rt_thread_startup(&ModBUS_thread);
-    }  
+				/* init ModBUS thread */
+				result = rt_thread_init(&ModBUS_thread, "ModBUS", ModBUS_task, RT_NULL, (rt_uint8_t*)&ModBUS_stack[0], sizeof(ModBUS_stack), 7, 5);
+				if (result == RT_EOK)
+				{
+						rt_thread_startup(&ModBUS_thread);
+				}  
 
     if (pdu[car_model] == Diff_Car)
     {

@@ -83,7 +83,13 @@ void rtthread_startup(void)
  */
 int main(void)
 {
-	  SCB->VTOR = FLASH_BASE | 0x4000; /* Vector Table Relocation in Internal FLASH. */
+
+		#ifdef  VECT_TAB_SRAM
+			MY_NVIC_SetVectorTable(0x20000000, 0x0);
+		#else   
+			MY_NVIC_SetVectorTable(0x08000000,0x4000);
+		#endif	
+	
     // 然后进行对应的参数初始化    
     modbus_task_init();
     /* disable interrupt first */

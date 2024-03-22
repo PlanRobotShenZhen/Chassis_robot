@@ -1191,7 +1191,7 @@ void Balance_task(void* pvParameters)
 		rt_thread_delay(100);   //< 10ms
 		if (tmp1 == 50)
 		{
-			if (g_emCarMode == Charger)
+			//if (g_emCarMode == Charger)
 			LedBlink(LED2_PORT, RUN2);
 			tmp1 = 0;
 		}

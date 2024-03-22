@@ -113,4 +113,14 @@ void rt_hw_board_init()
 
 }
 
+//设置向量表偏移地址
+//NVIC_VectTab:基址
+//Offset:偏移量			 
+void MY_NVIC_SetVectorTable(u32 NVIC_VectTab, u32 Offset)	 
+{ 	   	 
+	SCB->VTOR = NVIC_VectTab|(Offset & (u32)0x1FFFFF80);//设置NVIC的向量表偏移寄存器
+	//用于标识向量表是在CODE区还是在RAM区
+}
+
+
 /*@}*/
