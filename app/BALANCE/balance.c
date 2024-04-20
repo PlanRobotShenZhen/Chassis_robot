@@ -1075,8 +1075,8 @@ void IrDA_SendData(uint8_t SendData)
 void IrDA_RX_Decode(void)
 {
 	ReceiveData = IrDA_ReceiveData(pdu);
-	//test
-	//ReceiveData = 1;
+	//test 
+	//ReceiveData = 1;//假定接收到小车充电信号
 	/*红外接收端解码*/
 	switch (ReceiveData)
 	{
@@ -1144,7 +1144,16 @@ void Relay_Switch(void)
 		GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
 		MCU_RELAY2 = 0; 
 	}
-	
+	//对接成功但未打开充电口→充电电极短路
+	if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == RESET && CH_ON == 1)
+	{
+		//打开报警器
+		GPIO_SetBits(MCU_WARM_GPIO, MCU_WARM_PIN);
+	}
+	else
+	{
+		GPIO_ResetBits(MCU_WARM_GPIO, MCU_WARM_PIN);
+	}
 }
 /**************************************************************************
 函数功能：核心控制相关
@@ -1181,7 +1190,6 @@ void Balance_task(void* pvParameters)
 		Relay_Init();
 		Key_Init();
 		RGB_Init();
-		LimitSwitch_Init();
 		ChargeDetection_Init();
 	}
 

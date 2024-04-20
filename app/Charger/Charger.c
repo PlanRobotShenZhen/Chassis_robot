@@ -448,7 +448,7 @@ void LimitSwitch_Init(void)
 }
 void ChargeDetection_Init(void)
 {
-	//默认高电平（充电电极短路），低电平时电极正常
+	//默认低电平，高电平时所有检测正常
 	GPIO_InitType GPIO_InitStructure;
 	RCC_EnableAPB2PeriphClk(MCU_CH_DET_CLK, ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
@@ -462,5 +462,12 @@ void ChargeDetection_Init(void)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitPeripheral(MCU_CH_DET_ON_GPIO, &GPIO_InitStructure);
 	GPIO_SetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+	//默认低电平，高电平时充电电极短接
+	RCC_EnableAPB2PeriphClk(MCU_WARM_CLK, ENABLE);
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.Pin = MCU_WARM_PIN;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitPeripheral(MCU_WARM_GPIO, &GPIO_InitStructure);
+	GPIO_ResetBits(MCU_WARM_GPIO, MCU_WARM_PIN);
 
 }

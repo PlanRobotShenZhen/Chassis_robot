@@ -14,6 +14,7 @@
 #define KEY_CLK						RCC_APB2_PERIPH_GPIOA
 #define KEY_GPIO					GPIOA
 #define KEY_PIN						GPIO_PIN_8
+
 #define RGB_TIM_IRQn 				TIM1_UP_IRQn
 #define RGB_TIM_CLK					RCC_APB2_PERIPH_TIM1
 #define RGB_CLK						RCC_APB2_PERIPH_GPIOA
@@ -32,6 +33,11 @@
 #define MCU_SW_DET_CLK				RCC_APB2_PERIPH_GPIOB
 #define MCU_SW_DET_GPIO				GPIOB
 #define MCU_SW_DET_PIN				GPIO_PIN_4
+//报警器，默认低电平，当充电电极短路时高电平
+#define MCU_WARM					CS1_Ttig
+#define MCU_WARM_CLK				RCC_APB2_PERIPH_GPIOA
+#define MCU_WARM_GPIO				GPIOA
+#define MCU_WARM_PIN				GPIO_PIN_15
 //充电电极短路检测，默认高电平，一切正常才低电平
 #define MCU_CH_DET					CS2_Ttig
 #define MCU_CH_DET_CLK				RCC_APB2_PERIPH_GPIOB
@@ -42,6 +48,7 @@
 #define MCU_CH_DET_ON_CLK			RCC_APB2_PERIPH_GPIOB
 #define MCU_CH_DET_ON_GPIO			GPIOB		
 #define MCU_CH_DET_ON_PIN			GPIO_PIN_5
+
 void IR_RX_Init(void); 
 void NVIC_Config(void);
 void IC_Init(void);
