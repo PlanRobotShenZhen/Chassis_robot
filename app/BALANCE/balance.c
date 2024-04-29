@@ -21,7 +21,11 @@ float AngularVelocityConversion;//角速度换算
 int g_nVol_get_Flag = 0;          //
 float g_fltProprity_Voltage=1;  //
 float Voltage = 0.0f;
-
+//test
+int aaa[][3] = {
+	{0x00,0x00,0x00},
+	{0x00,0xFF,0x00},
+};
 uint8_t ultrasonic_t1tig = 1;
 uint8_t ultrasonic_t2tig = 1;
 uint32_t ultrasonic_t1tig_time = 0;
@@ -41,7 +45,7 @@ EXIO_INPUT exio_input;
 EXIO_OUTPUT exio_output;
 
 /*红外通讯发送部分参数*/
-uint8_t IrDA_SendState = 1;		//0：关闭红外传感器；1：红外对接；2：红外通讯；
+uint8_t IrDA_SendState = 0;		//0：关闭红外传感器；1：红外对接；2：红外通讯；
 uint8_t SendCout = 0;			//发送计次
 uint8_t SendGuide_Flag = 0;		//引导位状态
 int Send_i = 3;					//发送数据指针，从高位开始发送
@@ -1085,7 +1089,7 @@ void IrDA_RX_Decode(void)
 	case 0x01://红外对接正常
 		SendData = 1;
 		IrDA_SendData(SendData);
-		RGB_ShowCharging();
+		RGB_ShowAlignOK();
 		IrDA_AlignOK = 1;
 		break;
 	case 0x02://关闭充电
@@ -1188,7 +1192,7 @@ void Balance_task(void* pvParameters)
 		FAN2 = 1;
 		LimitSwitch_Init();
 		Relay_Init();
-		Key_Init();
+		//Key_Init();
 		RGB_Init();
 		ChargeDetection_Init();
 	}
@@ -1278,6 +1282,8 @@ void Balance_task(void* pvParameters)
 			switch (IrDA_SendState)
 			{//0：关闭发送端；1：红外对接；2：红外通讯；
 			case 0:
+				RGB_BreathLamp(aaa);
+			//RGB_ShowAlignOK();
 				break;
 			case 1:
 				IrDA_TX_Control();
@@ -1292,7 +1298,7 @@ void Balance_task(void* pvParameters)
 				break;
 			}
 			//按键切换RGB颜色
-			Key_Change_RGB();
+			//Key_Change_RGB();
 			Relay_Switch();
 		}
 		break;

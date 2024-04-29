@@ -10,11 +10,12 @@ int BitEnd = 0;			//接收到一个完整字
 
 /*RGB参数*/
 uint8_t ChipEndFlag = 0;
-uint8_t RGB_ChangeFlag = 0;
-uint8_t RGB_ArrayNum = 0;
+uint8_t RGB_ChangeFlag = 0;//RGB
+uint8_t RGB_ArrayNum = 0; //RGB数据行指针
 int RGB_i = 23;//RGB指针
 int bit_i = 7;//八位数据的位指针
 //int RGB_Array[6][3];
+//预设灯光颜色
 int RGB_Array[][3] = {
 	//{0xFF,0x00,0x00},
 	{0xFF,0x7F,0x00},
@@ -24,7 +25,7 @@ int RGB_Array[][3] = {
 	{0x00,0x00,0xFF},
 	{0x8B,0x00,0xFF}
 };
-int RGB_Charging[][3] = {
+int RGB_AlignOK[][3] = {
 	{0x00,0x00,0x00},
 	{0x00,0xFF,0x00},
 	{0x00,0x00,0x00},
@@ -47,6 +48,10 @@ int RGB_Error[][3] = {
 	{0x00,0x00,0x00},
 	{0xFF,0x00,0x00},
 	{0x00,0x00,0x00},
+};
+int RGB_BreathChaging[][3] = {
+	{0x00,0x00,0x00},
+	{0x00,0xFF,0x00},
 };
 /*红外接收端初始化*/
 void IR_RX_Init(void)
@@ -274,7 +279,7 @@ void RGB_SetDuty(uint16_t Compare)
 入口参数：三原色灯的RGB值（由于中断时长原因，每传送两位数据改变一次电位）
 引脚信息：PA11(YL_7)为信号输出线
 **************************************************************************/
-void RGB_SetValue(int G,int B,int R)
+void RGB_SetValue(int R,int B,int G)
 {
 
 	int bit = 2;
@@ -319,19 +324,19 @@ void RGB_SetValue(int G,int B,int R)
 	}
 }
 //绿灯间隔一秒闪烁
-void RGB_ShowCharging(void)
+void RGB_ShowAlignOK(void)
 {
-	static int delay_i = 0;
+	static int delay_t = 0;
 	
-	delay_i++;
+	delay_t++;
 	//每一秒切换一次颜色
-	if (delay_i >= 100)
+	if (delay_t >= 100)
 	{
-		delay_i = 0;
+		delay_t = 0;
 		RGB_ChangeFlag = 1;
 		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < 3; j++) {
-				RGB_Array[i][j] = RGB_Charging[i][j];
+				RGB_Array[i][j] = RGB_AlignOK[i][j];
 			}
 		}
 		RGB_ArrayNum++;
@@ -342,16 +347,67 @@ void RGB_ShowCharging(void)
 	}
 	
 }
+//呼吸灯
+void RGB_BreathLamp(int RGB_Order[][3])
+{
+
+	static int delay_t = 0,i,increaseFlag = 1;
+	static int initialized = 0;
+	static int Order_head[3],Order_end[3];
+	//初始化呼吸灯首尾RGB值
+	if (!initialized)
+	{
+		for (int i = 0; i < 3; i++) 
+		{
+			Order_head[i] = RGB_Order[0][i];
+			Order_end[i] = RGB_Order[1][i];
+			RGB_Array[0][i] = RGB_Order[0][i];
+		}
+		initialized = 1; // 设置标志变量为已初始化
+	}
+	delay_t++;
+	//每20ms秒切换一次颜色
+	if (delay_t >= 2)
+	{		
+		delay_t = 0;
+		RGB_ChangeFlag = 1;		
+		RGB_ArrayNum = 0;//RGB_ArrayNum保持不变，只使用RGB_Array第一行
+		//RGB实现呼吸效果
+		for (int k = 0; k < 3; k++) 
+		{
+			//单色呼吸，其他色值固定为0
+			if (Order_end[k] != 0x00)
+			{
+				if (RGB_Array[0][k] == Order_head[k])
+				{
+					increaseFlag = 1;
+				}
+				else if (RGB_Array[0][k] == Order_end[k])
+				{
+					increaseFlag = 0;
+				}
+				if (increaseFlag)
+				{
+					RGB_Array[0][k]++;
+				}
+				else
+				{
+					RGB_Array[0][k]--;
+				}
+			}
+		}
+	}
+}
 //绿灯常亮
 void RGB_ShowCharged(void)
 {
-	static int delay_i = 0;
+	static int delay_t = 0;
 
-	delay_i++;
+	delay_t++;
 	//每一秒切换一次颜色
-	if (delay_i >= 100)
+	if (delay_t >= 100)
 	{
-		delay_i = 0;
+		delay_t = 0;
 		RGB_ChangeFlag = 1;
 		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < 3; j++) {
@@ -369,12 +425,12 @@ void RGB_ShowCharged(void)
 //红灯间隔一秒闪烁
 void RGB_ShowError(void)
 {
-	static int delay_i = 0;
-	delay_i++;
+	static int delay_t = 0;
+	delay_t++;
 	//每一秒切换一次颜色
-	if (delay_i >= 100)
+	if (delay_t >= 100)
 	{
-		delay_i = 0;
+		delay_t = 0;
 		RGB_ChangeFlag = 1;
 		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < 3; j++) {
