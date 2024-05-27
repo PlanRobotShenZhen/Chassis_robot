@@ -18,6 +18,9 @@
 
 #include <rthw.h>
 #include <rtthread.h>
+#include <usartx.h>
+#include <bsp.h>
+#define RT_USING_USER_MAIN 1
 
 #ifdef RT_USING_USER_MAIN
 #ifndef RT_MAIN_THREAD_STACK_SIZE
@@ -129,12 +132,12 @@ void rt_components_init(void)
 
 #ifdef RT_USING_USER_MAIN
 
-void rt_application_init(void);
+void ori_rt_application_init(void);
 void rt_hw_board_init(void);
-int rtthread_startup(void);
+int ori_rtthread_startup(void);
 
 #if defined(__CC_ARM) || defined(__CLANG_ARM)
-extern int $Super$$main(void);
+extern int $Sub$$main(void);
 /* re-define main function */
 int $Sub$$main(void)
 {
@@ -186,7 +189,7 @@ void main_thread_entry(void *parameter)
 #endif
 }
 
-void rt_application_init(void)
+void ori_rt_application_init(void)
 {
     rt_thread_t tid;
 
@@ -209,36 +212,32 @@ void rt_application_init(void)
     rt_thread_startup(tid);
 }
 
-int rtthread_startup(void)
+int ori_rtthread_startup(void)
 {
-    rt_hw_interrupt_disable();
-
-    /* board level initialization
-     * NOTE: please initialize heap inside board initialization.
-     */
+    /* init board */
     rt_hw_board_init();
 
-    /* show RT-Thread version */
-    rt_show_version();
-
-    /* timer system initialization */
-    rt_system_timer_init();
-
-    /* scheduler system initialization */
+    /* init scheduler system */
     rt_system_scheduler_init();
 
-#ifdef RT_USING_SIGNALS
-    /* signal system initialization */
-    rt_system_signal_init();
-#endif
+    /* initialize timer */
+    rt_system_timer_init();
 
-    /* create init_thread */
-    rt_application_init();
+#ifdef RT_USING_HEAP
+    /* init memory system */
+    rt_system_heap_init((void *)N32G45X_SRAM_START, (void *)N32G45X_SRAM_END);
+#endif //RT_USING_HEAP
 
-    /* timer thread initialization */
+    /* init timer thread */
     rt_system_timer_thread_init();
 
-    /* idle thread initialization */
+    // 然后进行对应的参数初始化    
+    modbus_task_init();	
+	
+    /* init application */
+    ori_rt_application_init();
+
+    /* init idle thread */
     rt_thread_idle_init();
 
     /* start scheduler */

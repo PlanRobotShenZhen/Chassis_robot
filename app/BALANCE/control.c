@@ -19,7 +19,7 @@ int j;
 入口参数：Y轴速度和角度
 返回  值：无
 **************************************************************************/
-void Kinematic_Analysis(float Vy,float angle)
+void Kinematic_AnalysisRC(float Vy,float angle)
 {
         Target_A   = Vy*(1+T*tan(angle)/2/L);
         Target_B   = Vy*(1-T*tan(angle)/2/L);
@@ -222,7 +222,7 @@ void Get_RC(u8 mode)
 //				if(Angle<-RC_Velocity) Angle=-RC_Velocity;	
 //				if(Angle>RC_Velocity)  Angle=RC_Velocity;	 
 	 }
-		 Kinematic_Analysis(Move_Y,Angle);//得到控制目标值，进行运动学分析
+		 Kinematic_AnalysisRC(Move_Y,Angle);//得到控制目标值，进行运动学分析
 }
 
 /**************************************************************************
@@ -255,5 +255,5 @@ void CAN_N_Usart_Control(void)
 		   Move_Y=-LY/2.84;	 
 		  //if(Move_Y<0)Angle=-Angle;	  
 	    }
-			Kinematic_Analysis(Move_Y,Angle);//得到控制目标值，进行运动学分析
+			Kinematic_AnalysisRC(Move_Y,Angle);//得到控制目标值，进行运动学分析
 }

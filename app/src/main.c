@@ -66,6 +66,9 @@ void rtthread_startup(void)
     /* init timer thread */
     rt_system_timer_thread_init();
 
+    // 然后进行对应的参数初始化    
+    modbus_task_init();	
+	
     /* init application */
     rt_application_init();
 
@@ -83,19 +86,11 @@ void rtthread_startup(void)
  */
 int main(void)
 {
-
-		#ifdef  VECT_TAB_SRAM
-			MY_NVIC_SetVectorTable(0x20000000, 0x0);
-		#else   
-			MY_NVIC_SetVectorTable(0x08000000,0x4000);
-		#endif	
 	
-    // 然后进行对应的参数初始化    
-    modbus_task_init();
     /* disable interrupt first */
     rt_hw_interrupt_disable();
 
-
+		//rt_application_init();
     /* startup RT-Thread RTOS */
     rtthread_startup();
 }

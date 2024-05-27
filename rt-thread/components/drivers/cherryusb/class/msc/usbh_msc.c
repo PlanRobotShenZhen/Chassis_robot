@@ -24,7 +24,7 @@
 #include "usbh_msc.h"
 #include "usb_scsi.h"
 
-#define DEV_FORMAT "/dev/sd%c"
+#define DEV_FORMAT "/dev/sw%c"
 
 static uint32_t g_devinuse = 0;
 
@@ -60,7 +60,7 @@ static int usbh_msc_devno_alloc(struct usbh_msc *priv)
  * Name: usbh_msc_devno_free
  *
  * Description:
- *   Free a /dev/sd[n] minor number so that it can be used.
+ *   Free a /dev/sw[n] minor number so that it can be used.
  *
  ****************************************************************************/
 

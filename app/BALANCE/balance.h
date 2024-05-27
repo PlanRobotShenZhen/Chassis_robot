@@ -3,80 +3,114 @@
 
 #include "stdint.h"
 
-#define BALANCE_TASK_PRIO		11     //任务优先级
-#define BALANCE_STK_SIZE 		256   //任务堆栈大小
-#define DIRECTOR_BASE       784   //Z轴角速度的基准
 
-//全向轮机器人数学模型参数
-#define X_PARAMETER    (sqrtf(3.0f)/2.0f)               
-#define Y_PARAMETER    (0.5f)    
-#define L_PARAMETER    (1.0f)  
+#define BALANCE_TASK_PRIO 4	 //任务优先级
+#define BALANCE_STK_SIZE 512 //任务堆栈大小
+
+#define VELOCITY_MULTI 3 //速度值倍率
+
+//角速度增益参数
+#define AKM_RAW_FACTOR 1.277f
+
+#define EPSILON 1e-6  // 适当的极小值
+#define CORRECTION_FACTOR 1.35f  // 调整系数
+#define ENCODER_LINES 10000  //一圈脉冲数默认为10000
+#define MYHALF 0.5f  //一半(0.5)
+#define RADtoANG 180.0f / PI	//弧度->角度
+#define ANGtoRAD PI / 180.0f	//角度->弧度
+#define DEGREE_MAX 300.0f 	//前轮最大转角
+
+
+#define MAGNIFIC_10x_DOWN 		0.1f		//缩小10倍
+#define MAGNIFIC_100x_DOWN 		0.01f		//缩小100倍
+#define MAGNIFIC_1000x_DOWN 	0.001f		//缩小1000倍
+#define MAGNIFIC_10000x_DOWN 	0.0001f		//缩小10000倍
+#define MAGNIFIC_10x_UP 		10.0f		//增大10倍
+#define MAGNIFIC_100x_UP 		100.0f		//增大100倍
+#define MAGNIFIC_1000x_UP 		1000.0f		//增大1000倍
+#define MAGNIFIC_10000x_UP 		10000.0f	//增大10000倍
+#define MINTOSEC 				60.0f		//分钟->秒钟
+
+//SWB速度模式下的力矩挡位(VRA控制)系数
+#define SWB_LOW_GEAR 			33			//力矩低档位系数
+#define SWB_MIDDLE_GEAR 		66			//力矩中档位系数
+#define SWB_HIGH_GEAR 			99			//力矩高档位系数
+
+#define CHANNEL_VALUE_ERROR 	10			//手柄通道值允许误差
+
+#define TORQUE_COEFFICIENT_MAX 	3			//最大力矩档
+#define TORQUE_COEFFICIENT_MIN 	1			//最小力矩档
+
+extern float Move_X,Move_Y,Move_Z;   	//小车各个轴的速度
+extern float Voltage;
+extern float Z_Radian_Max; 				//弧度最大值
 
 //充电桩相关参数
-#define LED_LEFT 			Light_Q
-#define LED_RIGHT 			Light_H
+#define LED_LEFT 			Light_LF
+#define LED_RIGHT 			Light_RR
 #define MCU_INF_TX 			exio_output.bit.RGB_G
 #define MCU_RELAY2 			exio_output.bit.RGB_B
 #define IrDA_TX 			MCU_INF_TX
 //风扇相关参数
-#define MCU_FAN1			exio_output.bit.Light_Y
-#define MCU_FAN2			exio_output.bit.Light_Z
+#define MCU_FAN1			exio_output.bit.Light_RF
+#define MCU_FAN2			exio_output.bit.Light_LR
 #define FAN1				MCU_FAN1
 #define FAN2				MCU_FAN2
 //充电电极短路检测
-#define MCU_CH_DET			exio_input.bit.CS2_Ttig
-//存放平滑控制后的数据
-struct Smooth_Control
-{
-	float Vx;
-	float Vy;
-	float Vz;
-	
-};
+//#define MCU_CH_DET			exio_input.bit.CS2_Ttig
 
-typedef struct {
-	uint32_t t_RGB_G;
-	uint32_t t_RGB_B;
-	uint32_t t_RGB_R;
-	uint32_t t_Light;
-	uint32_t t_Light_Q;//< 左前
-	uint32_t t_Light_Z;//< 左后
-	uint32_t t_Light_Y;//< 右前
-	uint32_t t_Light_H;//< 右后
-
-	uint32_t t_cnt_RGB_G;
-	uint32_t t_cnt_RGB_B;
-	uint32_t t_cnt_RGB_R;
-	uint32_t t_cnt_Light;
-	uint32_t t_cnt_Light_Q;//< 左前
-	uint32_t t_cnt_Light_Z;//< 左后
-	uint32_t t_cnt_Light_Y;//< 右前
-	uint32_t t_cnt_Light_H;//< 右后
-
-	uint32_t c_Light_Q:1;//< 左前
-	uint32_t c_Light_Z:1;//< 左后
-	uint32_t c_Light_Y:1;//< 右前
-	uint32_t c_Light_H:1;//< 右后
-}LightTime;
-
-extern struct Smooth_Control tagSmooth_control;  //麦克纳姆轮需要用到的小车速度平滑处理
-extern float Move_X,Move_Y,Move_Z;   //小车各个轴的速度
-extern float Voltage;
+/*----------------------各小车速度宏定义--------------------------*/
+#define MAXDEGREE 300 		//前轮最大转角
+//Akm_Car
+#define AKMCAR_MAXLINEARVELOCITY 		1728									//最大线速度
+#define AKMCAR_MAXYAWVELOCITY 			1330									//最大角速度
+#define AKMCAR_SPEED_LOW 				AKMCAR_MAXLINEARVELOCITY / 3			//低速档线速度系数
+#define AKMCAR_SPEED_MIDDLE 			AKMCAR_MAXLINEARVELOCITY / 3 * 2		//中速档线速度系数
+#define AKMCAR_SPEED_HIGH 				AKMCAR_MAXLINEARVELOCITY				//高速档线速度系数
+#define AKMCAR_YAW_LOW 					AKMCAR_MAXYAWVELOCITY / 3				//低速档角速度系数
+#define AKMCAR_YAW_MIDDLE 				AKMCAR_MAXYAWVELOCITY / 3 * 2			//中速档角速度系数
+#define AKMCAR_YAW_HIGH 				AKMCAR_MAXYAWVELOCITY					//高速档角速度系数
+//Diff_Car		
+#define DIFFCAR_MAXLINEARVELOCITY 		2000									//最大线速度
+#define DIFFCAR_MAXYAWVELOCITY 			8000									//最大角速度
+#define DIFFCAR_SPEED_LOW 				DIFFCAR_MAXLINEARVELOCITY / 3			//低速档线速度系数
+#define DIFFCAR_SPEED_MIDDLE 			DIFFCAR_MAXLINEARVELOCITY / 3 * 2		//中速档线速度系数
+#define DIFFCAR_SPEED_HIGH 				DIFFCAR_MAXLINEARVELOCITY				//高速档线速度系数
+#define DIFFCAR_YAW_LOW 				DIFFCAR_MAXYAWVELOCITY / 3				//低速档角速度系数
+#define DIFFCAR_YAW_MIDDLE 				DIFFCAR_MAXYAWVELOCITY / 3 * 2			//中速档角速度系数
+#define DIFFCAR_YAW_HIGH 				DIFFCAR_MAXYAWVELOCITY					//高速档角速度系数
+//FourWheel_Car		
+#define FOURWHEELCAR_MAXLINEARVELOCITY 	1500									//最大线速度
+#define FOURWHEELCAR_MAXYAWVELOCITY 	3000									//最大角速度
+#define FOURWHEELCAR_SPEED_LOW 			FOURWHEELCAR_MAXLINEARVELOCITY / 3		//低速档线速度系数
+#define FOURWHEELCAR_SPEED_MIDDLE 		FOURWHEELCAR_MAXLINEARVELOCITY / 3 * 2	//中速档线速度系数
+#define FOURWHEELCAR_SPEED_HIGH 		FOURWHEELCAR_MAXLINEARVELOCITY			//高速档线速度系数
+#define FOURWHEELCAR_YAW_LOW 			FOURWHEELCAR_MAXYAWVELOCITY / 3			//低速档角速度系数
+#define FOURWHEELCAR_YAW_MIDDLE 		FOURWHEELCAR_MAXYAWVELOCITY / 3 * 2		//中速档角速度系数
+#define FOURWHEELCAR_YAW_HIGH 			FOURWHEELCAR_MAXYAWVELOCITY				//高速档角速度系数
+//TwoWheel_Car	
+#define TWOWHEELCAR_MAXLINEARVELOCITY 	1000									//最大线速度
+#define TWOWHEELCAR_MAXYAWVELOCITY 		1500									//最大角速度
+#define TWOWHEELCAR_SPEED_LOW 			TWOWHEELCAR_MAXLINEARVELOCITY / 3		//低速档线速度系数
+#define TWOWHEELCAR_SPEED_MIDDLE 		TWOWHEELCAR_MAXLINEARVELOCITY / 3 * 2	//中速档线速度系数
+#define TWOWHEELCAR_SPEED_HIGH 			TWOWHEELCAR_MAXLINEARVELOCITY			//高速档线速度系数
+#define TWOWHEELCAR_YAW_LOW 			TWOWHEELCAR_MAXYAWVELOCITY / 3			//低速档角速度系数
+#define TWOWHEELCAR_YAW_MIDDLE 			TWOWHEELCAR_MAXYAWVELOCITY / 3 * 2		//中速档角速度系数
+#define TWOWHEELCAR_YAW_HIGH 			TWOWHEELCAR_MAXYAWVELOCITY				//高速档角速度系数
+//Tank_Car	
+#define TANKCAR_MAXLINEARVELOCITY 		1000									//最大线速度
+#define TANKCAR_MAXYAWVELOCITY 			1500									//最大角速度
+#define TANKCAR_SPEED_LOW 				TANKCAR_MAXLINEARVELOCITY / 3			//低速档线速度系数
+#define TANKCAR_SPEED_MIDDLE 			TANKCAR_MAXLINEARVELOCITY / 3 * 2		//中速档线速度系数
+#define TANKCAR_SPEED_HIGH 				TANKCAR_MAXLINEARVELOCITY				//高速档线速度系数
+#define TANKCAR_YAW_LOW 				TANKCAR_MAXYAWVELOCITY / 3				//低速档角速度系数
+#define TANKCAR_YAW_MIDDLE 				TANKCAR_MAXYAWVELOCITY / 3 * 2			//中速档角速度系数
+#define TANKCAR_YAW_HIGH 				TANKCAR_MAXYAWVELOCITY					//高速档角速度系数
 
 /*----------------------核心控制函数--------------------------*/
 void Ultrasonic1_task(void* pvParameters);
-void Ultrasonic2_task(void* pvParameters);
 void Balance_task(void *pvParameters);           //任务函数
-void Remote_Control(void);                       //航模遥控器接收数据处理
-void Ros_Control(void);                          //航模遥控器接收数据处理
-void Drive_Motor(float Vx,float Vy,float Vz);    //小车运动模型，解算出各个电机速度
-																							   //设置4个电机速度
-void Set_MotorVelocity(int nMotorLB,int nMotorLF, int nMotorRF, int nMotorRB);    
-void Get_Motor_Velocity(void);                   //获取电机速度反馈值，r/min
-void Smooth_control(float vx,float vy,float vz); //全向轮小车速度平滑
 unsigned char Turn_Off(void);                    //根据电池电量来操作
-float RotateToSpeedVelocity(float nRotateSpeed);   //电机转速转换为轮子线速度，m/s
-int SpeedVelocityToRotate(float fltSpeed);       //轮子速度转换为电机转速r/min
 void IrDA_TX_Control(void);
 void IrDA_Guide(void);
 void IrDA_Send0(void);
@@ -84,12 +118,22 @@ void IrDA_Send1(void);
 void IrDA_SendData(uint8_t data);
 void IrDA_RX_Decode(void);
 void Relay_Switch(void);
-
+void ChargerBalanceInit(void);
+void SetReal_Velocity(void);                         //设置电机运行的速度       
+void ClassificationOfMotorMotionModes(uint16_t sport_mode);	   
+void ServoPulse_Enable(void);             
+void BatteryInformation(void);
+void SPI1_ReadWriteByte(void);
+void PowerControl(void);
 /*----------------------辅助功能函数--------------------------*/
 uint32_t myabs(long int a);
 float float_abs(float insert);
 float target_limit_float(float insert,float low,float high);
 int target_limit_int(int insert,int low,int high);
-
+short LinearVelocityGet(void);
+short VirtuallyLinearVelocityGet(void);
+short AngularVelocityGet(short linearValue);
+short VirtuallyAngularVelocityGet(short linearValue);
+void Kinematic_Analysis(short Vx, float Vy, short Vz);
 #endif  
 

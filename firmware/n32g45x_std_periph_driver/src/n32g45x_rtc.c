@@ -1299,8 +1299,8 @@ void RTC_ConfigDayLightSaving(uint32_t RTC_DayLightSaving, uint32_t RTC_StoreOpe
 }
 
 /**
- * @brief  Returns the RTC Day Light Saving stored operation.
- * @return RTC Day Light Saving stored operation.
+ * @brief  Returns the RTC Day Light_Side Saving stored operation.
+ * @return RTC Day Light_Side Saving stored operation.
  *          - RTC_STORE_OPERATION_RESET
  *          - RTC_STORE_OPERATION_SET
  */

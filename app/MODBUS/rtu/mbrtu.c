@@ -104,21 +104,21 @@ eMBRTUReceive( UCHAR * pucRcvAddress, UCHAR ** pucFrame, USHORT * pusLength )
 {
     //BOOL            xFrameReceived = FALSE;
     eMBErrorCode    eStatus = MB_ENOERR;
-    assert_param(uart1_recv_len < MB_SER_PDU_SIZE_MAX );
+    assert_param(usart1_recv_len < MB_SER_PDU_SIZE_MAX );
 
     /* Length and CRC check */
 
-    USHORT crc = (ucRTUBuf[uart1_recv_len - 1]<<8) | ucRTUBuf[uart1_recv_len -2];
+    USHORT crc = (ucRTUBuf[usart1_recv_len - 1]<<8) | ucRTUBuf[usart1_recv_len -2];
 
-    if (uart1_recv_len < MB_SER_PDU_SIZE_MIN)
+    if (usart1_recv_len < MB_SER_PDU_SIZE_MIN)
     {
         eStatus = MB_LESS_ERR;
     }
-    else if (uart1_recv_len >= MB_SER_PDU_SIZE_MAX)
+    else if (usart1_recv_len >= MB_SER_PDU_SIZE_MAX)
     {
         eStatus = MB_EXCEED_ERR;
     }
-    else if (usMBCRC16((UCHAR*)ucRTUBuf, uart1_recv_len - 2) != crc)
+    else if (usMBCRC16((UCHAR*)ucRTUBuf, usart1_recv_len - 2) != crc)
     {
         eStatus = MB_CRC_ERR;
     }
@@ -133,7 +133,7 @@ eMBRTUReceive( UCHAR * pucRcvAddress, UCHAR ** pucFrame, USHORT * pusLength )
         /* Total length of Modbus-PDU is Modbus-Serial-Line-PDU minus
          * size of address field and CRC checksum.
          */
-        *pusLength = ( USHORT )(uart1_recv_len - MB_SER_PDU_PDU_OFF - MB_SER_PDU_SIZE_CRC );
+        *pusLength = ( USHORT )(usart1_recv_len - MB_SER_PDU_PDU_OFF - MB_SER_PDU_SIZE_CRC );
 
         /* Return the start of the Modbus PDU to the caller. */
         *pucFrame = ucRTUBuf;
@@ -151,7 +151,7 @@ xMBRTUReceiveFSM( void )
     case STATE_RX_INIT:
     case STATE_RX_IDLE:
     case STATE_RX_RCV:
-        ucRTUBuf = uart1_recv_data;
+        ucRTUBuf = usart1_recv_data;
         xMBPortEventPost(EV_FRAME_RECEIVED);
         break;
         /* In the error state we wait until all characters in the

@@ -5,7 +5,7 @@ cwd = GetCurrentDir()
 src = Split("""
 block_dev.c
 mmcsd_core.c
-sd.c
+sw.c
 sdio.c
 mmc.c
 """)

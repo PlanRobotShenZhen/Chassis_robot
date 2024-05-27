@@ -95,7 +95,7 @@ extern "C" {
 
 #ifdef RT_USING_SDIO
 #include "mmcsd_core.h"
-#include "sd.h"
+#include "sw.h"
 #include "sdio.h"
 #endif
 

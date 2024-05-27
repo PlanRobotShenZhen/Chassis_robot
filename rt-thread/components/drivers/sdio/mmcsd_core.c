@@ -10,7 +10,7 @@
 
 #include <rtthread.h>
 #include <drivers/mmcsd_core.h>
-#include <drivers/sd.h>
+#include <drivers/sw.h>
 #include <drivers/mmc.h>
 #include <drivers/sdio.h>
 

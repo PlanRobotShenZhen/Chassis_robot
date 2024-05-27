@@ -71,7 +71,7 @@ extern "C" {
 
 #ifdef RT_USING_SDIO
 #include "drivers/mmcsd_core.h"
-#include "drivers/sd.h"
+#include "drivers/sw.h"
 #include "drivers/sdio.h"
 #endif
 

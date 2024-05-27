@@ -42,7 +42,7 @@ void show_task(void *pvParameters)
 				{
 					nFlag++;
 					// 根据读取到的陀螺仪的状态来使能机器人的
-					Flag_Stop = 0;     //0代表使能机器人
+					// Flag_Stop = 0;     //0代表使能机器人
 				}
 			}
     }

@@ -399,7 +399,7 @@ rt_int32_t rt_mmcsd_blk_probe(struct rt_mmcsd_card *card)
             status = dfs_filesystem_get_partition(&blk_dev->part, sector, i);
             if (status == RT_EOK)
             {
-                rt_snprintf(dname, 4, "sd%d",  i);
+                rt_snprintf(dname, 4, "sw%d",  i);
                 rt_snprintf(sname, 8, "sem_sd%d",  i);
                 blk_dev->part.lock = rt_sem_create(sname, 1, RT_IPC_FLAG_FIFO);
     
@@ -519,7 +519,7 @@ void rt_mmcsd_blk_remove(struct rt_mmcsd_card *card)
 }
 
 /*
- * This function will initialize block device on the mmc/sd.
+ * This function will initialize block device on the mmc/sw.
  *
  * @deprecated since 2.1.0, this function does not need to be invoked
  * in the system initialization.

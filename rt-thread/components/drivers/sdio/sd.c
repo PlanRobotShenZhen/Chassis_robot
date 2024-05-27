@@ -9,7 +9,7 @@
  */
 
 #include <drivers/mmcsd_core.h>
-#include <drivers/sd.h>
+#include <drivers/sw.h>
 
 #define DBG_TAG               "SDIO"
 #ifdef RT_SDIO_DEBUG

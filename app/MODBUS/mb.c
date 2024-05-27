@@ -64,6 +64,7 @@ static UCHAR    ucMBAddress;
 PDUData_TypeDef PduData;
 REG_VALUE R_value;
 static uint16_t mbdata[MB_RTU_DATA_MAX_SIZE];
+uint16_t* pdu = mbdata;
 static enum
 {
     STATE_ENABLED,
@@ -431,8 +432,8 @@ static uint16_t MB_RSP_AAH(uint16_t _TxCount, uint16_t* _AddrOffset, uint16_t _R
     /* 返回保持寄存器内的数据 */
     for (uint8_t i = 0; i < _RegNum; i++)
     {
-        uart1_send_data[_TxCount++] = ((*_AddrOffset) >> 8);
-        uart1_send_data[_TxCount++] = *_AddrOffset++;
+        usart1_send_data[_TxCount++] = ((*_AddrOffset) >> 8);
+        usart1_send_data[_TxCount++] = *_AddrOffset++;
     }
 
     return _TxCount;
@@ -506,32 +507,32 @@ static uint16_t MB_RSP_01H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Co
     //	}		
 
         /*----------------------------分割线----------------------------------*/
-    uart1_send_data[_TxCount++] = 2;
+    usart1_send_data[_TxCount++] = 2;
     /* 填充返回内容 */
     if (_AddrOffset == COIL_D01)
     {
-        uart1_send_data[_TxCount++] = R_value.D01 >> 8;
-        uart1_send_data[_TxCount++] = R_value.D01;
+        usart1_send_data[_TxCount++] = R_value.D01 >> 8;
+        usart1_send_data[_TxCount++] = R_value.D01;
     }
     else if (_AddrOffset == COIL_D02)
     {
-        uart1_send_data[_TxCount++] = R_value.D02 >> 8;
-        uart1_send_data[_TxCount++] = R_value.D02;
+        usart1_send_data[_TxCount++] = R_value.D02 >> 8;
+        usart1_send_data[_TxCount++] = R_value.D02;
     }
     else if (_AddrOffset == COIL_D03)
     {
-        uart1_send_data[_TxCount++] = R_value.D03 >> 8;
-        uart1_send_data[_TxCount++] = R_value.D03;
+        usart1_send_data[_TxCount++] = R_value.D03 >> 8;
+        usart1_send_data[_TxCount++] = R_value.D03;
     }
     else if (_AddrOffset == COIL_D04)
     {
-        uart1_send_data[_TxCount++] = R_value.D04 >> 8;
-        uart1_send_data[_TxCount++] = R_value.D04;
+        usart1_send_data[_TxCount++] = R_value.D04 >> 8;
+        usart1_send_data[_TxCount++] = R_value.D04;
     }
     else
     {
-        uart1_send_data[_TxCount++] = 0;
-        uart1_send_data[_TxCount++] = 0;
+        usart1_send_data[_TxCount++] = 0;
+        usart1_send_data[_TxCount++] = 0;
     }
 
     return _TxCount;
@@ -575,7 +576,7 @@ static uint16_t MB_RSP_02H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Co
     /* 计算返回字节数（_CoilNum变量是以位为单位） */
     m = (_CoilNum + 7) / 8;
     /* 返回字节数（数量）*/
-    uart1_send_data[_TxCount++] = m;
+    usart1_send_data[_TxCount++] = m;
 
     if ((_AddrOffset >= COIL_D01) && (_CoilNum > 0))
     {
@@ -598,7 +599,7 @@ static uint16_t MB_RSP_02H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Co
     for (i = 0; i < m; i++)
     {
         /* 继电器状态 */
-        uart1_send_data[_TxCount++] = status[i];
+        usart1_send_data[_TxCount++] = status[i];
     }
     return _TxCount;
 }
@@ -641,12 +642,12 @@ static uint8_t MB_RSP_03H(uint16_t _TxCount, uint16_t* _AddrOffset, uint16_t _Re
     */
 
     /* 填充返回寄存器数量 */
-    uart1_send_data[_TxCount++] = _RegNum * 2;
+    usart1_send_data[_TxCount++] = _RegNum * 2;
     /* 返回保持寄存器内的数据 */
     for (uint8_t i = 0; i < _RegNum; i++)
     {
-        uart1_send_data[_TxCount++] = ((*_AddrOffset) >> 8);
-        uart1_send_data[_TxCount++] = *_AddrOffset++;
+        usart1_send_data[_TxCount++] = ((*_AddrOffset) >> 8);
+        usart1_send_data[_TxCount++] = *_AddrOffset++;
     }
 
     return _TxCount;
@@ -690,7 +691,7 @@ static uint8_t MB_RSP_04H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
     uint8_t i;
     uint16_t reg_value[64];
     /* 填充返回寄存器数量 */
-    uart1_send_data[_TxCount++] = _RegNum;
+    usart1_send_data[_TxCount++] = _RegNum;
     /* 读取保持寄存器内容 */
     for (i = 0; i < _RegNum; i++)
     {
@@ -712,8 +713,8 @@ static uint8_t MB_RSP_04H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
     for (i = 0; i < _RegNum; i++)
     {
 
-        uart1_send_data[_TxCount++] = reg_value[i] >> 8;
-        uart1_send_data[_TxCount++] = reg_value[i] & 0xFF;
+        usart1_send_data[_TxCount++] = reg_value[i] >> 8;
+        usart1_send_data[_TxCount++] = reg_value[i] & 0xFF;
     }
     return _TxCount;
 }
@@ -754,8 +755,8 @@ static uint8_t MB_RSP_05H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
     */
 
     /* 填充地址值 */
-    uart1_send_data[_TxCount++] = _AddrOffset >> 8;
-    uart1_send_data[_TxCount++] = _AddrOffset;
+    usart1_send_data[_TxCount++] = _AddrOffset >> 8;
+    usart1_send_data[_TxCount++] = _AddrOffset;
 
     if (_AddrOffset == COIL_D01)
     {
@@ -787,14 +788,14 @@ static uint8_t MB_RSP_05H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
         R_value.D04 = 0;
     }
 
-    uart1_send_data[_TxCount++] = _RegDATA >> 8;
-    uart1_send_data[_TxCount++] = _RegDATA;
+    usart1_send_data[_TxCount++] = _RegDATA >> 8;
+    usart1_send_data[_TxCount++] = _RegDATA;
     return _TxCount;
 }
 
 int isWritableAddr(uint16_t _AddrOffset)
 {
-    if (_AddrOffset >= car_type && _AddrOffset< car_mode)
+    if (_AddrOffset >= car_type && _AddrOffset< control_mode)
     {
         return 0;
     }
@@ -836,8 +837,8 @@ static uint8_t MB_RSP_06H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
             返回：	01 06 00 10 67 4A  23 C8    ---- 返回同样数据
 */
 /* 填充地址值 */
-    uart1_send_data[_TxCount++] = _AddrOffset >> 8;
-    uart1_send_data[_TxCount++] = _AddrOffset;
+    usart1_send_data[_TxCount++] = _AddrOffset >> 8;
+    usart1_send_data[_TxCount++] = _AddrOffset;
 
     /* 将数据写入保持寄存器内 */
     if (isWritableAddr(_AddrOffset))
@@ -845,8 +846,8 @@ static uint8_t MB_RSP_06H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Reg
         *_AddrAbs = _RegNum;
     }
     /* 填充返回内容 */
-    uart1_send_data[_TxCount++] = PduData.Num >> 8;
-    uart1_send_data[_TxCount++] = PduData.Num;
+    usart1_send_data[_TxCount++] = PduData.Num >> 8;
+    usart1_send_data[_TxCount++] = PduData.Num;
 
     return _TxCount;
 }
@@ -893,8 +894,8 @@ static uint8_t MB_RSP_10H(uint16_t _TxCount, uint16_t  _AddrOffset, uint16_t _Re
     uint16_t i = 0;
     uint16_t Value = 0;
     /* 填充地址值 */
-    uart1_send_data[_TxCount++] = _AddrOffset >> 8;
-    uart1_send_data[_TxCount++] = _AddrOffset;
+    usart1_send_data[_TxCount++] = _AddrOffset >> 8;
+    usart1_send_data[_TxCount++] = _AddrOffset;
 
     /* 写入多个保持寄存器 */
     for (i = 0; i < _RegNum; i++)
@@ -904,8 +905,8 @@ static uint8_t MB_RSP_10H(uint16_t _TxCount, uint16_t  _AddrOffset, uint16_t _Re
         _Datebuf += 2;
     }
 
-    uart1_send_data[_TxCount++] = _RegNum >> 8;
-    uart1_send_data[_TxCount++] = _RegNum;
+    usart1_send_data[_TxCount++] = _RegNum >> 8;
+    usart1_send_data[_TxCount++] = _RegNum;
     return _TxCount;
 }
 
@@ -951,8 +952,8 @@ static uint8_t MB_RSP_11H(uint16_t _TxCount, uint16_t  _AddrOffset, uint16_t _Re
     uint16_t i = 0;
     uint16_t Value = 0;
     /* 填充地址值 */
-    uart1_send_data[_TxCount++] = _AddrOffset >> 8;
-    uart1_send_data[_TxCount++] = _AddrOffset;
+    usart1_send_data[_TxCount++] = _AddrOffset >> 8;
+    usart1_send_data[_TxCount++] = _AddrOffset;
 
     /* 写入多个保持寄存器 */
     for (i = 0; i < _RegNum; i++)
@@ -962,8 +963,8 @@ static uint8_t MB_RSP_11H(uint16_t _TxCount, uint16_t  _AddrOffset, uint16_t _Re
         _Datebuf += 2;
     }
 
-    uart1_send_data[_TxCount++] = _RegNum >> 8;
-    uart1_send_data[_TxCount++] = _RegNum;
+    usart1_send_data[_TxCount++] = _RegNum >> 8;
+    usart1_send_data[_TxCount++] = _RegNum;
     return _TxCount;
 }
 
@@ -976,16 +977,16 @@ static uint8_t MB_RSP_11H(uint16_t _TxCount, uint16_t  _AddrOffset, uint16_t _Re
 void MB_Exception_RSP(uint8_t _FunCode, uint8_t _ExCode)
 {
     uint16_t crc;
-    uart1_send_len = 0;
-    uart1_send_data[uart1_send_len++] = ucMBAddress;		    /* 从站地址 */
-    uart1_send_data[uart1_send_len++] = _FunCode | 0x80;		  /* 功能码 + 0x80*/
-    uart1_send_data[uart1_send_len++] = _ExCode;	          /* 异常码*/
+    usart1_send_len = 0;
+    usart1_send_data[usart1_send_len++] = ucMBAddress;		    /* 从站地址 */
+    usart1_send_data[usart1_send_len++] = _FunCode | 0x80;		  /* 功能码 + 0x80*/
+    usart1_send_data[usart1_send_len++] = _ExCode;	          /* 异常码*/
 
-    crc = usMBCRC16((UCHAR*)&uart1_send_data, uart1_send_len);
-    uart1_send_data[uart1_send_len++] = crc;	          /* crc 低字节 */
-    uart1_send_data[uart1_send_len++] = crc >> 8;		      /* crc 高字节 */
+    crc = usMBCRC16((UCHAR*)&usart1_send_data, usart1_send_len);
+    usart1_send_data[usart1_send_len++] = crc;	          /* crc 低字节 */
+    usart1_send_data[usart1_send_len++] = crc >> 8;		      /* crc 高字节 */
     //UART_Tx((uint8_t*)Tx_Buf, TxCount);
-    uart1_send_flag = 2;
+    usart1_send_flag = 1;
 }
 /**
   * 函数功能: 正常响应
@@ -995,54 +996,54 @@ void MB_Exception_RSP(uint8_t _FunCode, uint8_t _ExCode)
   */
 void MB_RSP(uint8_t _FunCode)
 {
-    uart1_send_len = 0;
+    usart1_send_len = 0;
     uint16_t crc = 0;	
-    uart1_send_data[uart1_send_len++] = ucMBAddress;		 /* 从站地址 */
-    uart1_send_data[uart1_send_len++] = _FunCode;        /* 功能码   */
+    usart1_send_data[usart1_send_len++] = ucMBAddress;		 /* 从站地址 */
+    usart1_send_data[usart1_send_len++] = _FunCode;        /* 功能码   */
     switch (_FunCode)
     {
     case FUN_CODE_AAH:
         PduData.Addr = 218;
         PduData.PtrHoldingOffset = PduData.PtrHoldingbase + PduData.Addr; // 保持寄存器的起始地址
-        uart1_send_len = MB_RSP_AAH(uart1_send_len, (uint16_t*)PduData.PtrHoldingOffset,7);
+        usart1_send_len = MB_RSP_AAH(usart1_send_len, (uint16_t*)PduData.PtrHoldingOffset,7);
         break;
     case FUN_CODE_01H:
         /* 读取线圈状态 */
-        uart1_send_len = MB_RSP_01H(uart1_send_len, PduData.Addr, PduData.Num);
+        usart1_send_len = MB_RSP_01H(usart1_send_len, PduData.Addr, PduData.Num);
         break;
     case FUN_CODE_02H:
         /* 读取离散输入 */
-        uart1_send_len = MB_RSP_02H(uart1_send_len, PduData.Addr, PduData.Num);
+        usart1_send_len = MB_RSP_02H(usart1_send_len, PduData.Addr, PduData.Num);
         break;
     case FUN_CODE_03H:
         /* 读取保持寄存器 */
-        uart1_send_len = MB_RSP_03H(uart1_send_len, (uint16_t*)PduData.PtrHoldingOffset, PduData.Num);
+        usart1_send_len = MB_RSP_03H(usart1_send_len, (uint16_t*)PduData.PtrHoldingOffset, PduData.Num);
         break;
     case FUN_CODE_04H:
         /* 读取输入寄存器 */
-        uart1_send_len = MB_RSP_04H(uart1_send_len, PduData.Addr, PduData.Num);
+        usart1_send_len = MB_RSP_04H(usart1_send_len, PduData.Addr, PduData.Num);
         break;
     case FUN_CODE_05H:
         /* 写单个线圈 */
-        uart1_send_len = MB_RSP_05H(uart1_send_len, PduData.Addr, PduData.Num);
+        usart1_send_len = MB_RSP_05H(usart1_send_len, PduData.Addr, PduData.Num);
         break;
     case FUN_CODE_06H:
         /* 写单个保持寄存器 */
-        uart1_send_len = MB_RSP_06H(uart1_send_len, PduData.Addr, PduData.Num, (uint16_t*)PduData.PtrHoldingOffset);
+        usart1_send_len = MB_RSP_06H(usart1_send_len, PduData.Addr, PduData.Num, (uint16_t*)PduData.PtrHoldingOffset);
         break;
     case FUN_CODE_10H:
         /* 写多个保持寄存器 */
-        uart1_send_len = MB_RSP_10H(uart1_send_len, PduData.Addr, PduData.Num, (uint16_t*)PduData.PtrHoldingOffset, (uint8_t*)PduData.ValueReg);
+        usart1_send_len = MB_RSP_10H(usart1_send_len, PduData.Addr, PduData.Num, (uint16_t*)PduData.PtrHoldingOffset, (uint8_t*)PduData.ValueReg);
         break;
     case FUN_CODE_11H:
         /* 写多个保持寄存器 */
-        uart1_send_len = MB_RSP_11H(uart1_send_len, PduData.Addr, PduData.Num, (uint16_t*)PduData.PtrHoldingOffset, (uint8_t*)PduData.ValueReg);
+        usart1_send_len = MB_RSP_11H(usart1_send_len, PduData.Addr, PduData.Num, (uint16_t*)PduData.PtrHoldingOffset, (uint8_t*)PduData.ValueReg);
         break;
     }
-    crc = usMBCRC16((UCHAR*)&uart1_send_data, uart1_send_len);
-    uart1_send_data[uart1_send_len++] = crc;	          /* crc 低字节 */
-    uart1_send_data[uart1_send_len++] = crc >> 8;		      /* crc 高字节 */
-    uart1_send_flag = 2;
+    crc = usMBCRC16((UCHAR*)&usart1_send_data, usart1_send_len);
+    usart1_send_data[usart1_send_len++] = crc;	          /* crc 低字节 */
+    usart1_send_data[usart1_send_len++] = crc >> 8;		      /* crc 高字节 */
+    usart1_send_flag = 1;
 }
 
 /* ----------------------- Start implementation -----------------------------*/
@@ -1309,18 +1310,18 @@ eMBErrorCode eMBPoll(MBModify* modify)
                 }
                 else
                 {
-                    //memset(uart1_recv_data, 0, USART1_RX_MAXBUFF);  // 清空接收缓冲区
-                    DMA_EnableChannel(USARTy_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
-                    DMA_SetCurrDataCounter(USARTy_Rx_DMA_Channel, USART1_RX_MAXBUFF);
-                    DMA_EnableChannel(USARTy_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
+                    //memset(usart1_recv_data, 0, USART1_RX_MAXBUFF);  // 清空接收缓冲区
+                    DMA_EnableChannel(USARTOne_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
+                    DMA_SetCurrDataCounter(USARTOne_Rx_DMA_Channel, USART1_RX_MAXBUFF);
+                    DMA_EnableChannel(USARTOne_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
                 }
             }
             else
             {
-                //memset(uart1_recv_data, 0, USART1_RX_MAXBUFF);  // 清空接收缓冲区
-                DMA_EnableChannel(USARTy_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
-                DMA_SetCurrDataCounter(USARTy_Rx_DMA_Channel, USART1_RX_MAXBUFF);
-                DMA_EnableChannel(USARTy_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
+                //memset(usart1_recv_data, 0, USART1_RX_MAXBUFF);  // 清空接收缓冲区
+                DMA_EnableChannel(USARTOne_Rx_DMA_Channel, DISABLE);    // DMA1 通道5, UART1_RX
+                DMA_SetCurrDataCounter(USARTOne_Rx_DMA_Channel, USART1_RX_MAXBUFF);
+                DMA_EnableChannel(USARTOne_Rx_DMA_Channel, ENABLE);     // DMA1 通道5, UART1_RX
             }
             break;
         case EV_EXECUTE:
@@ -1332,7 +1333,3 @@ eMBErrorCode eMBPoll(MBModify* modify)
     return MB_ENOERR;
 }
 
-uint16_t* getPDUData(void)
-{
-    return mbdata;
-}

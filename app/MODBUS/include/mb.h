@@ -81,7 +81,7 @@ typedef struct
    * \brief Use the default Modbus TCP port (502)
    */
 #define MB_RTU_DATA_MAX_SIZE 1000  
-
+extern uint16_t* pdu;
 /* ----------------------- Type definitions ---------------------------------*/
 
 /*! \ingroup modbus

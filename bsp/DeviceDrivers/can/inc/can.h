@@ -128,21 +128,6 @@ enum ENUM_HEART_STAT
     STATE_PRE_OPERATE = 0x7F		//预操作状态
 };
 
-// 定义驱动器的故障状态
-enum ENUM_ERROR_STATE
-{
-    ERROR_NONE = 0x00,  // 无错误
-    ERROR_OVER_VALUE = 0x01,  // 过压
-    ERROR_LESS_VALUE = 0x02,  // 欠压
-    ERROR_OVER_CURRENT = 0x04,  // 过流
-    ERROR_OVER_LOAD = 0x08,  // 过载
-    ERROR_OVERDIFF_CURRENT = 0x10,  // 电流超差
-    ERROR_OVERDIFF_ENCODER = 0x20,  // 编码器超差
-    ERROR_OVERDIFF_VELOCITY = 0x40,  // 速度超差
-    ERROR_REF_VALUE = 0x80,  // 参考电压出错
-    ERROR_EEPROM = 0x100, // EEPROM读写错误
-    ERROR_HALL = 0x200  // 霍尔出错
-};
 
 extern union URcv_Vel_Data uVelLF;
 extern union URcv_Vel_Data uVelLB;

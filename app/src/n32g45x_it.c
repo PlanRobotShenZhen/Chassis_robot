@@ -119,7 +119,7 @@ void DebugMon_Handler(void)
 //void SysTick_Handler(void)
 //{
 //}
-
+#if(CARMODE != Diff)
 /**
  * @brief  This function handles SPI1 interrupt request defined in main.h .
  */
@@ -175,18 +175,18 @@ void EXTI9_5_IRQHandler(void)
         }
     }
 }
-
+#endif
 /**
  * @brief  This function handles TIM3 update interrupt request.
  */
-void TIM3_IRQHandler(void)
-{
-    if (TIM_GetIntStatus(TIM3, TIM_INT_UPDATE) != RESET)
-    {
-        TIM_ClrIntPendingBit(TIM3, TIM_INT_UPDATE);
-        //ultrasonic_t1tig_time++;
-    }
-}
+//void TIM3_IRQHandler(void)
+//{
+//    if (TIM_GetIntStatus(TIM3, TIM_INT_UPDATE) != RESET)
+//    {
+//        TIM_ClrIntPendingBit(TIM3, TIM_INT_UPDATE);
+//        //ultrasonic_t1tig_time++;
+//    }
+//}
 /**
  * @brief  This function handles TIM4 update interrupt request.
  */
@@ -195,6 +195,5 @@ void TIM4_IRQHandler(void)
     if (TIM_GetIntStatus(TIM4, TIM_INT_UPDATE) != RESET)
     {
         TIM_ClrIntPendingBit(TIM4, TIM_INT_UPDATE);
-        ultrasonic_t2tig_time++;
     }
 }

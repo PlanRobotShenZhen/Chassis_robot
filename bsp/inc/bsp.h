@@ -35,8 +35,21 @@
 #ifndef __BSP_H__
 #define __BSP_H__
 
-
+#include "stdint.h"
 //  <i>Default: 144
+            
+#define Usknow		-1
+#define Mec			0           // 麦轮小车
+#define Omni		2           // 万向轮小车
+#define Akm			2           // 阿克曼
+#define Diff		3			// 差速车(圆形底盘)
+#define FourWheel	4			// 室外差速四驱车
+#define TwoWheel	5			// 室内差速二驱车
+#define Tank		6           // 坦克车
+#define RC          7		    // 竞赛小车
+#define Chrg		8           // 充电桩
+
+#define CARMODE						Diff
 #define N32G45X_SRAM_SIZE           144
 #define N32G45X_SRAM_START          (0x20000000 + N32G45X_SRAM_SIZE/2 * 1024)
 #define N32G45X_SRAM_END            (0x20000000 + N32G45X_SRAM_SIZE * 1024)
@@ -62,105 +75,46 @@ typedef union __SPI_IO_OUTPUT
 {
 	struct {
 		unsigned char RGB_G : 1;
-		unsigned char RGB_B : 1;
+		unsigned char RGB_B : 1;		
 		unsigned char RGB_R : 1;
-		unsigned char Light : 1;
-		unsigned char Light_Q : 1;//< 左前
-		unsigned char Light_Z : 1;//< 左后
-		unsigned char Light_Y : 1;//< 右前
-		unsigned char Light_H : 1;//< 右后
+		unsigned char Light_Side : 1;	//< 给蜂鸣器用
+		unsigned char Light_LF : 1;		//< 左前
+		unsigned char Light_LR : 1;		//< 左后
+		unsigned char Light_RF : 1;		//< 右前
+		unsigned char Light_RR : 1;		//< 右后
 	}bit;
 	unsigned char output;
 }EXIO_OUTPUT;
 
+typedef struct {
+	uint32_t t_cnt_RGB_G;
+	uint32_t t_cnt_RGB_B;
+	uint32_t t_cnt_RGB_R;
+	uint32_t t_cnt_Light_Side;
+	uint32_t t_cnt_Light_LF;	//< 左前
+	uint32_t t_cnt_Light_LR;	//< 左后
+	uint32_t t_cnt_Light_RF;	//< 右前
+	uint32_t t_cnt_Light_RR;	//< 右后
+	uint32_t t_cnt_Light_ALL;	//< 所有灯
+}LightTime;
+extern LightTime light_time;
+
+extern EXIO_INPUT exio_input;
+extern EXIO_OUTPUT exio_output;
+
+#if(CARMODE == Diff)
+/*圆形底盘小车引脚定义采用新版本*/
+#define PLAN_CONTROL_BOARD_V 13
+#else
 #define PLAN_CONTROL_BOARD_V 12
-#if(PLAN_CONTROL_BOARD_V==10)
-#define PLAN_CONTROL_BOARD_VERSION "V1.0"
-
-#define LED1_PORT_RCC     RCC_APB2_PERIPH_GPIOA
-#define LED2_PORT_RCC     RCC_APB2_PERIPH_GPIOA
-#define LED1_PORT     GPIOA
-#define LED2_PORT     GPIOA
-
-#define LED_R        GPIO_PIN_3
-#define LED_G        GPIO_PIN_4
-#define LED_B        GPIO_PIN_5
-#define LED_Battery  GPIO_PIN_6
-#define RUN1         GPIO_PIN_1
-#define RUN2         GPIO_PIN_2
-
-#define JDQ_PORT_RCC  RCC_APB2_PERIPH_GPIOC
-#define JDQ_PORT     GPIOC   
-#define JDQ1_PIN    GPIO_PIN_13
-#define JDQ2_PIN    GPIO_PIN_14
-
-
-
-/*USART1 */
-#define USARTy            USART1
-#define USARTy_GPIO       GPIOA
-#define USARTy_CLK        RCC_APB2_PERIPH_USART1
-#define USARTy_GPIO_CLK   RCC_APB2_PERIPH_GPIOA
-#define USARTy_RxPin      GPIO_PIN_10
-#define USARTy_TxPin      GPIO_PIN_9
-#define USARTy_DMAx_CLK       RCC_AHB_PERIPH_DMA1
-#define USARTy_APBxClkCmd RCC_EnableAPB2PeriphClk
-#define USARTy_IRQHandler USART1_IRQHandler
-#define USARTy_IRQn           USART1_IRQn
-#define USARTy_Tx_DMA_Channel DMA1_CH4
-#define USARTy_Rx_DMA_Channel DMA1_CH5
-#define USARTy_DR_Base        (USART1_BASE + 0x04)
-#define USARTy_Tx_DMA_FLAG    DMA1_FLAG_TC4
-
-/*USART3 */
-#define USARTz					USART3
-#define USARTz_GPIO				GPIOB
-#define USARTz_CLK				RCC_APB1_PERIPH_USART3
-#define USARTz_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
-#define USARTz_RxPin			GPIO_PIN_11
-#define USARTz_TxPin			GPIO_PIN_10
-#define USARTz_DMAx_CLK			RCC_AHB_PERIPH_DMA1
-#define USARTz_APBxClkCmd		RCC_EnableAPB2PeriphClk
-#define USARTz_IRQHandler		USART3_IRQHandler
-#define USARTz_IRQn				USART3_IRQn
-#define USARTz_Tx_DMA_Channel	DMA1_CH2
-#define USARTz_Rx_DMA_Channel	DMA1_CH3
-#define USARTz_DR_Base			(USART3_BASE + 0x04)
-#define USARTz_Tx_DMA_FLAG		DMA1_FLAG_TC2
-/*USART5 */
-#define USARTe					UART5
-#define USARTe_GPIO				GPIOB
-#define USARTe_CLK				RCC_APB1_PERIPH_UART5
-#define USARTe_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
-#define USARTe_RxPin			GPIO_PIN_14
-//#define USARTe_TxPin			GPIO_PIN_10
-#define USARTe_DMAx_CLK			RCC_AHB_PERIPH_DMA1
-#define USARTe_APBxClkCmd		RCC_EnableAPB2PeriphClk
-#define USARTe_IRQHandler		UART5_IRQHandler
-#define USARTe_IRQn				UART5_IRQn
-//#define USARTe_Tx_DMA_Channel	DMA1_CH2
-#define USARTe_Rx_DMA_Channel	DMA1_CH8
-#define USARTe_DR_Base			(UART5_BASE + 0x04)
-#define USARTe_Tx_DMA_FLAG		DMA1_FLAG_TC2
-
-/*CAN1 */
-
-#define CANa_GPIO		    GPIOB
-#define CANa_RxPin			GPIO_PIN_8
-#define CANa_TxPin			GPIO_PIN_9
-/*CAN2 */
-#define CANb_GPIO		    GPIOB
-#define CANb_RxPin			GPIO_PIN_12
-#define CANb_TxPin			GPIO_PIN_13
-
-#elif(PLAN_CONTROL_BOARD_V==11||PLAN_CONTROL_BOARD_V==12)
+#endif
 
 #if(PLAN_CONTROL_BOARD_V==11)
 #define PLAN_CONTROL_BOARD_VERSION "V1.1"
 #endif
 #if(PLAN_CONTROL_BOARD_V==12)
 #define PLAN_CONTROL_BOARD_VERSION "V1.2"
-#endif
+
 #define LED1_PORT_RCC     RCC_APB2_PERIPH_GPIOC
 #define LED2_PORT_RCC     RCC_APB2_PERIPH_GPIOB
 #define LED1_PORT     GPIOC
@@ -188,78 +142,72 @@ typedef union __SPI_IO_OUTPUT
 #define CS2_Econ_PORT     GPIOB
 #define CS2_Econ_PIN     GPIO_PIN_5
 
-extern uint8_t ultrasonic_t1tig;
-extern uint32_t ultrasonic_t1tig_time;
-extern uint8_t ultrasonic_t2tig;
-extern uint32_t ultrasonic_t2tig_time;
-
-
-void UltrasonicSetEnable(int id, uint8_t en);
 
 /*USART1 */
-#define USARTy            USART1
-#define USARTy_GPIO       GPIOA
-#define USARTy_CLK        RCC_APB2_PERIPH_USART1
-#define USARTy_GPIO_CLK   RCC_APB2_PERIPH_GPIOA
-#define USARTy_RxPin      GPIO_PIN_10
-#define USARTy_TxPin      GPIO_PIN_9
-#define USARTy_DMAx_CLK       RCC_AHB_PERIPH_DMA1
-#define USARTy_APBxClkCmd RCC_EnableAPB2PeriphClk
-#define USARTy_IRQHandler USART1_IRQHandler
-#define USARTy_IRQn           USART1_IRQn
-#define USARTy_Tx_DMA_Channel DMA1_CH4
-#define USARTy_Rx_DMA_Channel DMA1_CH5
-#define USARTy_DR_Base        (USART1_BASE + 0x04)
-#define USARTy_Tx_DMA_FLAG    DMA1_FLAG_TC4
+#define USARTOne            		USART1
+#define USARTOne_GPIO       		GPIOA
+#define USARTOne_CLK        		RCC_APB2_PERIPH_USART1
+#define USARTOne_GPIO_CLK   		RCC_APB2_PERIPH_GPIOA
+#define USARTOne_RxPin      		GPIO_PIN_10
+#define USARTOne_TxPin      		GPIO_PIN_9
+#define USARTOne_DMAx_CLK       	RCC_AHB_PERIPH_DMA1
+#define USARTOne_APBxClkCmd 		RCC_EnableAPB2PeriphClk
+#define USARTOne_IRQHandler 		USART1_IRQHandler
+#define USARTOne_IRQn           	USART1_IRQn
+#define USARTOne_Tx_DMA_Channel 	DMA1_CH4
+#define USARTOne_Rx_DMA_Channel 	DMA1_CH5
+#define USARTOne_DR_Base        	(USART1_BASE + 0x04)
+#define USARTOne_Tx_DMA_FLAG    	DMA1_FLAG_TC4
 
 /*USART3 */
-#define USARTz					USART3
-#define USARTz_GPIO				GPIOB
-#define USARTz_CLK				RCC_APB1_PERIPH_USART3
-#define USARTz_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
-#define USARTz_RxPin			GPIO_PIN_11
-#define USARTz_TxPin			GPIO_PIN_10
-#define USARTz_DMAx_CLK			RCC_AHB_PERIPH_DMA1
-#define USARTz_APBxClkCmd		RCC_EnableAPB2PeriphClk
-#define USARTz_IRQHandler		USART3_IRQHandler
-#define USARTz_IRQn				USART3_IRQn
-#define USARTz_Tx_DMA_Channel	DMA1_CH2
-#define USARTz_Rx_DMA_Channel	DMA1_CH3
-#define USARTz_DR_Base			(USART3_BASE + 0x04)
-#define USARTz_Tx_DMA_FLAG		DMA1_FLAG_TC2
+#define USARTThree					USART3
+#define USARTThree_GPIO				GPIOB
+#define USARTThree_CLK				RCC_APB1_PERIPH_USART3
+#define USARTThree_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
+#define USARTThree_RxPin			GPIO_PIN_11
+#define USARTThree_TxPin			GPIO_PIN_10
+#define USARTThree_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define USARTThree_APBxClkCmd		RCC_EnableAPB2PeriphClk
+#define USARTThree_IRQHandler		USART3_IRQHandler
+#define USARTThree_IRQn				USART3_IRQn
+#define USARTThree_Tx_DMA_Channel	DMA1_CH2
+#define USARTThree_Rx_DMA_Channel	DMA1_CH3
+#define USARTThree_DR_Base			(USART3_BASE + 0x04)
+#define USARTThree_Tx_DMA_FLAG		DMA1_FLAG_TC2
 
-/*USART4 电池信息读取*/
-#define USARTb					UART4
-#define USARTb_GPIO				GPIOA
-#define USARTb_CLK				RCC_APB1_PERIPH_UART4
-#define USARTb_GPIO_CLK			RCC_APB2_PERIPH_GPIOA
-#define USARTb_RxPin			GPIO_PIN_14
-#define USARTb_TxPin			GPIO_PIN_13
-#define USARTb_485enPin			GPIO_PIN_7
-#define USARTb_485en_GPIO		GPIOB
-#define USARTb_DMAx_CLK			RCC_AHB_PERIPH_DMA2
-#define USARTb_APBxClkCmd		RCC_EnableAPB2PeriphClk
-#define USARTb_IRQHandler		UART4_IRQHandler
-#define USARTb_IRQn				UART4_IRQn
-#define USARTb_Tx_DMA_Channel	DMA2_CH5
-#define USARTb_Rx_DMA_Channel	DMA2_CH3
-#define USARTb_DR_Base			(UART4_BASE + 0x04)
-#define USARTb_Tx_DMA_FLAG		DMA2_FLAG_TC5
-/*USART5 */
-#define USARTe					UART5
-#define USARTe_GPIO				GPIOB
-#define USARTe_CLK				RCC_APB1_PERIPH_UART5
-#define USARTe_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
-#define USARTe_RxPin			GPIO_PIN_14
-//#define USARTe_TxPin			GPIO_PIN_10
-#define USARTe_DMAx_CLK			RCC_AHB_PERIPH_DMA1
-#define USARTe_APBxClkCmd		RCC_EnableAPB2PeriphClk
-#define USARTe_IRQHandler		UART5_IRQHandler
-#define USARTe_IRQn				UART5_IRQn
-//#define USARTe_Tx_DMA_Channel	DMA1_CH2
-#define USARTe_Rx_DMA_Channel	DMA1_CH8
-#define USARTe_DR_Base			(UART5_BASE + 0x04)
-#define USARTe_Tx_DMA_FLAG		DMA1_FLAG_TC2
+/*UART4 电池信息读取*/
+#define UARTFour					UART4
+#define UARTFour_GPIO				GPIOA
+#define UARTFour_CLK				RCC_APB1_PERIPH_UART4
+#define UARTFour_GPIO_CLK			RCC_APB2_PERIPH_GPIOA
+#define UARTFour_RxPin				GPIO_PIN_14
+#define UARTFour_TxPin				GPIO_PIN_13
+#define UARTFour_485enPin			GPIO_PIN_7
+#define UARTFour_485en_GPIO			GPIOB
+#define UARTFour_DMAx_CLK			RCC_AHB_PERIPH_DMA2
+#define UARTFour_APBxClkCmd			RCC_EnableAPB2PeriphClk
+#define UARTFour_IRQHandler			UART4_IRQHandler
+#define UARTFour_IRQn				UART4_IRQn
+#define UARTFour_Tx_DMA_Channel		DMA2_CH5
+#define UARTFour_Rx_DMA_Channel		DMA2_CH3
+#define UARTFour_DR_Base			(UART4_BASE + 0x04)
+#define UARTFour_Tx_DMA_FLAG		DMA2_FLAG_TC5
+
+/*UART5 */
+#define UARTFive					UART5
+#define UARTFive_GPIO				GPIOB
+#define UARTFive_CLK				RCC_APB1_PERIPH_UART5
+#define UARTFive_GPIO_CLK			RCC_APB2_PERIPH_GPIOB
+#define UARTFive_RxPin				GPIO_PIN_14
+#define UARTFive_TxPin				GPIO_PIN_10
+#define UARTFive_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define UARTFive_APBxClkCmd			RCC_EnableAPB2PeriphClk
+#define UARTFive_IRQHandler			UART5_IRQHandler
+#define UARTFive_IRQn				UART5_IRQn
+#define UARTFive_Tx_DMA_Channel		DMA1_CH1
+#define UARTFive_Rx_DMA_Channel		DMA1_CH8
+#define UARTFive_DR_Base			(UART5_BASE + 0x04)
+#define UARTFive_Tx_DMA_FLAG		DMA1_FLAG_TC2
 
 /*CAN1 */
 #define CANa_GPIO		    GPIOB
@@ -334,13 +282,269 @@ void UltrasonicSetEnable(int id, uint8_t en);
 extern unsigned char SPI_Master_Rx_Buffer;
 extern unsigned char SPI_ReadWriteCycle;
 
+//充电桩相关参数
+#define LED_LEFT 			Light_LF
+#define LED_RIGHT 			Light_RR
+#define MCU_INF_TX 			exio_output.bit.RGB_G
+#define MCU_RELAY2 			exio_output.bit.RGB_B
+#define IrDA_TX 			MCU_INF_TX
+
+//风扇相关参数
+#define MCU_FAN1			exio_output.bit.Light_RF
+#define MCU_FAN2			exio_output.bit.Light_LR
+#define FAN1				MCU_FAN1
+#define FAN2				MCU_FAN2
+
+#define PRINT_RCC_FREQ_INFO
+#elif(PLAN_CONTROL_BOARD_V==13)
+#define PLAN_CONTROL_BOARD_VERSION "V1.3"
+//圆形底盘
+
+#define LED1_PORT				LED17_GPIO //端口命名统一
+#define RUN1					LED17_PIN
+#define LED1_PORT_RCC			LED17_CLK
+#define LED17_CLK				RCC_APB2_PERIPH_GPIOC
+#define LED17_GPIO				GPIOC
+#define LED17_PIN				GPIO_PIN_15
+
+#define MCU_RGB_CLK				RCC_APB2_PERIPH_GPIOA
+#define MCU_RGB_GPIO			GPIOA
+#define MCU_RGB_RED_PIN			GPIO_PIN_1
+#define MCU_RGB_GREEN_PIN		GPIO_PIN_2
+#define MCU_RGB_BLUE_PIN		GPIO_PIN_3
+
+#define CS1_CLK					RCC_APB2_PERIPH_GPIOA
+#define CS1_TIM_CLK				RCC_APB1_PERIPH_TIM3
+#define CS1_TTIG_GPIO			GPIOA
+#define CS1_TTIG_PIN			GPIO_PIN_6
+#define CS1_ECON_GPIO			GPIOA
+#define CS1_ECON_PIN			GPIO_PIN_7
+#define CS1_ECON_TIM			TIM3
+#define CS1_ECON_TIM_CCx		TIM_INT_UPDATE
+#define CS1_ECON_Channel		TIM_CH_2
+#define CS1_ECON_IRQn			TIM3_IRQn	//	EXTI7
+#define CS1_ECON_EXTI_LINE		EXTI_LINE7
+
+#define CS2_CLK						RCC_APB2_PERIPH_GPIOB
+#define CS2_TIM_CLK				RCC_APB1_PERIPH_TIM3 
+#define CS2_TTIG_GPIO			GPIOB
+#define CS2_TTIG_PIN			GPIO_PIN_0
+#define CS2_ECON_GPIO			GPIOB
+#define CS2_ECON_PIN			GPIO_PIN_1
+#define CS2_ECON_TIM			TIM3
+#define CS2_ECON_Channel	TIM_CH_4
+#define CS2_ECON_IRQn			TIM3_IRQn
+#define CS2_ECON_EXTI_LINE		EXTI_LINE1
+
+/*USART1 USB1*/
+#define USB1					USART1
+#define USARTOne				USART1
+#define USARTOne_GPIO			GPIOA
+#define USARTOne_CLK			RCC_APB2_PERIPH_USART1
+#define USARTOne_GPIO_CLK		RCC_APB2_PERIPH_GPIOA
+#define USARTOne_TxPin			GPIO_PIN_9
+#define USARTOne_RxPin			GPIO_PIN_10
+#define USARTOne_DMAx_CLK		RCC_AHB_PERIPH_DMA1
+#define USARTOne_APBxClkCmd		RCC_EnableAPB2PeriphClk
+#define USARTOne_IRQHandler		USART1_IRQHandler
+#define USARTOne_IRQn			USART1_IRQn
+#define USARTOne_Tx_DMA_Channel	DMA1_CH4
+#define USARTOne_Rx_DMA_Channel	DMA1_CH5
+#define USARTOne_DR_Base		(USART1_BASE + 0x04)
+#define USARTOne_Tx_DMA_FLAG	DMA1_FLAG_TC4
+
+/*USART2 RS485*/
+#define RS485						USART2
+#define USARTTwo					USART2
+#define USARTTwo_GPIO				GPIOC
+#define USARTTwo_CLK				RCC_APB1_PERIPH_USART2
+#define USARTTwo_GPIO_CLK			RCC_APB2_PERIPH_GPIOC
+#define USARTTwo_RxPin				GPIO_PIN_9
+#define USARTTwo_TxPin				GPIO_PIN_8
+#define USARTTwo_CTS				GPIO_PIN_6 //目前用它代替485en引脚
+#define USARTTwo_RTS				GPIO_PIN_7
+#define USARTTwo_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define USARTTwo_IRQn				USART2_IRQn
+#define USARTTwo_IRQHandler			USART2_IRQHandler
+#define USARTTwo_Tx_DMA_Channel		DMA1_CH7
+#define USARTTwo_Rx_DMA_Channel		DMA1_CH6
+#define USARTTwo_DR_Base			(USART2_BASE + 0x04)
+#define USARTTwo_Tx_DMA_FLAG		DMA1_FLAG_TC5
+
+/*USART3 RS232*/
+#define RS232						USART3
+#define USARTThree					USART3
+#define USARTThree_GPIO				GPIOC
+#define USARTThree_CLK				RCC_APB1_PERIPH_USART3
+#define USARTThree_GPIO_CLK			RCC_APB2_PERIPH_GPIOC
+#define USARTThree_RxPin			GPIO_PIN_11
+#define USARTThree_TxPin			GPIO_PIN_10
+#define USARTThree_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define USARTThree_APBxClkCmd		RCC_EnableAPB2PeriphClk
+#define USARTThree_IRQHandler		USART3_IRQHandler
+#define USARTThree_IRQn				USART3_IRQn
+#define USARTThree_Tx_DMA_Channel	DMA1_CH2
+#define USARTThree_Rx_DMA_Channel	DMA1_CH3
+#define USARTThree_DR_Base			(USART3_BASE + 0x04)
+#define USARTThree_Tx_DMA_FLAG		DMA1_FLAG_TC2
+
+
+/*USART5 遥控器接收*/
+#define UARTFive					UART5
+#define UARTFive_GPIO				GPIOD
+#define UARTFive_CLK				RCC_APB1_PERIPH_UART5
+#define UARTFive_GPIO_CLK			RCC_APB2_PERIPH_GPIOD
+#define UARTFive_RxPin				GPIO_PIN_2
+//#define USARTe_TxPin				GPIO_PIN_10
+#define UARTFive_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define UARTFive_APBxClkCmd			RCC_EnableAPB2PeriphClk
+#define UARTFive_IRQHandler			UART5_IRQHandler
+#define UARTFive_IRQn				UART5_IRQn
+//#define USARTe_Tx_DMA_Channel	DMA1_CH2
+#define UARTFive_Rx_DMA_Channel		DMA1_CH8
+#define UARTFive_DR_Base			(UART5_BASE + 0x04)
+#define UARTFive_Tx_DMA_FLAG		DMA1_FLAG_TC2
+
+/*CAN2 电机驱动控制*/
+#define CANb_CLK			RCC_APB2_PERIPH_GPIOB
+#define CANb_GPIO		    GPIOB
+#define CANb_RxPin			GPIO_PIN_12
+#define CANb_TxPin			GPIO_PIN_13
+
+/*RJ_JT 软急停控制输出 output*/
+#define RJ_JT_GPIO 				ESTOP_SOFT_GPIO //圆形底盘与其他车型统一名称
+#define RJ_JT_Pin					ESTOP_SOFT_PIN
+#define ESTOP_SOFT_CLK		RCC_APB2_PERIPH_GPIOB
+#define ESTOP_SOFT_GPIO		GPIOB
+#define ESTOP_SOFT_PIN		GPIO_PIN_3
+
+/*ADC2*/
+//电机电源电流采样
+#define MCU_MT_CURR_ADC					ADC2
+#define MCU_MT_CURR_ADC_GPIO		    GPIOC
+#define MCU_MT_CURR_ADC_RxPin			GPIO_PIN_4
+#define MCU_MT_CURR_ADC_Channel			ADC2_Channel_05_PC4
+//24V输出电流采样
+#define MCU_ADC_24VARM_IOUT				ADC2
+#define MCU_ADC_24VARM_IOUT_GPIO	    GPIOA
+#define MCU_ADC_24VARM_IOUT_RxPin		GPIO_PIN_4
+#define MCU_ADC_24VARM_IOUT_Channel		ADC2_Channel_01_PA4
+//19V输出电流采样
+#define MCU_ADC_19V_IOUT				ADC2
+#define MCU_ADC_19V_IOUT_GPIO		    GPIOC
+#define MCU_ADC_19V_IOUT_RxPin			GPIO_PIN_5
+#define MCU_ADC_19V_IOUT_Channel		ADC2_Channel_12_PC5
+//5V输出电流采样
+#define MCU_ADC_5V_IOUT					ADC2
+#define MCU_ADC_5V_IOUT_GPIO		    GPIOA
+#define MCU_ADC_5V_IOUT_RxPin			GPIO_PIN_5
+#define MCU_ADC_5V_IOUT_Channel			ADC2_Channel_02_PA5
+/*ADC4*/
+//12V输出电流采样
+#define MCU_ADC_12VPC_IOUT				ADC4
+#define MCU_ADC_12VPC_IOUT_GPIO		    GPIOB
+#define	MCU_ADC_12VPC_IOUT_RxPin		GPIO_PIN_15
+#define	MCU_ADC_12VPC_IOUT_Channel		ADC4_Channel_05_PB15
+
+/*自动充电控制*/
+#define MCU_CHARGE_ON_CLK				RCC_APB2_PERIPH_GPIOC
+#define MCU_CHARGE_ON_GPIO				GPIOC
+#define MCU_CHARGE_ON_PIN				GPIO_PIN_12
+
+/*19V电源使能控制*/
+#define MCU_19VARM_PWR_ON_CLK			RCC_APB2_PERIPH_GPIOA
+#define MCU_19VARM_PWR_ON_GPIO			GPIOA
+#define MCU_19VARM_PWR_ON_PIN			GPIO_PIN_15
+
+/*24V电源使能控制*/
+#define MCU_24VARM_PWR_ON_CLK			RCC_APB2_PERIPH_GPIOA
+#define MCU_24VARM_PWR_ON_GPIO			GPIOA
+#define MCU_24VARM_PWR_ON_PIN			GPIO_PIN_8
+
+/*电机电源使能控制*/
+#define MCU_MT_PWR_ON_CLK				RCC_APB2_PERIPH_GPIOB
+#define MCU_MT_PWR_ON_GPIO				GPIOB
+#define MCU_MT_PWR_ON_PIN				GPIO_PIN_14
+
+/*释放急停开关检测（解抱闸）*/
+#define UNESTOP_SW_IN_CLK				RCC_APB2_PERIPH_GPIOC
+#define UNESTOP_SW_IN_GPIO				GPIOC
+#define UNESTOP_SW_IN_PIN				GPIO_PIN_13
+
+/*急停开关检测*/
+#define ESTOP_SW_IN_CLK					RCC_APB2_PERIPH_GPIOC
+#define ESTOP_SW_IN_GPIO				GPIOC
+#define ESTOP_SW_IN_PIN					GPIO_PIN_14
+
+/*红外对管1*/
+#define MCU_INF_CLK 					RCC_APB2_PERIPH_GPIOB
+#define MCU_INF_TIM_CLK 				RCC_APB1_PERIPH_TIM4
+
+#define MCU_INF_TX1_GPIO 				GPIOB
+#define MCU_INF_TX1_PIN 				GPIO_PIN_6
+//#define MCU_INF_TX1_TIM 				TIM4
+//#define MCU_INF_TX1_TIM_IRQn 			TIM4_IRQn
+//#define MCU_INF_TX1_TIM_CHx_Init 		TIM_InitOc1
+//#define MCU_INF_TX1_TIM_CHx_Preload 	TIM_ConfigOc1Preload
+
+#define MCU_INF_RX1_GPIO 				GPIOB
+#define MCU_INF_RX1_PIN 				GPIO_PIN_7
+//#define MCU_INF_RX1_TIM 				TIM4
+//#define MCU_INF_RX1_TIM_IRQn 			TIM4_IRQn
+//#define MCU_INF_RX1_TIM_CHx_Init 		TIM_InitOc2
+//#define MCU_INF_RX1_TIM_CHx_Preload 	TIM_ConfigOc2Preload
+
+
+/*RGB控制*/
+#define MCU_RGB_CLK 					RCC_APB2_PERIPH_GPIOA
+#define	MCU_RGB_TIM_CLK 				RCC_APB1_PERIPH_TIM5
+#define	MCU_RGB_TIM 					TIM5
+#define	MCU_RGB_TIM_IRQn 				TIM5_IRQn
+#define MCU_RGB_TIM_Period 				100					// 周期为1ms
+#define MCU_RGB_TIM_Prescaler 			720
+//red
+#define MCU_RGB_RED_GPIO 				GPIOA
+#define MCU_RGB_RED_PIN 				GPIO_PIN_1
+#define MCU_RGB_RED_TIM_CHx_Init 		TIM_InitOc2
+#define MCU_RGB_RED_TIM_CHx_Preload 	TIM_ConfigOc2Preload
+#define MCU_RGB_RED_TIM_SetCmp 			TIM_SetCmp2
+//green
+#define MCU_RGB_GREEN_GPIO 				GPIOA
+#define MCU_RGB_GREEN_PIN 				GPIO_PIN_2
+#define MCU_RGB_GREEN_TIM_CHx_Init 		TIM_InitOc3
+#define MCU_RGB_GREEN_TIM_CHx_Preload	TIM_ConfigOc3Preload
+#define MCU_RGB_GREEN_TIM_SetCmp 		TIM_SetCmp3
+//blue
+#define MCU_RGB_BLUE_GPIO 				GPIOA
+#define MCU_RGB_BLUE_PIN 				GPIO_PIN_3
+#define MCU_RGB_BLUE_TIM_CHx_Init 		TIM_InitOc4
+#define MCU_RGB_BLUE_TIM_CHx_Preload 	TIM_ConfigOc4Preload
+#define MCU_RGB_BLUE_TIM_SetCmp 		TIM_SetCmp4
+/*转向灯控制*/
+#define MCU_LED_CLK 					RCC_APB2_PERIPH_GPIOB
+//左
+#define MCU_LED_LEFT_GPIO 				GPIOB
+#define MCU_LED_LEFT_PIN 				GPIO_PIN_10
+#define MCU_LED_LEFT_TIM 				TIM2
+#define MCU_LED_LEFT_TIM_IRQn 			TIM2_IRQn
+#define MCU_LED_LEFT_TIM_CHx_Init 		TIM_InitOc3
+#define MCU_LED_LEFT_TIM_CHx_Preload 	TIM_ConfigOc3Preload
+//右
+#define MCU_LED_RIGHT_GPIO 				GPIOB
+#define MCU_LED_RIGHT_PIN 				GPIO_PIN_11
+#define MCU_LED_RIGHT_TIM 				TIM2
+#define MCU_LED_RIGHT_TIM_IRQn 			TIM2_IRQn
+#define MCU_LED_RIGHT_TIM_CHx_Init 		TIM_InitOc4
+#define MCU_LED_RIGHT_TIM_CHx_Preload	TIM_ConfigOc4Preload
+
 #endif
 
 
+void UltrasonicSetEnable(int id, uint8_t en);
 void MY_NVIC_SetVectorTable(unsigned int NVIC_VectTab, unsigned int Offset);//设置偏移地址
 void rt_hw_board_init(void);
-
-#define PRINT_RCC_FREQ_INFO
+void rtthread_startup(void);
+void rt_application_init(void);
 
 #endif
 

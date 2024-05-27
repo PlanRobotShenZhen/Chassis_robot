@@ -9,29 +9,23 @@
 #include "rc_car.h"
 #include <math.h>
 #include "Charger.h"
-struct Smooth_Control tagSmooth_control;
+#include "motor.h"
+#include "RJ_JT.h"
+#include "IC.h"
 LightTime light_time;
+
 float Move_X = 0,Move_Y = 0,Move_Z = 0;
-static uint16_t* pdu;
-uint16_t error_code = ERROR_NONE;
-float FourWheer_Perimeter;
-float FourWheer_Conversion;
-float VelocityToRpmConversion;//速度换算电机转速
-float AngularVelocityConversion;//角速度换算
 int g_nVol_get_Flag = 0;          //
 float g_fltProprity_Voltage=1;  //
 float Voltage = 0.0f;
-//test
-int aaa[][3] = {
-	{0x00,0x00,0x00},
-	{0x00,0xFF,0x00},
-};
-uint8_t ultrasonic_t1tig = 1;
-uint8_t ultrasonic_t2tig = 1;
-uint32_t ultrasonic_t1tig_time = 0;
-uint32_t ultrasonic_t2tig_time = 0;
-int ultrasonic_t1tig_heartbeat = 0;
-int ultrasonic_t2tig_heartbeat = 0;
+
+SDOMessage receivedMsg,send0Msg,send1Msg;
+MOTOR_PARA motor_para[MAX_MOTOR_NUMBER];
+
+int REMOTE_Count = 0;
+float Z_Radian_Max = 0;
+float Z_Radian = 0; 
+float Z_Degree = 0;
 
 uint8_t f1_cnt = 0;
 uint32_t ultrasonic1_filtering[4];
@@ -45,7 +39,7 @@ EXIO_INPUT exio_input;
 EXIO_OUTPUT exio_output;
 
 /*红外通讯发送部分参数*/
-uint8_t IrDA_SendState = 0;		//0：关闭红外传感器；1：红外对接；2：红外通讯；
+uint8_t IrDA_SendState = 1;		//0：关闭红外传感器；1：红外对接；2：红外通讯；
 uint8_t SendCout = 0;			//发送计次
 uint8_t SendGuide_Flag = 0;		//引导位状态
 int Send_i = 3;					//发送数据指针，从高位开始发送
@@ -57,6 +51,7 @@ uint8_t IrDA_AlignOK = 0;		//红外对齐，断开0，闭合1；
 
 uint8_t LimitSwitch_OK = 0;		//限位开关，断开0，闭合1；
 uint8_t CH_ON = 0;				//充电电极短路检测模块开启信号
+
 struct {
 	unsigned char SW : 2;//《 急停开关
 	unsigned char Rising : 1;
@@ -65,267 +60,57 @@ struct {
 	unsigned char estop_soft : 1;//< 软急停
 	unsigned char estop_soft_old : 1;//< 软急停
 }emergency_stop;
-
+uint8_t Torque_sdo1[1][8] 		= {0x2B,0x15,0x20,0x01,0x00,0x00,0x00,0x00}; 	//速度模式下力矩（DIFFCAR）
+uint8_t Torque_sdo2[1][8] 		= {0x2B,0x15,0x20,0x02,0x00,0x00,0x00,0x00}; 	//速度模式下力矩（DIFFCAR）
+uint8_t Torque_sdo[1][8] 		= {0x2B,0x15,0x20,0x00,0x00,0x00,0x00,0x00}; 	//速度模式下力矩
+uint8_t Speed_sdo[1][8] 		= {0x2B,0x0A,0x20,0x00,0x00,0x00,0x00,0x00};	//力矩模式下速度
+uint8_t Torque_Mode_Sdo[1][8] 	= {0x2F,0x60,0x60,0x00,0x04,0x00,0x00,0x00};  	//设置力矩模式
+uint8_t Speed_Mode_Sdo[1][8] 	= {0x2F,0x60,0x60,0x00,0x03,0x00,0x00,0x00};  	//设置速度模式
 static uint8_t battery_send_frame_num = 0;
-/**************************************************************************
-函数功能：对接收到数据进行处理
-入口参数：X和Y Z轴方向的运动速度
-返回  值：无
-**************************************************************************/
-void Drive_Motor(float Vx,float Vy,float Vz)
-{
-	float Wheel_spacing_diff = (float)pdu[wheel_distance]/10000;
-	float Axle_spacing_diff = (float)pdu[axles_distance]/10000;
-	union {
-		float v;
-		uint16_t ud[2];
-		uint8_t u8d[8];
-	}tmp;
-
-	//四驱车 ---- 当前所用到的车
-	if(g_emCarMode == FourWheel_Car) 
-	{	//用的时候motora和motorb要设置的为负数		
-		float tmp_value = Vz * (Wheel_spacing +  Axle_spacing) / 2.0f;
-		MOTOR_A.fltTarget_velocity = Vx + tmp_value;
-		MOTOR_B.fltTarget_velocity = MOTOR_A.fltTarget_velocity; //计算出左前轮的目标速度
-		MOTOR_C.fltTarget_velocity = Vx - tmp_value;
-		MOTOR_D.fltTarget_velocity = MOTOR_C.fltTarget_velocity;
-
-		int tva = SpeedVelocityToRotate(MOTOR_A.fltTarget_velocity); //转换为r/min
-		if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)tva *= pdu[encoder_accuracy1];
-		int tvb = tva;
-		int tvc = SpeedVelocityToRotate(MOTOR_C.fltTarget_velocity);
-		if (pdu[motor3_model] == SERVO_WANZE || pdu[motor3_model] == SERVO_PLAN)tvc *= pdu[encoder_accuracy3];
-		int tvd = tvc;
-
-		int diff = tva - MOTOR_A.nTarget_Velocity;
-		int acc = 500;
-		//if (pdu[motor1_model] == SERVO_WANZE || pdu[motor1_model] == SERVO_PLAN)
-		//{
-		//	if (exio_input.bit.X0 || emergency_stop.estop_soft)
-		//	{//< 急停
-		//		acc = 50000;
-		//	}
-		//	else acc = pdu[robot_acceleration];
-		//}
-		if (exio_input.bit.X0 || emergency_stop.estop_soft)
-		{//< 急停
-			acc = 50000;
-		}
-		else acc = pdu[robot_acceleration];
-		if (diff > acc)tva = MOTOR_A.nTarget_Velocity + acc;
-		else if (diff < -acc)tva = MOTOR_A.nTarget_Velocity - acc;
-
-		diff = tvb - MOTOR_B.nTarget_Velocity;
-		if (diff > acc)tvb = MOTOR_B.nTarget_Velocity + acc;
-		else if (diff < -acc)tvb = MOTOR_B.nTarget_Velocity - acc;
-
-		diff = tvc - MOTOR_C.nTarget_Velocity;
-		if (diff > acc)tvc = MOTOR_C.nTarget_Velocity + acc;
-		else if (diff < -acc)tvc = MOTOR_C.nTarget_Velocity - acc;
-
-		diff = tvd - MOTOR_D.nTarget_Velocity;
-		if (diff > acc)tvd = MOTOR_D.nTarget_Velocity + acc;
-		else if (diff < -acc)tvd = MOTOR_D.nTarget_Velocity - acc;
-
-
-		MOTOR_A.nTarget_Velocity = tva;
-		MOTOR_B.nTarget_Velocity = tvb;
-		MOTOR_C.nTarget_Velocity = tvc;
-		MOTOR_D.nTarget_Velocity = tvd;
-		
-	}
-	else if (g_emCarMode == RC_Car)
-	{//< 竞赛小车
-
-	}
-}
-
-
 
 /**************************************************************************
-函数功能：通过航模遥控对机器人进行遥控,只需要x轴速度与z轴角速度
+函数功能：AKM位置模式
 入口参数：无
 返回  值：无
 **************************************************************************/
-void Remote_Control()
+void ServoPulse_Enable()
 {
-	//对航模解析到的数值转换成线速度和角速度
-	//Move_X = ((float)g_nVelocity * 2 * PI * pdu[61] / 100) / 60 / pdu[62];    //单位为m/s,这里pdu[61]要除以10000，pdu[62]要除以100，则只需除以100
-	Move_X = (float)g_nVelocity * FourWheer_Conversion;    //单位为m/s
-	Move_Y = 0;
-	Move_Z = ((float)g_nDirector) / AngularVelocityConversion;
-
-}	
-
-
-
-/**************************************************************************
-函数功能：通过上位机对机器人进行遥控,只需要x轴速度与z轴角速度
-入口参数：无
-返回  值：无
-**************************************************************************/
-void Ros_Control()
-{
-	Move_X = g_fltRecv_Vel_X;
-	Move_Y = g_fltRecv_Vel_Y;
-	Move_Z = -g_fltRecv_Vel_Z;    // 需要反向Z轴数据，调试中发现的
-}	
-
-
-/**************************************************************************
-函数功能：获取4个电机速度。根据can中断，获取得到4个电机的速度，
-					存放在对应的Motor结构体中。r/min
-入口参数：无
-返 回 值：无
-**************************************************************************/
-void Get_Motor_Velocity()
-{
-	//这里采集回来的是驱动器反馈回来的数据，要经过相应转换才行
-	if (pdu[car_model] == RC_Car)
-	{
-		pdu[car_setting_lin_speed] = (int16_t)(Move_X * 1000);
-		pdu[car_setting_ang_speed] = (int16_t)(Move_Z * 1000);
+	//g_nDirector为手柄CH1与基础值作差的通道值，取值范围为±784
+	int CurrentPos = (int)(pdu[motor1_position2_feedback] << 16 | pdu[motor1_position1_feedback]);
+	int	diff_pos = Servo_pulse - CurrentPos;		
+	static bool front_bit4 = 0;		
+	unsigned char flag = (mtd[0].d.status.sw >> 12) & 0x0F;
+	switch(pdu[motor1_type]){
+		case servo_zlac: 					
+			mrd[0].d.ctrl.bit.bit4 = 0;				
+			if(diff_pos != 0){
+				//如果移动到位，取消急停，继续发送使能信号（发送一次）
+				if((flag ==0xA) || (flag ==0x6)){
+					mrd[0].d.ctrl.bit.bit4 = 1;
+					mrd[0].d.ctrl.bit.bit8 = 0;						
+					if(front_bit4 == 1){
+						mrd[0].d.ctrl.bit.bit4 = 0;
+					}
+					front_bit4 = mrd[0].d.ctrl.bit.bit4;
+				}				
+				else if(myabs(diff_pos) < 300){//如果出现了临界情况
+					mrd[0].d.ctrl.bit.bit4 = 0;//急停
+					mrd[0].d.ctrl.bit.bit8 = 1;
+				}		
+			}
+			break;
+		case servo_wanze:
+			if(myabs(diff_pos) > 1){			
+				uint8_t Init_sdo[][8] = {
+					{0x2B,0x40,0x60,0x00,0x0F,0x00,0x00,0x00}, 	
+					{0x2B,0x40,0x60,0x00,0x1F,0x00,0x00,0x00}, 	
+				};
+				Add_Sdo_Linked_List(pdu[motor1_CAN_id], Init_sdo, sizeof(Init_sdo) / sizeof(Init_sdo[0]));					
+			}
+			break;		
+		default:
+			break;	
 	}
-	else if (pdu[car_model] == FourWheel_Car)
-	{//< 室外差速
-		uint32_t vel_;
-		pdu[car_setting_lin_speed] = (int16_t)(-Move_X * 1000);
-		pdu[car_setting_ang_speed] = (int16_t)(-Move_Z * 1000);
-		float nMotor_A = mtd[0].d.current_velocity;
-		float nMotor_B = mtd[1].d.current_velocity;
-		float nMotor_C = mtd[2].d.current_velocity;
-		float nMotor_D = mtd[3].d.current_velocity;
-		if (pdu[motor1_model] == SERVO_WANZE||pdu[motor1_model] == SERVO_PLAN)nMotor_A = nMotor_A * 60 / 10000;//< 一圈10000脉冲数
-		if (pdu[motor2_model] == SERVO_WANZE||pdu[motor2_model] == SERVO_PLAN)nMotor_B = nMotor_B * 60 / 10000;//< 一圈10000脉冲数
-		if (pdu[motor3_model] == SERVO_WANZE||pdu[motor3_model] == SERVO_PLAN)nMotor_C = nMotor_C * 60 / 10000;//< 一圈10000脉冲数
-		if (pdu[motor4_model] == SERVO_WANZE||pdu[motor4_model] == SERVO_PLAN)nMotor_D = nMotor_D * 60 / 10000;//< 一圈10000脉冲数
-		if (pdu[motor1_model] == SERVO_WANZE)mtd[0].d.current_rpm=(int16_t)nMotor_A;
-		if (pdu[motor2_model] == SERVO_WANZE)mtd[1].d.current_rpm=(int16_t)nMotor_B;
-		if (pdu[motor3_model] == SERVO_WANZE)mtd[2].d.current_rpm=(int16_t)nMotor_C;
-		if (pdu[motor4_model] == SERVO_WANZE)mtd[3].d.current_rpm=(int16_t)nMotor_D;
-
-		MOTOR_A.nFeedback_Velocity = (int)nMotor_A;
-		MOTOR_B.nFeedback_Velocity = (int)nMotor_B;
-		MOTOR_C.nFeedback_Velocity = (int)nMotor_C;
-		MOTOR_D.nFeedback_Velocity = (int)nMotor_D;	
-		MOTOR_A.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_A);
-		MOTOR_B.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_B);
-		MOTOR_C.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_C);
-		MOTOR_D.fltFeedBack_Velocity = RotateToSpeedVelocity(nMotor_D);
-		float fv = (MOTOR_A.fltFeedBack_Velocity-MOTOR_C.fltFeedBack_Velocity)/2;
-		int16_t iv = (int16_t)(fv * 1000);
-		pdu[car_feedback_lin_speed] = iv;
-		fv = (MOTOR_A.fltFeedBack_Velocity + MOTOR_C.fltFeedBack_Velocity) / 2 / (pdu[wheel_distance] + pdu[axles_distance]) / 10000;
-		iv = (int16_t)(fv * 1000);
-		pdu[car_feedback_ang_speed] = iv;
-
-	}
-}
-
-
-/**************************************************************************
-函数功能：将电机的转速，r/min转换成轮子线速度 m/s，
-					存放在速度结构体中。
-					1 r/min = （2Π * R） / 60  m/s
-入口参数：nRotateSpeed代表转速，r/min
-返 回 值：轮子线速度 m/s，
-**************************************************************************/
-float RotateToSpeedVelocity(float nRotateSpeed)
-{
-	//float fltReturn = 0.0f;
-	//v=n*2*pi*r/60
-	//fltReturn = nRotateSpeed * 2 * PI * FourWheer_Radiaus/ 60;  //转换为轮胎速度
-	// 2 * PI * FourWheer_Radiaus/ 60 = 0.0172787593
-	//fltReturn = nRotateSpeed * 0.0172787593;  //转换为轮胎速度
-	return nRotateSpeed * FourWheer_Conversion;  //转换为轮胎速度;	
-}
-
-
-/**************************************************************************
-函数功能：将轮子的速度，m/s转换成电机的转速 r/min，
-					存放在速度结构体中。
-					1 m/s = 60 /（2 * PI * R）
-入口参数：fltSpeed代表轮子转速，m/s
-返 回 值：代表电机转速
-**************************************************************************/
-int SpeedVelocityToRotate(float fltSpeed)
-{
-	int nReturn = 0;
-	//v=n*2*pi*r/60
-	// nReturn = (60 * fltSpeed / FourWheer_Perimeter) * REDUCTION_RATE;
-	nReturn = fltSpeed * VelocityToRpmConversion;
-	return nReturn;
-}
-
-
-
-/**************************************************************************
-函数功能：将机器人的目标速度做平滑控制处理，只有麦克纳姆轮小车需要
-入口参数：机器人三轴目标速度
-返回  值：无
-**************************************************************************/
-void Smooth_control(float vx,float vy,float vz)
-{
-	float step=0.01;
-
-	if	(vx>0) 			tagSmooth_control.Vx += step;
-	else if(vx<0)		tagSmooth_control.Vx -= step;
-	else if(vx==0)	tagSmooth_control.Vx = tagSmooth_control.Vx * 0.9;
-	
-	if	(vy>0) 			tagSmooth_control.Vy += step;
-	else if(vy<0)		tagSmooth_control.Vy -= step;
-	else if(vy==0)	tagSmooth_control.Vy = tagSmooth_control.Vy * 0.9;
-	
-	if	(vz>0) 			tagSmooth_control.Vz += step;
-	else if(vz<0)		tagSmooth_control.Vz -= step;
-	else if(vz==0)	tagSmooth_control.Vz = tagSmooth_control.Vz*0.9;
-	
-	tagSmooth_control.Vx = target_limit_float(tagSmooth_control.Vx,-float_abs(vx),float_abs(vx));
-	tagSmooth_control.Vy = target_limit_float(tagSmooth_control.Vy,-float_abs(vy),float_abs(vy));
-	tagSmooth_control.Vz = target_limit_float(tagSmooth_control.Vz,-float_abs(vz),float_abs(vz));
-}
-
-
-
-
-/**************************************************************************
-函数功能：异常关闭电机
-入口参数：电压
-返回  值：1：异常  0：正常
-**************************************************************************/
-unsigned char Turn_Off( )
-{
-	unsigned char ucTemp;
-	if((g_nVol_get_Flag && g_fltProprity_Voltage < 0.2) || Flag_Stop == 1)//电池电压过低关闭电机
-	{	 
-		//设置电机目标速度为0，且失能电机
-		ucTemp = 1;      
-		Set_MotorVelocity(0, 0, 0, 0);   //设置目标电机的速度
-	}
-	else if(g_nVol_get_Flag && g_fltProprity_Voltage >= 0.2)
-	{
-		ucTemp = 0;
-	}
-	return ucTemp;			
-}
-
-
-/**************************************************************************
-函数功能：设置4个电机速度
-入口参数：参数分别代表的是左后、左前、右前、右后方对应的can从机id和电机速度
-返 回 值：无
-**************************************************************************/
-void Set_MotorVelocity(int nMotorLB,int nMotorLF, int nMotorRF, int nMotorRB)
-{//Is_Offline();target_velocity
-	mrd[0].d.target_velocity = mrd[0].d.online ? nMotorLB : 0;
-	mrd[1].d.target_velocity = mrd[1].d.online ? nMotorLF : 0;
-	mrd[2].d.target_velocity = mrd[2].d.online ? nMotorRB : 0;
-	mrd[3].d.target_velocity = mrd[3].d.online ? nMotorRF : 0;
-	if(pdu[motor1_direction]==1)mrd[0].d.target_velocity = -mrd[0].d.target_velocity;
-	if(pdu[motor2_direction]==1)mrd[1].d.target_velocity = -mrd[1].d.target_velocity;
-	if(pdu[motor3_direction]==1)mrd[2].d.target_velocity = -mrd[2].d.target_velocity;
-	if(pdu[motor4_direction]==1)mrd[3].d.target_velocity = -mrd[3].d.target_velocity;
 }
 
 /*---------------------------一些功能函数--------------------------------*/
@@ -336,10 +121,7 @@ void Set_MotorVelocity(int nMotorLB,int nMotorLF, int nMotorRF, int nMotorRB)
 **************************************************************************/
 uint32_t myabs(long int a)
 { 		   
-	  uint32_t temp;
-		if(a<0)  temp=-a;  
-	  else temp=a;
-	  return temp;
+	return (a < 0)?  -a : a;
 }
 
 
@@ -351,8 +133,7 @@ uint32_t myabs(long int a)
 **************************************************************************/
 float float_abs(float insert)
 {
-	if(insert>=0) return insert;
-	else return -insert;
+	return (insert < 0)?  -insert : insert;
 }
 
 
@@ -382,13 +163,14 @@ int target_limit_int(int insert,int low,int high)
 
 void setGPIO(GPIO_Module* GPIOx, uint16_t GPIO_Pin, uint8_t value)
 {
-    if (value == 1){
+    if (value){
    		GPIO_ResetBits(GPIOx, GPIO_Pin);
     }else{
         GPIO_SetBits(GPIOx, GPIO_Pin);
     }
 }
 
+#if(CARMODE != Diff)
 /**************************************************************************
 函数功能：电源控制
 入口参数：void
@@ -402,12 +184,10 @@ void PowerControl(void)
 			uint16_t jdq2 : 1;//< 右电机电源 JDQ2_EN
 			uint16_t p12v : 1;//< 12V电源 YL_7
 			uint16_t p19v : 1;//< 19V电源 YL_6
-
 		}bit;
 		uint16_t pc;
 	}power_ctrl;
-	if (pdu[power_control] != power_ctrl.pc)
-	{
+	if (pdu[power_control] != power_ctrl.pc){
 		power_ctrl.pc = pdu[power_control];
 		setGPIO(JDQ_PORT, JDQ1_PIN, power_ctrl.bit.jdq1);
 		setGPIO(JDQ_PORT, JDQ2_PIN, power_ctrl.bit.jdq2);
@@ -417,84 +197,48 @@ void PowerControl(void)
 }
 
 /**************************************************************************
-函数功能：电池阈值报警
-入口参数：void
-返回  值：void
-**************************************************************************/
-void BatteryThresholdAlarm(void)
-{
-	static int BTA_Time = 0;
-	static int BTA_Times = 1000;	
-	u8 LowTimes = 50; //响铃500ms
-	u8 MiddleTimes = 25; //响铃250ms
-	//pdu[BatteryCurrent] = 0;//< 电池电流
-	if((pdu[Low_battery_threshold] * 100 > pdu[BatteryQuantity]) && (BTA_Time < LowTimes)) {//电池电量低于低阈值
-		// exio_output.bit.RGB_R = 1; //不清楚是RGB中的哪个
-		BTA_Times = 500;
-	}else if((pdu[Middle_battery_threshold] * 100 > pdu[BatteryQuantity]) && (BTA_Time < MiddleTimes)) {
-		//exio_output.bit.RGB_R = 1; //不清楚是RGB中的哪个
-		BTA_Times = 1000;
-	}
-	if(BTA_Time >= BTA_Times) {
-		BTA_Time = 0;
-	}else {
-		BTA_Time ++;
-	}
-}
-
-/**************************************************************************
 函数功能：电池信息处理函数
 入口参数：void
 返回  值：void
 **************************************************************************/
-void BatteryInformation()
+void BatteryInformation(void)
 {
 	static int bt = 0;
 	static int bt_times = 100;
-	float MOVE_XorZ = 0;
-	float temp;
-	if (uart4_recv_flag)
-	{
+	short MOVE_XorZ = 0;
+	short temp;
+	if (uart4_recv_flag){// 检查 UART4 接收标志，如果为真，则继续处理接收到的数据
 		uart4_recv_flag = 0;
-		switch (pdu[battery_manufacturer])
-		{
-		case 1://< 深圳市锂神科技有限公司 24Voltage
-			//小车线速度和角速度比较
-			if (fabsf(Move_X) > fabsf(Move_Z))
-			{
-				MOVE_XorZ = Move_X;
-				temp = ((int16_t)pdu[car_max_lin_speed]) * 0.001;
-			} //起始索引
-			else
-			{
-				MOVE_XorZ = Move_Z;
-				temp = ((int16_t)pdu[car_max_ang_speed]) * 0.001;
-			}
-			if (MOVE_XorZ < 0)
-			{
-				MOVE_XorZ = -MOVE_XorZ;
-			}
-			bt_times = MOVE_XorZ > (temp / 1.2) ? 8 : MOVE_XorZ > (temp / 2) ? 16 : MOVE_XorZ > (temp / 4) ? 32 : MOVE_XorZ > (temp / 8) ? 64 : 100;
-			if (uart4_recv_data[0] == 0x3B)
-			{
-				pdu[BatteryStatus] = 1;//< 电池读取成功
-				pdu[BatteryVoltage] = uart4_recv_data[6] | (uart4_recv_data[7] << 8);//< 电池电压
-				pdu[BatteryCurrent] = uart4_recv_data[8] | (uart4_recv_data[9] << 8);//< 电池电流
-				pdu[BatteryQuantity] = (uart4_recv_data[10] | (uart4_recv_data[11] << 8)) * 2;//< 电池电量
-				pdu[BatteryHealth] = uart4_recv_data[12] | (uart4_recv_data[13] << 8);//< 电池健康度
-				pdu[BatteryTemperature] = (uart4_recv_data[24] | (uart4_recv_data[25] << 8)) - 2731;//< 电池温度
-				pdu[BatteryProtectStatus] = uart4_recv_data[36] | (uart4_recv_data[37] << 8);//< 电池保护状态
-			}
-			break;
-		default: //48Voltage
-			bt_times = 100;//< 1000ms刷新1次
-			if (uart4_recv_data[0] == 0x7e)
-			{
-				uint32_t tmp = 0;
-				//uint16_t r_crc = (uint16_t)uart4_recv_data[uart4_recv_len - 2] | (((uint16_t)uart4_recv_data[uart4_recv_len - 1])<<8);
-				//uint16_t c_crc = usMBCRC16(uart4_recv_data, uart4_recv_len - 2);			
-				//if (r_crc == c_crc)
-				// {
+		switch (pdu[BatteryManufacturer]){// 根据电池制造商设置行为
+			case 1://< 深圳市锂神科技有限公司 24Voltage
+				if (myabs((short)pdu[target_linear_speed]) > myabs((short)pdu[target_yaw_speed])){// 比较小车的线速度和角速度，选择最大的一个
+					MOVE_XorZ = (short)pdu[target_linear_speed];
+					temp = (short)pdu[max_linear_speed];
+				}else{
+					MOVE_XorZ = (short)pdu[target_yaw_speed];
+					temp = (short)pdu[max_yaw_speed];
+				}
+				if (MOVE_XorZ < 0){ // 绝对值化移动速度
+					MOVE_XorZ = - MOVE_XorZ;
+				}// 根据移动速度调整刷新间隔
+				bt_times = 	MOVE_XorZ > (short)(temp / 1.2) ? 8 : 
+							MOVE_XorZ > (short)(temp / 2) 	? 16 : 
+							MOVE_XorZ > (short)(temp / 4) 	? 32 : 
+							MOVE_XorZ > (short)(temp / 8) 	? 64 : 100;
+				if (uart4_recv_data[0] == 0x3B){// 检查接收到的 UART4 数据头是否正确
+					pdu[BatteryStatus] = 1;//< 电池读取成功
+					pdu[BatteryVoltage] = uart4_recv_data[6] | (uart4_recv_data[7] << 8);//< 电池电压
+					pdu[BatteryCurrent] = uart4_recv_data[8] | (uart4_recv_data[9] << 8);//< 电池电流
+					pdu[BatteryQuantity] = (uart4_recv_data[10] | (uart4_recv_data[11] << 8)) * 2;//< 电池电量
+					pdu[BatteryHealth] = uart4_recv_data[12] | (uart4_recv_data[13] << 8);//< 电池健康度
+					pdu[BatteryTemperature] = (uart4_recv_data[24] | (uart4_recv_data[25] << 8)) - 2731;//< 电池温度
+					pdu[BatteryProtectStatus] = uart4_recv_data[36] | (uart4_recv_data[37] << 8);//< 电池保护状态
+				}
+				break;
+			default: //48Voltage
+				bt_times = 100;//< 1000ms刷新1次
+				if (uart4_recv_data[0] == 0x7e){
+					uint32_t tmp = 0;
 					int i = 0;
 					pdu[BatteryStatus] = 1;//< 电池读取成功
 					pdu[BatteryQuantity] = (uint16_t)uart4_recv_data[107] | (((uint16_t)uart4_recv_data[108]) << 8);//< 电池电量
@@ -504,85 +248,24 @@ void BatteryInformation()
 					tmp |= (uint32_t)uart4_recv_data[i++] << 8;
 					tmp |= (uint32_t)uart4_recv_data[i++] << 16;
 					tmp |= (uint32_t)uart4_recv_data[i++] << 24;
-					pdu[BatteryVoltage] = tmp*0.1;//< 电池电压
+					pdu[BatteryVoltage] =(int16_t)((int)tmp * 0.1);//< 电池电压
 					tmp = (uint32_t)uart4_recv_data[i++];
 					tmp |= (uint32_t)uart4_recv_data[i++] << 8;
 					tmp |= (uint32_t)uart4_recv_data[i++] << 16;
 					tmp |= (uint32_t)uart4_recv_data[i++] << 24;
-					pdu[BatteryCurrent] = (int16_t)((int)tmp*0.1);//< 电池电流
+					pdu[BatteryCurrent] = (int16_t)((int)tmp * 0.1);//< 电池电流
 					pdu[BatteryTemperature] = (uint16_t)uart4_recv_data[77] | (((uint16_t)uart4_recv_data[78]) << 8);//< 电池温度
-				// }
-			}
-			break;
+				}
+				break;
 		}
 	}
 	bt++;
-	if (bt >= bt_times)
-	{
+	if (bt >= bt_times){
 		bt = 0;
-		GPIO_SetBits(USARTb_485en_GPIO, USARTb_485enPin);
-		DMA_EnableChannel(USARTb_Tx_DMA_Channel, DISABLE);    // 关闭 DMA2 通道5, UART4_TX
-		DMA_SetCurrDataCounter(USARTb_Tx_DMA_Channel, battery_send_frame_num);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
-		DMA_EnableChannel(USARTb_Tx_DMA_Channel, ENABLE);    // 开启 DMA2 通道5, UART4_TX	
-	}
-}
-
-/**************************************************************************
-函数功能：超声波检测
-入口参数：void
-返回  值：void
-**************************************************************************/
-void UltrasonicProcess(void)
-{
-	if (ultrasonic_t1tig >= 1)
-	{
-		ultrasonic_t1tig++;
-		if (ultrasonic_t1tig > 10)
-		{
-			int i = 0;
-			ultrasonic_t1tig = 0;
-			ultrasonic_t1tig_heartbeat = 0;
-			pdu[Ultrasonic1_H] = (uint16_t)(ultrasonic_t1tig_time >> 16);
-			pdu[Ultrasonic1_L] = (uint16_t)ultrasonic_t1tig_time;
-			GPIO_SetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
-			for (i = 0;i < 100;i++);
-			GPIO_ResetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
-			UltrasonicSetEnable(1, 1);
-		}
-	}
-	else
-	{
-		ultrasonic_t1tig_heartbeat++;
-		if (ultrasonic_t1tig_heartbeat > 50)
-		{
-			ultrasonic_t1tig = 1;
-			ultrasonic_t1tig_heartbeat = 0;
-		}
-	}
-	if (ultrasonic_t2tig >= 1)
-	{
-		ultrasonic_t2tig++;
-		if (ultrasonic_t2tig >= 10)
-		{
-			int i = 0;
-			ultrasonic_t2tig = 0;
-			ultrasonic_t2tig_heartbeat = 0;
-			pdu[Ultrasonic2_H] = (uint16_t)(ultrasonic_t2tig_time >> 16);
-			pdu[Ultrasonic2_L] = (uint16_t)ultrasonic_t2tig_time;
-			GPIO_SetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
-			for (i = 0;i < 100;i++);
-			GPIO_ResetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
-			UltrasonicSetEnable(2, 1);
-		}
-	}
-	else
-	{
-		ultrasonic_t2tig_heartbeat++;
-		if (ultrasonic_t2tig_heartbeat > 50)
-		{
-			ultrasonic_t2tig = 1;
-			ultrasonic_t2tig_heartbeat = 0;
-		}
+		GPIO_SetBits(UARTFour_485en_GPIO, UARTFour_485enPin);	// 打开 UART4 485 使能引脚
+		DMA_EnableChannel(UARTFour_Tx_DMA_Channel, DISABLE);    // 关闭 DMA2 通道5, UART4_TX
+		DMA_SetCurrDataCounter(UARTFour_Tx_DMA_Channel, battery_send_frame_num);  // 传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
+		DMA_EnableChannel(UARTFour_Tx_DMA_Channel, ENABLE);    // 开启 DMA2 通道5, UART4_TX	
 	}
 }
 
@@ -591,49 +274,42 @@ void UltrasonicProcess(void)
 入口参数：void
 返回  值：void
 **************************************************************************/
-void  SPI1_ReadWriteByte(void)
+void SPI1_ReadWriteByte(void)
 {
-	if (SPI_ReadWriteCycle == 0)
-	{
+	if (!SPI_ReadWriteCycle){
 		uint16_t retry = 0;
 		GPIO_WriteBit(SPI_MASTER_GPIO, SPI_MASTER_PIN_NSS, Bit_SET);
-		pdu[exio_input_status] = (uint16_t)SPI_Master_Rx_Buffer;
-		exio_input.input = pdu[exio_input_status];
-		for (retry = 0;retry < 1000;)
-		{
+		pdu[exio_input_status] = exio_input.input = SPI_Master_Rx_Buffer;
+		for (retry = 0;retry < 1000;){ // 空循环，用于等待
 			retry++;
 		}
 		retry = 0;
-		while ((SPI_MASTER->STS & 1 << 1) == 0) //等待发送区空
-		{
+		while (!(SPI_MASTER->STS & 1 << 1)){//等待发送区空
 			retry++;
-			if (retry > 2000)
-			{
-				error_code = 11;//< SPI错误
-				return;
+			if (retry > 2000){// 如果等待时间超过 2000，则表示出现错误
+				pdu[car_error_messages] = spi_error;//< SPI错误
+				return;// 返回，退出函数
 			}
 		}
-
-		if (robot_control.bit.light_ctrl_en == 0)
-		{//< 默认灯控制权
-			pdu[light_control] = exio_output.output;
+		if (((pdu[control_mode] == control_mode_ros) || (pdu[control_mode] == control_mode_ipc)) 
+			&& (robot_control.bit.light_ctrl_en)){//< 默认灯控制权
+			pdu[light_control] = Receive_Data[2];
+		}else{
+			pdu[light_control] = exio_output.output; 
 		}
 		SPI_MASTER->DAT = pdu[light_control];
-		SPI_ReadWriteCycle = 1;
+		SPI_ReadWriteCycle = 1; // 标记 SPI 读写周期开始
 		SPI_heartbeat = 0;
-		pdu[car_light_messages] = pdu[light_control];
 	}
-	if (SPI_ReadWriteCycle == 1)
-	{
-		SPI_heartbeat++;
-		if (SPI_heartbeat > 20)
-		{
+	if (SPI_ReadWriteCycle){ // 如果 SPI 读写周期已经开始
+		SPI_heartbeat ++;
+		if (SPI_heartbeat > 20){// 重置心跳计数器和读写周期状态
 			SPI_heartbeat = 0;
 			SPI_ReadWriteCycle = 0;
 		}
 	}
 }
-
+#endif
 /**************************************************************************
 函数功能：超声波检测定时器1
 入口参数：void
@@ -641,310 +317,54 @@ void  SPI1_ReadWriteByte(void)
 **************************************************************************/
 void Ultrasonic1_task(void* pvParameters)
 {
-	uint32_t tig_time = 0;
-	int i = 0;
-	uint32_t max_time;
-	uint32_t min_time;
 	pdu = (uint16_t*)pvParameters;
 	while (1)
 	{
-		rt_thread_delay(1000);   //< 100ms
-
-		GPIO_SetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
-		for (i = 0;i < 100;i++);
-		GPIO_ResetBits(CS1_Ttig_PORT, CS1_Ttig_PIN);
-		tig_time = 0;
-		i = 0;
-		while (GPIO_ReadInputDataBit(CS1_Econ_PORT, CS1_Econ_PIN)== Bit_RESET)
-		{
-			tig_time++;
-			if (tig_time >= 200000)
-			{
-				i = 1;
-				break;
-			}
-		}
-		if (i == 0)
-		{
-			max_time = 0;
-			min_time = 100000000;
-			tig_time = 0;
-			while (GPIO_ReadInputDataBit(CS1_Econ_PORT, CS1_Econ_PIN) == Bit_SET)
-			{
-				tig_time++;
-				if (tig_time >= 200000)
-				{
-					break;
-				}
-			}
-		}
-		else tig_time = 200000;
-		ultrasonic1_filtering[f1_cnt] = tig_time;
-		f1_cnt++;
-		if (f1_cnt >= 4)f1_cnt = 0;
-		ultrasonic_t1tig_time = 0;
-		for (i = 0;i < 4;i++)
-		{
-			tig_time = ultrasonic1_filtering[i];
-			ultrasonic_t1tig_time += tig_time;
-			if (tig_time > max_time)max_time = tig_time;
-			if (tig_time < min_time)min_time = tig_time;
-		}
-		ultrasonic_t1tig_time -= max_time;
-		ultrasonic_t1tig_time -= min_time;
-		ultrasonic_t1tig_time <<= 1;
-		if (ultrasonic_t1tig_time > 400000)ultrasonic_t1tig_time = 400000;
-		pdu[Ultrasonic1_H] = (uint16_t)(ultrasonic_t1tig_time >> 16);
-		pdu[Ultrasonic1_L] = (uint16_t)ultrasonic_t1tig_time;
-
-
+		rt_thread_delay(100);  //< 10ms
+		//圆形底盘默认启动超声波
+			Ultrasonic_Start();
+			//将超声波距离传送到上位机，单位mm。  
+			uint16_t ultrasonic1_distance = Get_U1distance();
+			pdu[Ultrasonic1] = ultrasonic1_distance;
+			uint16_t ultrasonic2_distance = Get_U2distance();
+			pdu[Ultrasonic2] = ultrasonic2_distance;
 	}
 }
 
 /**************************************************************************
-函数功能：超声波检测定时器2
-入口参数：void
-返回  值：void
+函数功能：电池初始化相关
+入口参数：
+返回  值：
 **************************************************************************/
-void Ultrasonic2_task(void* pvParameters)
-{
-	uint32_t tig_time = 0;
-	int i = 0;
-	uint32_t max_time;
-	uint32_t min_time;
-	pdu = (uint16_t*)pvParameters;
-	while (1)
-	{
-		rt_thread_delay(1000);   //< 100ms
-
-		GPIO_SetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
-		for (i = 0;i < 100;i++);
-		GPIO_ResetBits(CS2_Ttig_PORT, CS2_Ttig_PIN);
-		tig_time = 0;
-		i = 0;
-		while (GPIO_ReadInputDataBit(CS2_Econ_PORT, CS2_Econ_PIN) == Bit_RESET)
-		{
-			tig_time++;
-			if (tig_time >= 200000)
-			{
-				i = 1;
-				break;
-			}
-		}
-		if (i == 0)
-		{
-			max_time = 0;
-			min_time = 100000000;
-			tig_time = 0;
-			while (GPIO_ReadInputDataBit(CS2_Econ_PORT, CS2_Econ_PIN) == Bit_SET)
-			{
-				tig_time++;
-				if (tig_time >= 200000)
-				{
-					break;
-				}
-			}
-		}
-		else tig_time = 200000;
-		ultrasonic2_filtering[f2_cnt] = tig_time;
-		f2_cnt++;
-		if (f2_cnt >= 4)f2_cnt = 0;
-		ultrasonic_t2tig_time = 0;
-		for (i = 0;i < 4;i++)
-		{
-			tig_time = ultrasonic2_filtering[i];
-			ultrasonic_t2tig_time += tig_time;
-			if (tig_time > max_time)max_time = tig_time;
-			if (tig_time < min_time)min_time = tig_time;
-		}
-		ultrasonic_t2tig_time -= max_time;
-		ultrasonic_t2tig_time -= min_time;
-		ultrasonic_t2tig_time <<= 1;
-		if (ultrasonic_t2tig_time > 400000)ultrasonic_t2tig_time = 400000;
-		pdu[Ultrasonic2_H] = (uint16_t)(ultrasonic_t2tig_time >> 16);
-		pdu[Ultrasonic2_L] = (uint16_t) ultrasonic_t2tig_time;
-
-
-	}
-
-}
-
-/****************************************************************
-* 函数功能：车灯数据解析函数，使用VRA来控制，获取通道10来获取数据
-* 返回值：
-****************************************************************/
-void Car_Light_Control(float Vx, float Vz)
-{
-	unsigned short usTemp = 0;
-	usTemp = tagSBUS_CH.CH10;
-
-	// 逻辑判断模块
-	if (Abs_int(usTemp - rc_ptr->light_base) > 100)
-	{// 此时代表没有触发开启灯光的标志		
-		if ((usTemp - rc_ptr->light_base) > 0)
-		{// 开启灯光			
-			g_ucLightOnFlag = 1;
-		}
-		else
-		{// 关闭灯光			
-			g_ucLightOnFlag = 0;
-		}
-	}
-	
-
-
-	usTemp = tagSBUS_CH.CH9;//< 模拟软急停
-	if (Abs_int(usTemp - 1023) > 100)
-	{
-		if ((usTemp - 1023) > 0)
-		{// 开启软急停			
-			emergency_stop.estop_soft = 1;			
-		}
-		else
-		{// 关闭软急停	
-			emergency_stop.estop_soft = 0;			
-		}
-		if (emergency_stop.estop_soft_old != emergency_stop.estop_soft)
-		{
-			emergency_stop.estop_soft_old = emergency_stop.estop_soft;
-			if (emergency_stop.estop_soft)
-			{
-				emergency_stop.Descending = 1;
-				GPIO_ResetBits(RJ_JT_GPIO, RJ_JT_Pin);//< 开启软急停	
-			}
-			else GPIO_SetBits(RJ_JT_GPIO, RJ_JT_Pin);//< 关闭软急停	
-		}
-	}
-
-	if (g_eControl_Mode == CONTROL_MODE_UNKNOW)
-	{//< 等待连接状态
-		if (light_time.t_cnt_Light_Q++ >= 75)
-		{
-			if (exio_output.bit.Light_Q == 0)exio_output.output |= 0xf0;
-			else exio_output.output &= 0x0f;
-			light_time.t_cnt_Light_Q = 0;
-		}
-	}
-	else
-	{
-
-		if (g_ucLightOnFlag == 1)exio_output.output |= 0xf0;
-		else exio_output.output &= 0x0f;
-		if(Vx>0)
-		{//< 倒车
-			exio_output.output |= 0xa0;
-		}
-		if (Vz >0)
-		{//< 左转
-			light_time.t_cnt_Light_Y = 0;
-			light_time.t_cnt_Light_Q++;
-			if (light_time.t_cnt_Light_Q <= 50)
-			{
-				exio_output.output |= 0x30;
-			}
-			else if (light_time.t_cnt_Light_Q <= 100)
-			{
-				exio_output.output &= ~0x30;
-				if (light_time.t_cnt_Light_Q == 100)light_time.t_cnt_Light_Q = 0;
-			}
-			else light_time.t_cnt_Light_Q = 0;
-			light_time.c_Light_Q = 1;
-		}
-		else if (Vz < 0)
-		{//< 右转
-			light_time.t_cnt_Light_Q = 0;
-			light_time.c_Light_Q = 1;
-			light_time.t_cnt_Light_Y++;
-			if (light_time.t_cnt_Light_Y <= 50)
-			{
-				exio_output.output |= 0xc0;
-			}
-			else if (light_time.t_cnt_Light_Y <= 100)
-			{
-				exio_output.output &= ~0xc0;
-				if (light_time.t_cnt_Light_Y == 100)light_time.t_cnt_Light_Y = 0;
-			}
-			else light_time.t_cnt_Light_Y = 0;
-		}
-		else
-		{
-			if (light_time.c_Light_Q)
-			{
-				light_time.c_Light_Q = 0;
-				light_time.t_cnt_Light_Q = light_time.t_cnt_Light_Y = 0;
-				if (g_ucLightOnFlag)exio_output.output |= 0xf0;
-				else exio_output.output &= 0x0f;
-			}
-		}
-	}
-	if (emergency_stop.SW != exio_input.bit.X0)
-	{
-		if (exio_input.bit.X0)emergency_stop.Rising = 1;
-		else emergency_stop.Descending = 1;
-		emergency_stop.SW = exio_input.bit.X0;
-	}
-	if (exio_input.bit.X0|| emergency_stop.estop_soft)
-	{
-		if (light_time.t_cnt_RGB_G++ >= 15)
-		{
-			exio_output.bit.RGB_G = (exio_output.bit.RGB_G == 1) ? 0 : 1;
-			exio_output.bit.RGB_R = exio_output.bit.RGB_G;
-			light_time.t_cnt_RGB_G = 0;
-			light_time.t_cnt_RGB_B++;
-			if (light_time.t_cnt_RGB_B <= 6)
-			{
-				exio_output.bit.RGB_B = exio_output.bit.RGB_G;
-			}
-			else exio_output.bit.RGB_B = 0;
-		}
-		exio_output.bit.Light_Q = exio_output.bit.RGB_G;
-		exio_output.bit.Light_Y = exio_output.bit.RGB_G;
-	}
-	else
-	{
-		if (emergency_stop.Descending)
-		{
-			emergency_stop.Descending = 0;
-			exio_output .output &= ~0x7;
-			light_time.t_cnt_RGB_G = 0;
-			light_time.t_cnt_RGB_B = 0;
-			light_time.t_cnt_RGB_G = 0;
-		}
-		if(g_eControl_Mode != CONTROL_MODE_UNKNOW)exio_output.bit.RGB_R = ((Vx == 0) && (Vz == 0));
-	}
-}
-
 void BatteryInfoInit(void)
 {
-	uint8_t verifyADD8 = 0;
 	battery_send_frame_num = 0;
-	switch (pdu[battery_manufacturer])
-	{
-	case 1://< 深圳市锂神科技有限公司
-		uart4_send_data[battery_send_frame_num++] = 0x3A;//< 帧头
-		uart4_send_data[battery_send_frame_num++] = 0x7E;//< 通用：0x7E
-		uart4_send_data[battery_send_frame_num++] = 0x01;//< 协议版本号
-		uart4_send_data[battery_send_frame_num++] = 0x01;//< 0：写 1：读
-		uart4_send_data[battery_send_frame_num++] = 0x1E;//< 功能码 (0x1E)
-		uart4_send_data[battery_send_frame_num++] = 0x00;//< 长度
-		uart4_send_data[battery_send_frame_num++] = 0xD8;//< 校验和
-		battery_send_frame_num = 9;
-		break;
-	default://7E 0A 01 00 00 30 00 AC 00 00 2C 90 //< 电池信息初始化读取
-		uart4_send_data[battery_send_frame_num++] = 0x7E;
-		uart4_send_data[battery_send_frame_num++] = 0x0A;
-		uart4_send_data[battery_send_frame_num++] = 0x01;
-		uart4_send_data[battery_send_frame_num++] = 0x00;
-		uart4_send_data[battery_send_frame_num++] = 0x00;
-		uart4_send_data[battery_send_frame_num++] = 0x30;
-		uart4_send_data[battery_send_frame_num++] = 0x00;
-		uart4_send_data[battery_send_frame_num++] = 0xAC;
-		uart4_send_data[battery_send_frame_num++] = 0x00;
-		uart4_send_data[battery_send_frame_num++] = 0x00;
-		uart4_send_data[battery_send_frame_num++] = 0x2C;
-		uart4_send_data[battery_send_frame_num++] = 0x90;
-		battery_send_frame_num = 14;
-		break;
+	switch (pdu[BatteryManufacturer]){
+		case 1://< 深圳市锂神科技有限公司
+			uart4_send_data[battery_send_frame_num++] = 0x3A;//< 帧头
+			uart4_send_data[battery_send_frame_num++] = 0x7E;//< 通用：0x7E
+			uart4_send_data[battery_send_frame_num++] = 0x01;//< 协议版本号
+			uart4_send_data[battery_send_frame_num++] = 0x01;//< 0：写 1：读
+			uart4_send_data[battery_send_frame_num++] = 0x1E;//< 功能码 (0x1E)
+			uart4_send_data[battery_send_frame_num++] = 0x00;//< 长度
+			uart4_send_data[battery_send_frame_num++] = 0xD8;//< 校验和
+			battery_send_frame_num = 9;
+			break;
+		default://7E 0A 01 00 00 30 00 AC 00 00 2C 90 //< 电池信息初始化读取
+			uart4_send_data[battery_send_frame_num++] = 0x7E;
+			uart4_send_data[battery_send_frame_num++] = 0x0A;
+			uart4_send_data[battery_send_frame_num++] = 0x01;
+			uart4_send_data[battery_send_frame_num++] = 0x00;
+			uart4_send_data[battery_send_frame_num++] = 0x00;
+			uart4_send_data[battery_send_frame_num++] = 0x30;
+			uart4_send_data[battery_send_frame_num++] = 0x00;
+			uart4_send_data[battery_send_frame_num++] = 0xAC;
+			uart4_send_data[battery_send_frame_num++] = 0x00;
+			uart4_send_data[battery_send_frame_num++] = 0x00;
+			uart4_send_data[battery_send_frame_num++] = 0x2C;
+			uart4_send_data[battery_send_frame_num++] = 0x90;
+			battery_send_frame_num = 14;
+			break;
 	}	
 	uart4_send_flag = 2;//< 
 }
@@ -957,22 +377,19 @@ void BatteryInfoInit(void)
 void IrDA_TX_Control()
 {
 	//接收到红外信号
-	if (GPIO_ReadInputDataBit(MCU_INF_RX_GPIO, MCU_INF_RX_PIN) == RESET)
-	{
+	if (GPIO_ReadInputDataBit(MCU_INF_RX_GPIO, MCU_INF_RX_PIN) == RESET){
 		//1启动红外传感器发送端
 		MCU_INF_TX = 1;
-	}
-	else
-	{
+	}else{
 		MCU_INF_TX = 0;
 	}
 }
-/*******************  *******************************************************
+
+/**************************************************************************
 函数功能：红外通讯发送数据部分
 入口参数：无/要发送的数据
 引脚信息：发送信号端低电平时，TX信号端高，RGBG低；
 **************************************************************************/
-
 void IrDA_Guide(void)
 {
 	SendCout++;
@@ -1037,6 +454,7 @@ void IrDA_Send1(void)
 		BitFree = 1;
 	}
 }
+
 void IrDA_SendData(uint8_t SendData)
 {
 	if (SendGuide_Flag == 0)//0:未发送引导位；1：已发送引导位；
@@ -1070,7 +488,7 @@ void IrDA_SendData(uint8_t SendData)
 		}
 	}
 }
-/*******************  *******************************************************
+/**************************************************************************
 函数功能：红外通讯接收端解码
 入口参数：无
 备注信息：1-对接正常；2-关闭充电；3-充电异常
@@ -1079,243 +497,457 @@ void IrDA_SendData(uint8_t SendData)
 void IrDA_RX_Decode(void)
 {
 	ReceiveData = IrDA_ReceiveData(pdu);
-	//test 
-	//ReceiveData = 1;//假定接收到小车充电信号
+	//test
+	//ReceiveData = 1;
 	/*红外接收端解码*/
-	switch (ReceiveData)
-	{
-	case 0:
-		break;
-	case 0x01://红外对接正常
-		SendData = 1;
-		IrDA_SendData(SendData);
-		RGB_ShowAlignOK();
-		IrDA_AlignOK = 1;
-		break;
-	case 0x02://关闭充电
-		SendData = 2;
-		IrDA_SendData(SendData);
-		RGB_ShowCharged();
-		IrDA_AlignOK = 0; 
-		break;
-	case 0x03://充电异常
-		SendData = 3;
-		IrDA_SendData(SendData);
-		RGB_ShowError();
-		IrDA_AlignOK = 0;
-		break;
-	default:
-		break;
+	switch (ReceiveData){
+		case 0:
+			break;
+		case 0x01://红外对接正常
+			SendData = 1;
+			IrDA_SendData(SendData);
+			RGB_ShowCharging();
+			IrDA_AlignOK = 1;
+			break;
+		case 0x02://关闭充电
+			SendData = 2;
+			IrDA_SendData(SendData);
+			RGB_ShowCharged();
+			IrDA_AlignOK = 0; 
+			break;
+		case 0x03://充电异常
+			SendData = 3;
+			IrDA_SendData(SendData);
+			RGB_ShowError();
+			IrDA_AlignOK = 0;
+			break;
+		default:
+			break;
 	}
 	/*等待限位开关信号*/
-	if (GPIO_ReadInputDataBit(MCU_SW_DET_GPIO, MCU_SW_DET_PIN) == RESET)
-	{
+	if (GPIO_ReadInputDataBit(MCU_SW_DET_GPIO, MCU_SW_DET_PIN) == RESET){
 		LimitSwitch_OK = 1;	
-	}		
-	else
-	{
+	}else{
 		LimitSwitch_OK = 0;
 	}
 	//小车与充电桩对接成功(红外对接成功+限位开关闭合)，MCU关闭MCU_CH_DET_ON
-	if (IrDA_AlignOK == 1 && LimitSwitch_OK == 1)
-	{
+	if (IrDA_AlignOK == 1 && LimitSwitch_OK == 1){
 		GPIO_ResetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
-	}
-	else
-	{
+	}else{
 		GPIO_SetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
 	}
 }
+
+
 void Relay_Switch(void)
 {
 	// CH_ON = 1:小车与充电桩对接成功(红外通讯正常和限位开关闭合)
-	if (GPIO_ReadOutputDataBit(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN) == RESET)
-	{
+	if (GPIO_ReadOutputDataBit(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN) == RESET){
 		CH_ON = 1;
-	}
-	else
-	{
+	}else{
 		CH_ON = 0;
 	}
-	if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == SET)
-	{
+	if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == SET){
 		//开启继电器
 		GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
 		MCU_RELAY2 = 1;
-	}
-	else
-	{
+	}else{
 		GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
 		MCU_RELAY2 = 0; 
 	}
-	//对接成功但未打开充电口→充电电极短路
-	if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == RESET && CH_ON == 1)
-	{
-		//打开报警器
-		GPIO_SetBits(MCU_WARM_GPIO, MCU_WARM_PIN);
-	}
-	else
-	{
-		GPIO_ResetBits(MCU_WARM_GPIO, MCU_WARM_PIN);
-	}
+	
 }
 /**************************************************************************
 函数功能：核心控制相关
 入口参数：
 返回  值：
 **************************************************************************/
-
 void Balance_task(void* pvParameters)
 {
 	uint8_t tmp1 = 0;
-	pdu = (uint16_t*)pvParameters;
-	pdu[motor1_radius] = FourWheer_Radiaus * 10000;
-	pdu[motor1_reduction_ratio] = REDUCTION_RATE * 100;
-	float Radiaus = pdu[motor1_radius] * 0.0001;
-	float rate = pdu[motor1_reduction_ratio] * 0.01;
-	FourWheer_Perimeter = 2 * PI * Radiaus;//< 车轮周长
-	FourWheer_Conversion = FourWheer_Perimeter / 60 / rate;	
-	VelocityToRpmConversion = (60 * rate)/ FourWheer_Perimeter;
-	AngularVelocityConversion = DIRECTOR_BASE* (PI / 4);
-	pdu[car_default_mode] = g_eControl_Mode;
-	pdu[wheel_distance] = (uint16_t)(Wheel_spacing * 10000);
-	pdu[axles_distance] = (uint16_t)(Axle_spacing * 10000);
-	pdu[motor_num] = Motor_Number;
-	pdu[car_mode] = CONTROL_MODE_REMOTE;
-	BatteryInfoInit();
-	if (pdu[robot_acceleration] < 5000)pdu[robot_acceleration] = 5000;
-	if (pdu[car_model] == Charger)
-	{
-		/*充电桩初始化*/		
-		IrDA_TX = 0;
-		FAN1 = 1;
-		FAN2 = 1;
-		LimitSwitch_Init();
-		Relay_Init();
-		//Key_Init();
-		RGB_Init();
-		ChargeDetection_Init();
-	}
-
-
-	while (1)
-	{
-		rt_thread_delay(100);   //< 10ms
-		if (tmp1 == 50)
+	ChargerBalanceInit();
+	while (1){
+		rt_thread_delay(50);   //< 5ms
+		/*test*/
+		if (tmp1 == 100)
 		{
-			//if (g_emCarMode == Charger)
-			LedBlink(LED2_PORT, RUN2);
+			//运行指示灯
+			LedBlink(LED17_GPIO, LED17_PIN);
+			//GPIO_SetBits(MCU_RGB_RED_GPIO, MCU_RGB_RED_PIN);
 			tmp1 = 0;
 		}
 		tmp1++;
+		//上位机output识别运行中
+		pdu[car_light_messages] = tmp1;
 
-
-		Get_Motor_Velocity();                  //获取驱动器反馈的速度，存放在结构体中
-		SetReal_Velocity(pdu);                  //解析航模数据
-		//使用上位机控制的时候，会在usart中断中关闭Remote_ON_Flag标志位
-		if (g_eControl_Mode == CONTROL_MODE_UNKNOW)
-		{
-			Move_X = Move_Y = Move_Z = 0;
-		}
-		else
-		{
-			if (g_eControl_Mode == CONTROL_MODE_REMOTE||
-				g_eControl_Mode == CONTROL_MODE_UART)
-			{
-				Remote_Control();                    //航模获取到设定的速度
-			}
-			else if (g_eControl_Mode == CONTROL_MODE_ROS)
-			{
-				// 上位机控制的时候，此时Z轴的速度要进行一个反向，不然左右转弯的时候有问题
-				Ros_Control();
-			}
-			//小车线速度和角速度限幅
-			float temp = ((int16_t)pdu[car_max_lin_speed]) * 0.001f;
-			Move_X = Move_X > temp ? temp : Move_X;
-			temp = ((int16_t)pdu[car_min_lin_speed]) * 0.001f;
-			Move_X = Move_X < temp ? temp : Move_X;
-			temp = ((int16_t)pdu[car_max_ang_speed]) * 0.001f;
-			Move_Z = Move_Z > temp ? temp : Move_Z;
-			temp = ((int16_t)pdu[car_min_ang_speed]) * 0.001f;
-			Move_Z = Move_Z < temp ? temp : Move_Z;
-		}
-		pdu[car_current_ctrl_mode] = g_eControl_Mode;//
-		switch (g_emCarMode)
-		{
-		case Mec_Car:        
-			break; //麦克纳姆轮小车
-		case Omni_Car:       
-			break; //全向轮小车
-		case Akm_Car:        
-			break; //阿克曼小车
-		case Diff_Car:       
-			break; //两轮差速小车
-		case FourWheel_Car://四驱车  室外差速
-		{
-			if (exio_input.bit.X0 || emergency_stop.estop_soft)
-			{//< 急停
-				Move_X = Move_Y = Move_Z = 0;
-			}
-			if (pdu[robot_forward_direction] == 1)Move_X = -Move_X;
-			if (pdu[robot_turning_direction] == 1)Move_Z = -Move_Z;
-			Drive_Motor(Move_X, Move_Y, Move_Z);   //小车运动模型解析出每个电机的实际速度
-			Car_Light_Control(Move_X, Move_Z);
-			Set_MotorVelocity(-MOTOR_A.nTarget_Velocity, -MOTOR_B.nTarget_Velocity,
-				MOTOR_C.nTarget_Velocity, MOTOR_D.nTarget_Velocity);
-		}
-			break; 
-		case Tank_Car:
-			break; //履带车
-		case RC_Car:
-		{
-			float m = (100+pdu[rc_magnification])*10;
-			int p = (int)pdu[rc_speed_shifting];
-			uint16_t line_ = Move_X  *m*0.5 + 3000 + p;
-			p = (int)pdu[rc_angle_shifting];
-			uint16_t angle_ = Move_Z *m + 3000+p;
-			RCCAR_Process(line_, angle_);
-		}
-			break;
-		case Charger://充电桩
-		{
-			/*红外发送端功能切换*/
-			switch (IrDA_SendState)
-			{//0：关闭发送端；1：红外对接；2：红外通讯；
-			case 0:
-				RGB_BreathLamp(aaa);
-			//RGB_ShowAlignOK();
-				break;
-			case 1:
-				IrDA_TX_Control();
-				//如果对接成功，转通讯	
-				if (MCU_INF_TX == 1)
-				{
-					IrDA_SendState = 2;
-				}
-				break;
-			case 2:
-				IrDA_RX_Decode();
-				break;
-			}
-			//按键切换RGB颜色
-			//Key_Change_RGB();
-			Relay_Switch();
-		}
-		break;
-		default: break;
-		}
-		
-		pdu[car_mode] = (pdu[car_mode] & 0xFF00) | g_eControl_Mode;
-		pdu[error_get_and_clear] = error_code;//< 故障获取
-		pdu[car_error_messages] = error_code;
-		if (error_code != ERROR_NONE)
-		{
-			pdu[car_system_state] = 2;
-		}
-		BatteryInformation();
-		BatteryThresholdAlarm();
-		SPI1_ReadWriteByte();
-		PowerControl();
-		//UltrasonicProcess();
+		SetReal_Velocity();             							//获取到设定的速度和方向值
+		Kinematic_Analysis(pdu[target_linear_speed], Move_Y, pdu[target_yaw_speed]);//将线速度和角速度转化为电机的输入值
+		ClassificationOfMotorMotionModes(pdu[motor2_sport_mode]);	//电机运动模式分类
 	}
 }
+
+/**************************************************
+* 函数功能：获取到设定的速度和方向值
+**************************************************/
+void SetReal_Velocity()
+{
+	if (Soft_JT_Flag){//< 急停
+		pdu[target_linear_speed] = Move_Y = pdu[target_yaw_speed] = pdu[target_angle] = Servo_pulse = 0;
+	}else{
+		switch(pdu[control_mode]){
+			case control_mode_ros:
+				Odom_distance_mm += DiffposForOdom;
+				if(ROS_RecvFlag){
+					pdu[target_linear_speed] = ConvertBytesToFloat(Receive_Data[3],Receive_Data[4]);	//X轴速度
+					Move_Y = ConvertBytesToFloat(Receive_Data[5],Receive_Data[6]);	//Y轴速度(小车在Y轴速度为0)
+					pdu[target_yaw_speed] = ConvertBytesToFloat(Receive_Data[7],Receive_Data[8]);	//Z轴速度
+					// pdu[target_yaw_speed]=-ConvertBytesToFloat(Receive_Data[7],Receive_Data[8]);
+					Z_Radian = atan(pdu[car_wheelbase] * MAGNIFIC_10000x_DOWN * pdu[target_yaw_speed] / (pdu[target_linear_speed] + EPSILON));//阿克曼前轮转角弧度	
+					Z_Radian = fmin(Z_Radian_Max, fmax(-Z_Radian_Max, Z_Radian));//转角弧度限幅(单位：0.1rad)
+					pdu[target_angle] = (short)(Z_Radian * RADtoANG * MAGNIFIC_10x_UP); //更正转角
+					pdu[target_yaw_speed] = (short)(tan(Z_Radian) * (pdu[target_linear_speed] + EPSILON) / (pdu[car_wheelbase] * MAGNIFIC_10000x_DOWN));	//修正角速度
+					Servo_pulse =(pdu[target_angle] / DEGREE_MAX) * MYHALF * ENCODER_LINES * CORRECTION_FACTOR * pdu[motor1_reduction_ratio];
+					ROS_RecvFlag = false;
+				}
+				break;
+			case control_mode_ipc:
+				pdu[target_linear_speed] = VirtuallyLinearVelocityGet();						//线速度单位10(-3)m/s	
+				pdu[target_yaw_speed] = VirtuallyAngularVelocityGet(pdu[target_linear_speed]);	//角速度单位10(-3)rad/s	
+				break;
+			case control_mode_remote:
+				pdu[target_linear_speed] = LinearVelocityGet();							//线速度单位10(-3)m/s	
+				pdu[target_yaw_speed] = AngularVelocityGet(pdu[target_linear_speed]);	//角速度单位10(-3)rad/s	
+				break;			
+			case control_mode_other:
+			case control_mode_unknown:
+				pdu[target_linear_speed] = Move_Y = pdu[target_yaw_speed] = pdu[target_angle] = Servo_pulse = 0;
+				break;
+			default:
+				break;		
+		}
+		//小车线速度/角速度/前轮转角限幅
+		if(pdu[car_type] != RC_Car){
+			pdu[target_linear_speed] = limit_value((short)pdu[target_linear_speed], (short)pdu[max_linear_speed]);
+			pdu[target_yaw_speed] = limit_value((short)pdu[target_yaw_speed], (short)pdu[max_yaw_speed]);
+			pdu[target_angle] = limit_value((short)pdu[target_angle], (short)pdu[max_angle]);
+		}		
+	}
+}
+
+/**************************************************************************
+函数功能：将线速度和角速度转化为电机的输入值
+入口参数：角速度线速度
+返回  值：无
+**************************************************************************/
+void Kinematic_Analysis(short Vx, float Vy, short Vz)
+{
+	float common_part = LineSpeedToMotorSpeed * MAGNIFIC_1000x_DOWN;	// 提取共同部分
+	short wheel_distance_factor;										// 提取车轮与轴间的距离部分
+	short m; 
+	uint16_t line_, angle_;
+	switch (pdu[car_type]){//运动学分析
+		case Akm_Car:
+			wheel_distance_factor = (short)(Vz * pdu[car_tread] * MAGNIFIC_10000x_DOWN / 2.0f);
+			pdu[motor2_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);	// 单位：r/min
+			pdu[motor3_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);	// 计算 motor2 和 motor3 的目标转速
+			ServoPulse_Enable();
+			break;
+		case FourWheel_Car:
+			wheel_distance_factor = (Vz * (pdu[car_tread] + pdu[car_wheelbase]) * MAGNIFIC_10000x_DOWN / 2.0f); 
+			pdu[motor2_target_rpm] = pdu[motor1_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);
+			pdu[motor4_target_rpm] = pdu[motor3_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);
+			break;
+		case Diff_Car:
+			wheel_distance_factor = (Vz * (pdu[car_tread] + pdu[car_wheelbase]) * MAGNIFIC_10000x_DOWN / 2.0f);
+			pdu[motor1_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);
+			pdu[motor2_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);
+			
+			break;
+		case TwoWheel_Car:
+		case Tank_Car:
+			wheel_distance_factor = (Vz * (pdu[car_tread] + pdu[car_wheelbase]) * MAGNIFIC_10000x_DOWN / 2.0f); 
+			pdu[motor1_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);
+			pdu[motor2_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);
+			break;
+		case RC_Car:
+			m = (100 + (short)pdu[rc_magnification]) * 10;
+			line_ = (short)(Vx * MAGNIFIC_1000x_DOWN * MYHALF * m) + 3000;//线速度
+			angle_ = (short)(Vz * MAGNIFIC_1000x_DOWN * m) + 3000;//角度
+			pdu[target_linear_speed] = line_;
+			pdu[target_yaw_speed] = angle_;
+			RCCAR_Process(line_, angle_);//发送PWM给电机
+			break;
+		case Charger://充电桩
+			/*红外发送端功能切换*/
+			switch (IrDA_SendState){//0：关闭发送端；1：红外对接；2：红外通讯；
+				case 0:
+					break;
+				case 1:
+					IrDA_TX_Control();
+					//如果对接成功，转通讯	
+					if (MCU_INF_TX == 1){
+						IrDA_SendState = 2;
+					}
+					break;
+				case 2:
+					IrDA_RX_Decode();
+					break;
+				default:
+					break;
+			}
+			Relay_Switch();
+			//按键切换RGB颜色，测试用
+			//Key_Change_RGB();
+				
+		default:
+			break;
+	}
+}
+
+/**************************************************************************
+函数功能：电机运动模式分类
+入口参数：sport_mode
+返 回 值：无
+**************************************************************************/
+void ClassificationOfMotorMotionModes(uint16_t sport_mode)		   
+{
+	static int mode_count = 0;
+	bool torque_switch = false; //速度模式下力矩（电流）切换标志位
+	static uint16_t Torque_SWB = 0, Torque_Max = 0, Last_RC6_Value = 0, Last_RC10_Value = 0;
+	uint8_t Speed_Max[4] = {//力矩模式下最大速度挡位，200A地址对应的最大转速为U16，需要进行类型转换
+		myabs(pdu[motor2_target_rpm]) & 0xFF, (myabs(pdu[motor2_target_rpm]) >> 8) & 0xFF, 
+		myabs(pdu[motor3_target_rpm]) & 0xFF, (myabs(pdu[motor3_target_rpm]) >> 8) & 0xFF,
+	};
+	switch (sport_mode){//模式判断
+		case speed_mode:
+			if(pdu[rc_ch6_value] - Last_RC6_Value){	
+				if (Abs_int(pdu[rc_ch6_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR){
+					Torque_SWB = SWB_LOW_GEAR;//速度模式下最大力矩挡位
+				}else if (Abs_int(pdu[rc_ch6_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR){		
+					Torque_SWB = SWB_MIDDLE_GEAR;
+				}else if (Abs_int(pdu[rc_ch6_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR){				
+					Torque_SWB = SWB_HIGH_GEAR;
+				}
+				torque_switch = true;
+			}
+			if ((Last_RC10_Value == pdu[rc_max_value]) && ((pdu[rc_ch10_value] - Last_RC10_Value) < 0) && (pdu[torque_cofficient] < TORQUE_COEFFICIENT_MAX)){
+				pdu[torque_cofficient] ++;
+				torque_switch = true;
+			}else if ((Last_RC10_Value == pdu[rc_min_value]) && ((pdu[rc_ch10_value] - Last_RC10_Value) > 0) && (pdu[torque_cofficient] > TORQUE_COEFFICIENT_MIN)){
+				pdu[torque_cofficient] --;
+				torque_switch = true;			
+			}
+			Last_RC6_Value = pdu[rc_ch6_value];
+			Last_RC10_Value = pdu[rc_ch10_value]; 
+			if(torque_switch){
+				Odom_distance_mm = 0; //里程计清零
+				Torque_Max = pdu[torque_cofficient] * Torque_SWB;	//2015h（电流）范围为0-300		
+				Torque_sdo[0][4] = Torque_Max & 0xFF;
+				Torque_sdo[0][5] = ((Torque_Max) >> 8) & 0xFF;	
+				switch (pdu[car_type]){
+					case Akm_Car:
+						Add_Sdo_Linked_List(pdu[motor2_CAN_id], Torque_sdo, sizeof(Torque_sdo) / sizeof(Torque_sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor3_CAN_id], Torque_sdo, sizeof(Torque_sdo) / sizeof(Torque_sdo[0]));			
+						break;
+					case Diff_Car:
+						Torque_sdo2[0][4] = Torque_sdo1[0][4] = Torque_Max & 0xFF;
+						Torque_sdo2[0][5] = Torque_sdo1[0][5] = ((Torque_Max) >> 8) & 0xFF;	
+						Add_Sdo_Linked_List(pdu[motor1_CAN_id], Torque_sdo1, sizeof(Torque_sdo1) / sizeof(Torque_sdo1[0]));
+						Add_Sdo_Linked_List(pdu[motor1_CAN_id], Torque_sdo2, sizeof(Torque_sdo2) / sizeof(Torque_sdo2[0]));
+						break;					
+					case TwoWheel_Car:
+					case Tank_Car:
+						Add_Sdo_Linked_List(pdu[motor1_CAN_id], Torque_sdo, sizeof(Torque_sdo) / sizeof(Torque_sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor2_CAN_id], Torque_sdo, sizeof(Torque_sdo) / sizeof(Torque_sdo[0]));
+						break;
+					case FourWheel_Car:
+						Add_Sdo_Linked_List(pdu[motor1_CAN_id], Torque_sdo, sizeof(Torque_sdo) / sizeof(Torque_sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor2_CAN_id], Torque_sdo, sizeof(Torque_sdo) / sizeof(Torque_sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor3_CAN_id], Torque_sdo, sizeof(Torque_sdo) / sizeof(Torque_sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor4_CAN_id], Torque_sdo, sizeof(Torque_sdo) / sizeof(Torque_sdo[0]));
+						break;
+					default:
+						break;
+				}	
+			}				
+			break;
+		case torque_mode:
+			switch (pdu[car_type]){
+				case Akm_Car:
+					if((mode_count == 1) && (pdu[rc_ch3_value] != pdu[rc_base_value])){//非停止状态下切换成转矩模式，不带刹车
+						Add_Sdo_Linked_List(pdu[motor2_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor3_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
+						mode_count = 0;			
+					}
+					if((pdu[rc_ch3_value] == pdu[rc_base_value]) && (myabs(pdu[motor2_rpm_feedback]) < 2)){//停止下来切换成速度模式，带刹车
+						Add_Sdo_Linked_List(pdu[motor2_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor3_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
+						mode_count = 1;		
+					}	                                                                                
+					Speed_sdo[0][4] = Speed_Max[0];
+					Speed_sdo[0][5] = Speed_Max[1];									
+					Add_Sdo_Linked_List(pdu[motor2_CAN_id], Speed_sdo, sizeof(Speed_sdo) / sizeof(Speed_sdo[0]));
+					Speed_sdo[0][4] = Speed_Max[2];
+					Speed_sdo[0][5] = Speed_Max[3];		
+					Add_Sdo_Linked_List(pdu[motor3_CAN_id], Speed_sdo, sizeof(Speed_sdo) / sizeof(Speed_sdo[0]));											
+					pdu[motor2_target_torque] = pdu[motor2_target_rpm] * MAGNIFIC_10x_UP; //乘以10是因为ZLAC中目标转矩与目标速度取值范围差了10倍
+					pdu[motor3_target_torque] = pdu[motor3_target_rpm] * MAGNIFIC_10x_UP; 
+					break;
+				case FourWheel_Car:
+					if((mode_count == 1) && (pdu[rc_ch3_value] != pdu[rc_base_value])){//非停止状态下切换成转矩模式，不带刹车
+						Add_Sdo_Linked_List(pdu[motor1_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor2_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor3_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor4_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
+						mode_count = 0;			
+					}
+					if((pdu[rc_ch3_value] == pdu[rc_base_value]) && (myabs(pdu[motor2_rpm_feedback]) < 2)){//停止下来切换成速度模式，带刹车
+						Add_Sdo_Linked_List(pdu[motor1_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor2_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor3_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
+						Add_Sdo_Linked_List(pdu[motor4_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
+						mode_count = 1;		
+					}	                                                                                
+					Speed_sdo[0][4] = Speed_Max[0];
+					Speed_sdo[0][5] = Speed_Max[1];									
+					Add_Sdo_Linked_List(pdu[motor1_CAN_id], Speed_sdo, sizeof(Speed_sdo) / sizeof(Speed_sdo[0]));
+					Add_Sdo_Linked_List(pdu[motor2_CAN_id], Speed_sdo, sizeof(Speed_sdo) / sizeof(Speed_sdo[0]));
+					Speed_sdo[0][4] = Speed_Max[2];
+					Speed_sdo[0][5] = Speed_Max[3];		
+					Add_Sdo_Linked_List(pdu[motor3_CAN_id], Speed_sdo, sizeof(Speed_sdo) / sizeof(Speed_sdo[0]));											
+					Add_Sdo_Linked_List(pdu[motor4_CAN_id], Speed_sdo, sizeof(Speed_sdo) / sizeof(Speed_sdo[0]));											
+					pdu[motor1_target_torque] = pdu[motor1_target_rpm] * MAGNIFIC_10x_UP; //乘以10是因为ZLAC中目标转矩与目标速度取值范围差了10倍
+					pdu[motor2_target_torque] = pdu[motor2_target_rpm] * MAGNIFIC_10x_UP; 
+					pdu[motor3_target_torque] = pdu[motor3_target_rpm] * MAGNIFIC_10x_UP; 
+					pdu[motor4_target_torque] = pdu[motor4_target_rpm] * MAGNIFIC_10x_UP; 
+					break;
+				case TwoWheel_Car://暂无力矩模式
+				case Diff_Car:
+				case Tank_Car:
+					break;
+				default:
+					break;
+			}	
+		default:
+			break;
+	}	
+}
+
+
+/**************************************************
+* 函数功能：得到线速度
+* 返 回 值：返回线速度
+**************************************************/
+short LinearVelocityGet(void)
+{	
+	uint16_t VelocityCoefficient = (pdu[rc_ch6_value] == pdu[rc_min_value])? pdu[linear_low] ://线速度系数
+		(pdu[rc_ch6_value] == pdu[rc_base_value])? pdu[linear_middle] : pdu[linear_high];
+	float VelocityTemp = pdu[robot_forward_direction] * (pdu[rc_ch3_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference]; 
+	switch(pdu[car_type]){
+		case Akm_Car:		// 阿克曼       
+		case FourWheel_Car:	// 室外差速四驱车
+		case Diff_Car:		// 差速车(圆形底盘)
+		case TwoWheel_Car: 	// 室内差速二驱车
+		case Tank_Car:   	// 坦克车		
+		case RC_Car:   		// RC车		
+			return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR)?
+			(short)(VelocityCoefficient * VelocityTemp) : 0;			
+		default:
+			return 0;
+	}
+}
+
+/**************************************************
+* 函数功能：得到角速度
+* 返 回 值：返回角速度
+**************************************************/
+short AngularVelocityGet(short linearValue)
+{	
+	uint16_t YawCoefficient = (pdu[rc_ch6_value] == pdu[rc_min_value])? pdu[angular_low] ://角速度系数
+		(pdu[rc_ch6_value] == pdu[rc_base_value])? pdu[angular_middle] : pdu[angular_high];
+	float YawTemp = -(pdu[robot_forward_direction] * (pdu[rc_ch1_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference]); //角速度与转向通道值正方向相反
+	switch(pdu[car_type]){
+		case Akm_Car:		// 阿克曼       
+			pdu[target_angle] = round(YawTemp * DEGREE_MAX); //前轮转角
+			Servo_pulse = YawTemp * MYHALF * ENCODER_LINES * CORRECTION_FACTOR * pdu[motor1_reduction_ratio];//脉冲		
+			return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR)?
+			(short)(linearValue * YawTemp / AKM_RAW_FACTOR) : 0; // Z轴角速度
+		case Diff_Car:		// 差速车(圆形底盘)
+		case FourWheel_Car:	// 室外差速四驱车
+		case TwoWheel_Car: 	// 室内差速二驱车
+		case Tank_Car :   	// 坦克车		
+			return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR)?
+			(short)(YawCoefficient * YawTemp / PI * 4) : 0; // Z轴角速度
+		default:
+			return 0;
+	}
+}
+
+/**************************************************
+* 函数功能：得到线速度
+* 返 回 值：返回角速度
+**************************************************/
+short VirtuallyLinearVelocityGet(void)
+{	
+	uint16_t VelocityCoefficient = (pdu[virtually_rc_ch6_value] == pdu[rc_min_value])? pdu[linear_low] ://线速度系数
+		(pdu[virtually_rc_ch6_value] == pdu[rc_base_value])? pdu[linear_middle] : pdu[linear_high];
+	float VelocityTemp = pdu[robot_forward_direction] * (pdu[virtually_rc_ch3_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference]; 
+	switch(pdu[car_type]){
+		case Akm_Car:		// 阿克曼       
+		case FourWheel_Car:	// 室外差速四驱车
+		case Diff_Car:		// 差速车(圆形底盘)
+		case TwoWheel_Car: 	// 室内差速二驱车
+		case Tank_Car:   	// 坦克车		
+		case RC_Car:   		// RC车		
+			return (myabs(pdu[virtually_rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR)?
+			(short)(VelocityCoefficient * VelocityTemp) : 0;			
+		default:
+			return 0;
+	}
+}
+
+/**************************************************
+* 函数功能：得到角速度
+* 返 回 值：返回角速度
+**************************************************/
+short VirtuallyAngularVelocityGet(short linearValue)
+{	
+	uint16_t YawCoefficient = (pdu[virtually_rc_ch6_value] == pdu[rc_min_value])? pdu[angular_low] ://角速度系数
+		(pdu[virtually_rc_ch6_value] == pdu[rc_base_value])? pdu[angular_middle] : pdu[angular_high];
+	float YawTemp = -(pdu[robot_forward_direction] * (pdu[virtually_rc_ch1_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference]); //角速度与转向通道值正方向相反
+	switch(pdu[car_type]){
+		case Akm_Car:		// 阿克曼       
+			pdu[target_angle] = round(YawTemp * DEGREE_MAX); //前轮转角
+			Servo_pulse = YawTemp * MYHALF * ENCODER_LINES * CORRECTION_FACTOR * pdu[motor1_reduction_ratio];//脉冲		
+			return (short)(linearValue * YawTemp / AKM_RAW_FACTOR); // Z轴角速度
+		case Diff_Car:		// 差速车(圆形底盘)
+		case FourWheel_Car:	// 室外差速四驱车
+		case TwoWheel_Car: 	// 室内差速二驱车
+		case Tank_Car:   	// 坦克车		
+			return (short)(YawCoefficient * YawTemp / PI * 4); // Z轴角速度
+		default:
+			return 0;
+	}
+}
+
+
+
+/**************************************************************************
+函数功能：充电桩初始化
+入口参数：
+返回  值：
+**************************************************************************/
+void ChargerBalanceInit(void)
+{		
+	if (pdu[car_type] == Charger){
+		IrDA_TX = 0;
+		FAN1 = 1;
+		FAN2 = 1;
+		Relay_Init();
+		//Key_Init();
+		RGB_Init();
+		LimitSwitch_Init();
+		ChargeDetection_Init();
+	}
+}
+

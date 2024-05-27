@@ -11,8 +11,7 @@
 extern	int Balance_Pwm,Velocity_Pwm,Turn_Pwm;
 int EXTI15_10_IRQHandler(void);
 void Set_Pwm(int motor_a,int motor_b,int servo);
-void Kinematic_Analysis(float Vy,float angle);
-void Kinematic_Analysis2(float Vy,float Vz);
+void Kinematic_AnalysisRC(float Vy,float angle);
 void Key(void);
 void Xianfu_Pwm(int amplitude);
 void Xianfu_Velocity(int amplitude_A,int amplitude_B,int amplitude_C,int amplitude_D);

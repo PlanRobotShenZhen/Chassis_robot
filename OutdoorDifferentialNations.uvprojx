@@ -14,16 +14,16 @@
       <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
-          <Device>N32G455CCL7</Device>
+          <Device>N32G455REL7</Device>
           <Vendor>Nationstech</Vendor>
           <PackID>Nationstech.N32G45x_DFP.1.0.6</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
-          <Cpu>IRAM(0x20000000,0x24000) IROM(0x08000000,0x40000) CPUTYPE("Cortex-M4") FPU2 CLOCK(12000000) ELITTLE</Cpu>
+          <Cpu>IRAM(0x20000000,0x24000) IROM(0x08000000,0x80000) CPUTYPE("Cortex-M4") FPU2 CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
-          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC1000 -FN1 -FF0N32G45x -FS08000000 -FL040000 -FP0($$Device:N32G455CCL7$Flash\N32G45x.FLM))</FlashDriverDll>
+          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC1000 -FN1 -FF0N32G45x -FS08000000 -FL080000 -FP0($$Device:N32G455REL7$Flash\N32G45x.FLM))</FlashDriverDll>
           <DeviceId>0</DeviceId>
-          <RegisterFile>$$Device:N32G455CCL7$firmware\CMSIS\device\n32g45x.h</RegisterFile>
+          <RegisterFile>$$Device:N32G455REL7$firmware\CMSIS\device\n32g45x.h</RegisterFile>
           <MemoryEnv></MemoryEnv>
           <Cmp></Cmp>
           <Asm></Asm>
@@ -33,7 +33,7 @@
           <SLE66CMisc></SLE66CMisc>
           <SLE66AMisc></SLE66AMisc>
           <SLE66LinkerMisc></SLE66LinkerMisc>
-          <SFDFile>$$Device:N32G455CCL7$svd\N32G455.svd</SFDFile>
+          <SFDFile>$$Device:N32G455REL7$svd\N32G455.svd</SFDFile>
           <bCustSvd>0</bCustSvd>
           <UseEnv>0</UseEnv>
           <BinPath></BinPath>
@@ -252,7 +252,7 @@
               <IROM>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x40000</Size>
+                <Size>0x80000</Size>
               </IROM>
               <XRAM>
                 <Type>0</Type>
@@ -276,8 +276,8 @@
               </OCR_RVCT3>
               <OCR_RVCT4>
                 <Type>1</Type>
-                <StartAddress>0x8004000</StartAddress>
-                <Size>0x20000</Size>
+                <StartAddress>0x8000000</StartAddress>
+                <Size>0x80000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -302,7 +302,7 @@
               <OCR_RVCT9>
                 <Type>0</Type>
                 <StartAddress>0x20000000</StartAddress>
-                <Size>0x12000</Size>
+                <Size>0x24000</Size>
               </OCR_RVCT9>
               <OCR_RVCT10>
                 <Type>0</Type>
@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>N32G45X, USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>.\bsp\inc;.\firmware\CMSIS\core;.\firmware\CMSIS\device;.\firmware\n32g45x_std_periph_driver\inc;.\rt-thread\include;.\app\inc;.\rt-thread\include\libc;.\bsp\DeviceDrivers\inc;.\app\MODBUS;.\app\MODBUS\include;.\app\MOTOR;.\app\BALANCE;.\bsp\DeviceDrivers\uart\inc;.\bsp\DeviceDrivers\can\inc;.\app\MODBUS\rtu;.\FLASH;.\bsp\DeviceDrivers\adc\inc;.\app\RCCAR;.\app\Charger</IncludePath>
+              <IncludePath>.\bsp\inc;.\firmware\CMSIS\core;.\firmware\CMSIS\device;.\firmware\n32g45x_std_periph_driver\inc;.\rt-thread\include;.\app\inc;.\rt-thread\include\libc;.\bsp\DeviceDrivers\inc;.\app\MODBUS;.\app\MODBUS\include;.\app\MOTOR;.\app\BALANCE;.\bsp\DeviceDrivers\uart\inc;.\bsp\DeviceDrivers\can\inc;.\app\MODBUS\rtu;.\FLASH;.\bsp\DeviceDrivers\adc\inc;.\app\RCCAR;.\app\Charger;.\app\JDQ_EN;.\app\RJ_JT;.\app\REMOTE</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -490,9 +490,14 @@
               <FilePath>.\app\Charger\Charger.c</FilePath>
             </File>
             <File>
-              <FileName>Charger.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\app\Charger\Charger.h</FilePath>
+              <FileName>RJ_JT.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\RJ_JT\RJ_JT.c</FilePath>
+            </File>
+            <File>
+              <FileName>JDQ_EN.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\JDQ_EN\JDQ_EN.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -644,6 +649,11 @@
               <FileType>1</FileType>
               <FilePath>.\bsp\DeviceDrivers\adc\src\user_adc.c</FilePath>
             </File>
+            <File>
+              <FileName>IC.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\bsp\src\IC.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -739,6 +749,11 @@
               <FileType>1</FileType>
               <FilePath>.\app\BALANCE\robot_select_init.c</FilePath>
             </File>
+            <File>
+              <FileName>system.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\BALANCE\system.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -763,6 +778,16 @@
               <FileName>rc_car.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\app\RCCAR\rc_car.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>REMOTE</GroupName>
+          <Files>
+            <File>
+              <FileName>remote.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\REMOTE\remote.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -10,7 +10,7 @@
 
 #include <drivers/mmcsd_core.h>
 #include <drivers/sdio.h>
-#include <drivers/sd.h>
+#include <drivers/sw.h>
 
 #define DBG_TAG               "SDIO"
 #ifdef RT_SDIO_DEBUG
@@ -786,7 +786,7 @@ static rt_int32_t sdio_set_bus_wide(struct rt_mmcsd_card *card)
 static rt_int32_t sdio_register_card(struct rt_mmcsd_card *card)
 {
     struct sdio_card *sc;
-    struct sdio_driver *sd;
+    struct sdio_driver *sw;
     rt_list_t *l;
 
     sc = rt_malloc(sizeof(struct sdio_card));
@@ -806,10 +806,10 @@ static rt_int32_t sdio_register_card(struct rt_mmcsd_card *card)
 
     for (l = (&sdio_drivers)->next; l != &sdio_drivers; l = l->next)
     {
-        sd = (struct sdio_driver *)rt_list_entry(l, struct sdio_driver, list);
-        if (sdio_match_card(card, sd->drv->id))
+        sw = (struct sdio_driver *)rt_list_entry(l, struct sdio_driver, list);
+        if (sdio_match_card(card, sw->drv->id))
         {
-            sd->drv->probe(card);
+            sw->drv->probe(card);
         }
     }
 
@@ -1340,19 +1340,19 @@ static struct rt_mmcsd_card *sdio_match_driver(struct rt_sdio_device_id *id)
 
 rt_int32_t sdio_register_driver(struct rt_sdio_driver *driver)
 {
-    struct sdio_driver *sd;
+    struct sdio_driver *sw;
     struct rt_mmcsd_card *card;
 
-    sd = rt_malloc(sizeof(struct sdio_driver));
-    if (sd == RT_NULL)
+    sw = rt_malloc(sizeof(struct sdio_driver));
+    if (sw == RT_NULL)
     {
         LOG_E("malloc sdio driver failed");
 
         return -RT_ENOMEM;
     }
 
-    sd->drv = driver;
-    rt_list_insert_after(&sdio_drivers, &sd->list);
+    sw->drv = driver;
+    rt_list_insert_after(&sdio_drivers, &sw->list);
 
     if (!rt_list_isempty(&sdio_cards))
     {
@@ -1369,19 +1369,19 @@ rt_int32_t sdio_register_driver(struct rt_sdio_driver *driver)
 rt_int32_t sdio_unregister_driver(struct rt_sdio_driver *driver)
 {
     rt_list_t *l;
-    struct sdio_driver *sd = RT_NULL;
+    struct sdio_driver *sw = RT_NULL;
     struct rt_mmcsd_card *card;
 
     for (l = (&sdio_drivers)->next; l != &sdio_drivers; l = l->next)
     {
-        sd = (struct sdio_driver *)rt_list_entry(l, struct sdio_driver, list);
-        if (sd->drv != driver)
+        sw = (struct sdio_driver *)rt_list_entry(l, struct sdio_driver, list);
+        if (sw->drv != driver)
         {
-            sd = RT_NULL;
+            sw = RT_NULL;
         }
     }
 
-    if (sd == RT_NULL)
+    if (sw == RT_NULL)
     {
         LOG_E("SDIO driver %s not register", driver->name);
         return -RT_ERROR;
@@ -1393,8 +1393,8 @@ rt_int32_t sdio_unregister_driver(struct rt_sdio_driver *driver)
         if (card != RT_NULL)
         {
             driver->remove(card);
-            rt_list_remove(&sd->list);
-            rt_free(sd);
+            rt_list_remove(&sw->list);
+            rt_free(sw);
         }
     }
 

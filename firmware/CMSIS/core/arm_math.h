@@ -38,7 +38,7 @@
    * - Filters
    * - Matrix functions
    * - Transforms
-   * - Motor control functions
+   * - Remote control functions
    * - Statistical functions
    * - Support functions
    * - Interpolation functions
@@ -4706,7 +4706,7 @@ void arm_rfft_fast_f32(
    */
 
   /**
-   * @defgroup PID PID Motor Control
+   * @defgroup PID PID Remote Control
    *
    * A Proportional Integral Derivative (PID) controller is a generic feedback control
    * loop mechanism widely used in industrial control systems.

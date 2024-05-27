@@ -45,6 +45,10 @@
 #include "balance.h"
 #include "rc_car.h"
 #include "Charger.h"
+#include "remote.h"
+#include "motor.h"
+#include "RJ_JT.h"
+#include "IC.h"
 #ifdef RT_USING_DFS
 /* dfs filesystem:ELM filesystem init */
 #include <dfs_elm.h>
@@ -70,48 +74,34 @@ static rt_uint8_t InitStack[512];
 static struct rt_thread InitHandle;
 
 static rt_uint8_t Balance_stack[512];
-static rt_uint8_t Motor_init_stack[2048];
-static rt_uint8_t Motor_stack[512];
-static rt_uint8_t Can_stack[2048];
-static rt_uint8_t DATA_stack[512];
-static rt_uint8_t ModBUS_stack[512];
+static rt_uint8_t Motor_stack[2048];
+static rt_uint8_t Remote_stack[512];
+static rt_uint8_t CAN_stack[2048];
+static rt_uint8_t Modbus_stack[512];
 static rt_uint8_t ADC_stack[512];
+static rt_uint8_t LED_stack[512];
+static rt_uint8_t RJJT_stack[512];
 static rt_uint8_t Ultrasonic1_stack[512];
 static rt_uint8_t Ultrasonic2_stack[512];
 static struct rt_thread Balance_thread;
-static struct rt_thread Motor_init_thread;
 static struct rt_thread Motor_thread;
-static struct rt_thread Can_thread;
-static struct rt_thread DATA_thread;
-static struct rt_thread ModBUS_thread;
+static struct rt_thread Remote_thread;
+static struct rt_thread CAN_thread;
+static struct rt_thread LED_thread;
+static struct rt_thread RJJT_thread;
+static struct rt_thread Modbus_thread;
 static struct rt_thread ADC_thread;
 static struct rt_thread Ultrasonic1_thread;
 static struct rt_thread Ultrasonic2_thread;
-float Wheel_perimeter = 0;    //轮子周长（单位：米）
-float Wheel_spacing = 0;      //主动轮轮距 （单位：米）//后面会在robot_select_init.h文件中初始化
-float Axle_spacing = 0;       //前后轴距
-float Omni_turn_radiaus = 0;  //全向轮转弯半径
 
-Remote_Control_struct* rc_ptr;
-Motor_struct* motorA_ptr;
-Motor_struct* motorB_ptr;
-Motor_struct* motorC_ptr;
-Motor_struct* motorD_ptr;
-//Robot_speed *robot_speed_ptr;
-enum CarMode g_emCarMode = UNKNOW;                                                //小车类型
-unsigned char Flag_Stop = 0;                                                      //1代表使能机器人
-enum ENUM_CarControl_Mode g_eControl_Mode = CONTROL_MODE_UNKNOW;  // 机器人的控制方式
-unsigned char g_ucRemote_Flag = 0;              //航模开启标志位
-unsigned char g_ucRos_Flag = 0;                 // ROS上位机进入标志位 
 
-struct Motor_parameter  MOTOR_A, MOTOR_B, MOTOR_C, MOTOR_D;//< 左前、左后、右前、右后
+
 // 手动软件复位
 void Soft_Reset()
 {
 	int nDelay = 0;
 	__DSB();
-	while (nDelay < 100)
-	{
+	while (nDelay < 100){
 		nDelay++;
 	}
 }
@@ -133,113 +123,99 @@ void cali_store(struct calibration_data *data)
 }
 #endif /* RT_USING_RTGUI */
 
+uint32_t GetUsart1_baud(uint16_t data)
+{
+    switch (data){
+        case 0: return 9600;
+        case 1: return 19200;
+        case 2: return 57600;
+        case 3: return 115200;
+        case 4: return 256000;
+        case 5: return 512000;
+        case 6: return 921600;
+        case 7: return 1000000;
+        case 8: return 1500000;
+        case 9: return 2000000;
+    }
+		return 2000000;
+}
+
+void DiyFunctionBasedCar(uint16_t data)
+{
+    switch (data){
+        case Akm_Car: 
+            Adc_Init();                     //采集电池电压ADC引脚初始化	
+            break;
+        case Diff_Car: //圆形底盘
+            Usart2_Init(9600);              //串口2初始化，圆形底盘用串口2代替串口4，用于读取电池信息
+            Ultrasonic_Init();
+            Adc_Init();
+            IR_Init();
+            ElectrodePad_Init();
+            GPIO_SetBits(MCU_CHARGE_ON_GPIO, MCU_CHARGE_ON_PIN);    //自动充电
+						//TEST		
+            break;
+        case FourWheel_Car: 
+            Adc_Init();                     
+            break;
+        case RC_Car:
+            RCCAR_Init();
+            break;
+        case Charger: 
+            NVIC_Config();
+            IR_RX_Init();
+            IC_Init();
+            JTAG_Set(SWD_ENABLE);
+            break;
+        default:
+            break;
+    }
+}
+
 static void InitTask(void* parameter)
 {
     rt_err_t result;
-    uint32_t usart1_baud = 2000000;
-    uint16_t* pdu = getPDUData();
-    //初始化航模参数指针
-    rc_ptr = (Remote_Control_struct*)&pdu[turn_off_remote];
-    Robot_Select();                 // 根据电位器的值判断目前正在运行的是哪一款机器人，
-    //初始化电机参数指针
-    motorA_ptr = (Motor_struct*)&pdu[motor1_direction];
-    motorB_ptr = (Motor_struct*)&pdu[motor2_direction];
-    motorC_ptr = (Motor_struct*)&pdu[motor3_direction];
-    motorD_ptr = (Motor_struct*)&pdu[motor4_direction];
-    switch (pdu[moddbus_485_baud])
-    {
-    case 0:usart1_baud = 9600;break;
-    case 1:usart1_baud = 19200;break;
-    case 2:usart1_baud = 57600;break;
-    case 3:usart1_baud = 115200;break;
-    case 4:usart1_baud = 256000;break;
-    case 5:usart1_baud = 512000;break;
-    case 6:usart1_baud = 921600;break;
-    case 7:usart1_baud = 1000000;break;
-    case 8:usart1_baud = 1500000;break;
-    case 9:usart1_baud = 2000000;break;
-    }
-	rt_thread_delay(100);   //< 10ms
-	LED_Init();                     //初始化与LED连接的硬件接口
-	USART1_Init(usart1_baud);	        //=====串口初始化为，普通的串口，打印调试信息 DMA
-	Usart3_Init(115200);            //上下位机通信初始化，串口3
-    Usart4_Init(9600);              //串口4初始化，用于读取电池信息
-    Usart5_Init(100000);            //串口5初始化，用于航模控制
-    if (pdu[car_model] == Akm_Car|| 
-        pdu[car_model] == Diff_Car || 
-        pdu[car_model] == FourWheel_Car)
-        Adc_Init();                     //采集电池电压ADC引脚初始化	
-	Can_Driver_Init(pdu[CAN_baud]);              //底层can协议初始化
-    if(pdu[car_model]== RC_Car)RCCAR_Init(pdu);
-    if (pdu[car_model] == Charger)
-    {
-        NVIC_Config();
-        IR_RX_Init();
-        IC_Init();
-        JTAG_Set(SWD_ENABLE);
-    }
+    systemInit();
 
-    /* init Balance thread */
-    result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);
-    if (result == RT_EOK)
-    {
-        rt_thread_startup(&Balance_thread);
-    }
-    if (pdu[car_model] == Akm_Car ||
-        pdu[car_model] == Diff_Car ||
-        pdu[car_model] == FourWheel_Car)
-    {
-        /* init Motor_init thread */
-        result = rt_thread_init(&Motor_init_thread, "Motor_init", Motor_init_task, (void*)pdu, (rt_uint8_t*)&Motor_init_stack[0], sizeof(Motor_init_stack), 10, 10);
-        if (result == RT_EOK)
-        {
-            rt_thread_startup(&Motor_init_thread);
-        }
-        /* init Motor thread */
-        result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
-        if (result == RT_EOK)
-        {
-            rt_thread_startup(&Motor_thread);
-        }
-        /* init Can thread */
-        result = rt_thread_init(&Can_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&Can_stack[0], sizeof(Can_stack), 3, 5);
-        if (result == RT_EOK)
-        {
-            rt_thread_startup(&Can_thread);
-        }
-        /* init adc thread */
-        result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
-        if (result == RT_EOK)
-        {
-            rt_thread_startup(&ADC_thread);
-        }
-        /* init DATA thread */
-        result = rt_thread_init(&DATA_thread, "DATA", DATA_task, (void*)pdu, (rt_uint8_t*)&DATA_stack[0], sizeof(DATA_stack), 8, 5);
-        if (result == RT_EOK)
-        {
-            rt_thread_startup(&DATA_thread);
-        }
-    }
-				/* init ModBUS thread */
-				result = rt_thread_init(&ModBUS_thread, "ModBUS", ModBUS_task, RT_NULL, (rt_uint8_t*)&ModBUS_stack[0], sizeof(ModBUS_stack), 7, 5);
-				if (result == RT_EOK)
-				{
-						rt_thread_startup(&ModBUS_thread);
-				}  
+        /* init Balance thread */
 
-    if (pdu[car_model] == Diff_Car)
-    {
-        result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
-        if (result == RT_EOK)
-        {
-            rt_thread_startup(&Ultrasonic1_thread);
-        }
-        result = rt_thread_init(&Ultrasonic2_thread, "Ultrasonic", Ultrasonic2_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic2_stack[0], sizeof(Ultrasonic2_stack), 13, 14);
-        if (result == RT_EOK)
-        {
-            rt_thread_startup(&Ultrasonic2_thread);
-        }
-    }
+        result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);
+        if (result == RT_EOK)   rt_thread_startup(&Balance_thread);
+
+		//if ((pdu[car_type] != Charger) && (pdu[car_type] != RC_Car)){
+  //      /* init Remote thread */
+  //      result = rt_thread_init(&Remote_thread, "Remote", Remote_Task, (void*)pdu, (rt_uint8_t*)&Remote_stack[0], sizeof(Remote_stack), 5, 5);
+  //      if (result == RT_EOK)   rt_thread_startup(&Remote_thread);
+
+		/* init Modbus thread */
+		result = rt_thread_init(&Modbus_thread, "Modbus", Modbus_task, RT_NULL, (rt_uint8_t*)&Modbus_stack[0], sizeof(Modbus_stack), 7, 5);
+		if (result == RT_EOK)	rt_thread_startup(&Modbus_thread);  
+
+//        /* init Motor thread */
+//        result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
+//        if (result == RT_EOK)   rt_thread_startup(&Motor_thread);
+//
+////        /* init Can thread */
+////        result = rt_thread_init(&CAN_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&CAN_stack[0], sizeof(CAN_stack), 3, 5);
+////        if (result == RT_EOK)   rt_thread_startup(&CAN_thread);
+//
+//        /* init adc thread */
+//        result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
+//        if (result == RT_EOK)   rt_thread_startup(&ADC_thread);
+//
+//        // init RJJT thread
+//         result = rt_thread_init(&RJJT_thread, "RJJT_task", RJJT_task, (void*)pdu, (rt_uint8_t*)&RJJT_stack[0], sizeof(RJJT_stack), 2, 5);
+//		if (result == RT_EOK)   rt_thread_startup(&RJJT_thread);	
+//
+//        // init Led thread
+//        result = rt_thread_init(&LED_thread, "Led_task", Led_task, (void*)pdu, (rt_uint8_t*)&LED_stack[0], sizeof(LED_stack), 9, 5);
+//        if (result == RT_EOK)   rt_thread_startup(&LED_thread);           
+//    }
+//
+//    if (pdu[car_type] == Diff_Car){
+//        result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
+//        if (result == RT_EOK)   rt_thread_startup(&Ultrasonic1_thread);
+//    }
 
     
 }

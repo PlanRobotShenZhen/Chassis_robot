@@ -1,94 +1,99 @@
 #ifndef __motor_data__h
 #define __motor_data__h
 #include "stdint.h"
-extern int Motor_Number;
-extern int Slave_Number;
+#include "stdbool.h"
 #define MAX_MOTOR_NUMBER 10
+#define TPDO_GROUP_COUNT 3
+
 typedef union CONTROLWORD__
 {
-    struct {
-        uint16_t so : 1;													//special operations,特殊操作
-        uint16_t ev : 1;													//未知
-        uint16_t qs : 1;													//Quick Stop,快速停止指令
-        uint16_t eo : 1;													//Emergency Off,紧急停止指令
-        uint16_t oms : 3;													//Operation Mode Specific,特定操作模式
-        uint16_t fr : 1;													//Fault Reset,故障复位操作
-        uint16_t h : 1;														//Halt,停止指令
-        uint16_t oms1 : 1;												//Operation Mode Specific1,特定操作模式1
-        uint16_t r : 6;														//Reserved,保留位
+    struct {		
+		uint16_t bit0 : 1;											
+    uint16_t bit1 : 1;									
+    uint16_t bit2 : 1;
+    uint16_t bit3 : 1;											
+    uint16_t bit4 : 1;									
+    uint16_t bit5 : 1;												
+    uint16_t bit6 : 1;												
+    uint16_t bit7 : 1;											
+    uint16_t bit8 : 1;											
+    uint16_t bit9 : 1;													
+    uint16_t bitA : 1;													
+    uint16_t bitB : 1;												
+    uint16_t bitC : 1;												
+    uint16_t bitD : 1;													
+    uint16_t bitE : 1;												
+    uint16_t bitF : 1;				
     }bit;
-    uint16_t cd;
+    uint16_t cw;
 
 }CANOPEN_CONTROLWORD;
 
-typedef union  STATUSWORD__
+typedef union STATUSWORD__
 {
     struct {
-        uint16_t rso : 1;													//Reserved for special operations,特殊操作保留位
-        uint16_t se : 1;													//Status Error,状态错误标志位
-        uint16_t oe : 1;													//Operation Error,操作错误标志位
-        uint16_t f : 1;														//Fault,故障标标志位
-        uint16_t ve : 1;													//Voltage Error,故障错误标志位
-        uint16_t qs : 1;													//Quick Stop,快速停止标志位
-        uint16_t sod : 1;													//Switched On Disable,失能时切换开关标志位
-        uint16_t w : 1;														//Warning,警告标志位
-        uint16_t r : 1;														//Reserved,保留位
-        uint16_t rm : 1;													//Remote,远程标志位
-        uint16_t oms : 1;													//Operation Mode Specific,特定操作模式标志位
-        uint16_t ila : 1;													//Internal Limit Active,内部限制激活标志位
-        uint16_t oms1 : 2;												//Operation Mode Specific 1,特定操作模式1标志位
-        uint16_t r1 : 2;													//Reserved1,保留位1
+		uint16_t bit0 : 1;											
+    uint16_t bit1 : 1;									
+    uint16_t bit2 : 1;
+    uint16_t bit3 : 1;											
+    uint16_t bit4 : 1;									
+    uint16_t bit5 : 1;												
+    uint16_t bit6 : 1;												
+    uint16_t bit7 : 1;											
+    uint16_t bit8 : 1;											
+    uint16_t bit9 : 1;													
+    uint16_t bitA : 1;													
+    uint16_t bitB : 1;												
+    uint16_t bitC : 1;												
+    uint16_t bitD : 1;													
+    uint16_t bitE : 1;												
+    uint16_t bitF : 1;													
     }bit;
-    uint16_t sd;
+    uint16_t sw;
 
 }CANOPEN_STATUSWORD;
-
 
 typedef union MOTOR_TPDO__
 {
     struct
     {
-        CANOPEN_STATUSWORD status;  //状态字
-        int current_pos;		    //当前位置
-        int current_velocity;	    //当前速度
-        uint16_t error_code;	    //错误代码 
-        uint8_t mode;	            //< 6061模式  
-        uint16_t current_rpm;       //当前转速
-        uint16_t current_torque;    //当前转矩
-        uint8_t heartbeat;      //< 心跳
-        uint8_t mapping;	  //< 映射  
+        CANOPEN_STATUSWORD status;						//状态字
+        int current_pos;											//当前位置	
+        uint16_t error_code;									//错误代码
+        uint16_t none_count;	        				//无TPDO相应次数，1次间隔20ms
+        bool online;	        								//在线状态 1：在线，0：掉线
     }d;
-    uint8_t data[18];
-
+    uint8_t data[21];
 }MOTOR_TPDO;
+
 typedef union MOTOR_RPDO__
 {
     struct
     {
-        CANOPEN_CONTROLWORD ctrl; //控制字
-        CANOPEN_CONTROLWORD ctrl_old; //控制字
-        int target_pos;			 //目标位置
-        int target_velocity;	 //目标速度
-        int target_velocity_old;	 //目标速度
-        uint8_t mode;			 //工作模式
-        uint16_t target_torque;	 //目标转矩
-        uint8_t online : 2;	    //< 在线状态0：掉线；1
-        uint8_t mapping : 6;	  //< 映射  
+        CANOPEN_CONTROLWORD ctrl;						//控制字
+        int target_pos_vel;									//目标位置/速度
+        uint8_t mode;												//工作模式
+        uint16_t target_torque;							//目标转矩
     }d;
-    uint8_t data[8];
+    uint8_t data[9];
 }MOTOR_RPDO;
 
 extern MOTOR_RPDO mrd[MAX_MOTOR_NUMBER];//< 发送pdo
 extern MOTOR_TPDO mtd[MAX_MOTOR_NUMBER];//< 接收pdo
 
+typedef union MOTOR_PARA__
+{
+    struct
+    {
+		uint8_t type;										    //电机型号	
+		uint8_t sportmode;										//运动模式
+		uint8_t enstate;										//电机使能状态	
+		uint8_t canid;											//CAN_ID
+    }d;
+    uint8_t data[4];
+}MOTOR_PARA;
+extern MOTOR_PARA motor_para[MAX_MOTOR_NUMBER];
 
-
-typedef enum {
-    SERVO_ZLAC=0,//< 中菱伺服
-    SERVO_WANZE,//< 万泽伺服
-    SERVO_ZLACD,//< 中菱伺服一拖二驱动
-    SERVO_PLAN,//< 普蓝伺服
-}MOTOR_MODEL_ENUM;
 /** Watchdog mode for sync manager configuration.
  *
  * Used to specify, if a sync manager's watchdog is to be enabled.
@@ -213,7 +218,7 @@ typedef struct MOTOR_DATA__
 #define MOTOR_STK_SIZE   128 	//任务堆栈大小
 #define MOTOR_TASK_PRIO  10   
 
-void Motor_init_task(void* pvParameters);
 void Motor_task(void* pvParameters);
+
 #endif
 
