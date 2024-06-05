@@ -6,7 +6,7 @@
 
 // 枚举定义几种小车的类型
 
-enum enum_CarMode
+enum enum_CarType
 {
 	Unknown= -1,
 	Mec_Car = 0,        // 麦轮小车
@@ -19,7 +19,7 @@ enum enum_CarMode
 	RC_Car,              // 竞赛小车
 	Charger              // 充电桩
 };
-extern enum enum_CarMode CarMode;
+extern enum enum_CarType CarType;
 
 // 每个电机相关参数，有目标速度和反馈速度
 struct Motor_parameter

@@ -58,6 +58,7 @@ extern uint8_t uart5_recv_flag;     // 接收完成标志位
 //Usart1任务（Modbus）
 void Usart1_Init(uint32_t baud);
 void Usart1_Dma_Config(void);     		// DMA配置
+void DMA1_Channel4_nvic_config(void);
 void Modbus_task(void* pvParameters);
 void USARTOne_IRQHandler(void);
 void DMA1_Channel2_IRQHandler(void);

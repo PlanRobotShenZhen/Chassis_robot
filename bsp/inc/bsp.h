@@ -74,27 +74,27 @@ typedef union __SPI_IO_INPUT
 typedef union __SPI_IO_OUTPUT
 {
 	struct {
-		unsigned char RGB_G : 1;
-		unsigned char RGB_B : 1;		
 		unsigned char RGB_R : 1;
-		unsigned char Light_Side : 1;	//< 给蜂鸣器用
-		unsigned char Light_LF : 1;		//< 左前
-		unsigned char Light_LR : 1;		//< 左后
-		unsigned char Light_RF : 1;		//< 右前
-		unsigned char Light_RR : 1;		//< 右后
+		unsigned char Buzzer : 1;		//< 给蜂鸣器用
+		unsigned char Front_Red : 1;
+		unsigned char RGB_G : 1;	
+		unsigned char RR_White : 1;		//< 右后
+		unsigned char RF_White : 1;		//< 右前
+		unsigned char LR_White : 1;		//< 左后
+		unsigned char LF_White : 1;		//< 左前
 	}bit;
 	unsigned char output;
 }EXIO_OUTPUT;
 
 typedef struct {
-	uint32_t t_cnt_RGB_G;
-	uint32_t t_cnt_RGB_B;
 	uint32_t t_cnt_RGB_R;
-	uint32_t t_cnt_Light_Side;
-	uint32_t t_cnt_Light_LF;	//< 左前
-	uint32_t t_cnt_Light_LR;	//< 左后
-	uint32_t t_cnt_Light_RF;	//< 右前
-	uint32_t t_cnt_Light_RR;	//< 右后
+	uint32_t t_cnt_Buzzer;
+	uint32_t t_cnt_Front_Red;
+	uint32_t t_cnt_RGB_G;
+	uint32_t t_cnt_RR_White;	//< 右后
+	uint32_t t_cnt_RF_White;	//< 右前
+	uint32_t t_cnt_LR_White;	//< 左后
+	uint32_t t_cnt_LF_White;	//< 左前
 	uint32_t t_cnt_Light_ALL;	//< 所有灯
 }LightTime;
 extern LightTime light_time;
@@ -283,15 +283,15 @@ extern unsigned char SPI_Master_Rx_Buffer;
 extern unsigned char SPI_ReadWriteCycle;
 
 //充电桩相关参数
-#define LED_LEFT 			Light_LF
-#define LED_RIGHT 			Light_RR
-#define MCU_INF_TX 			exio_output.bit.RGB_G
-#define MCU_RELAY2 			exio_output.bit.RGB_B
+#define LED_LEFT 			RR_White
+#define LED_RIGHT 			LF_White
+#define MCU_INF_TX 			exio_output.bit.RGB_R
+#define MCU_RELAY2 			exio_output.bit.Buzzer
 #define IrDA_TX 			MCU_INF_TX
 
 //风扇相关参数
-#define MCU_FAN1			exio_output.bit.Light_RF
-#define MCU_FAN2			exio_output.bit.Light_LR
+#define MCU_FAN1			exio_output.bit.LR_White
+#define MCU_FAN2			exio_output.bit.RF_White
 #define FAN1				MCU_FAN1
 #define FAN2				MCU_FAN2
 
@@ -412,6 +412,7 @@ extern unsigned char SPI_ReadWriteCycle;
 #define CANb_TxPin			GPIO_PIN_13
 
 /*RJ_JT 软急停控制输出 output*/
+//此软急停为GPIO口控制，用于后续ros等上位机调用
 #define RJ_JT_GPIO 				ESTOP_SOFT_GPIO //圆形底盘与其他车型统一名称
 #define RJ_JT_Pin					ESTOP_SOFT_PIN
 #define ESTOP_SOFT_CLK		RCC_APB2_PERIPH_GPIOB

@@ -34,7 +34,7 @@
 //SWB速度模式下的力矩挡位(VRA控制)系数
 #define SWB_LOW_GEAR 			33			//力矩低档位系数
 #define SWB_MIDDLE_GEAR 		66			//力矩中档位系数
-#define SWB_HIGH_GEAR 			99			//力矩高档位系数
+#define SWB_HIGH_GEAR 			99			//力矩高档位系数 
 
 #define CHANNEL_VALUE_ERROR 	10			//手柄通道值允许误差
 
@@ -46,14 +46,14 @@ extern float Voltage;
 extern float Z_Radian_Max; 				//弧度最大值
 
 //充电桩相关参数
-#define LED_LEFT 			Light_LF
-#define LED_RIGHT 			Light_RR
-#define MCU_INF_TX 			exio_output.bit.RGB_G
-#define MCU_RELAY2 			exio_output.bit.RGB_B
+#define LED_LEFT 			RR_White
+#define LED_RIGHT 			LF_White
+#define MCU_INF_TX 			exio_output.bit.RGB_R
+#define MCU_RELAY2 			exio_output.bit.Buzzer
 #define IrDA_TX 			MCU_INF_TX
 //风扇相关参数
-#define MCU_FAN1			exio_output.bit.Light_RF
-#define MCU_FAN2			exio_output.bit.Light_LR
+#define MCU_FAN1			exio_output.bit.LR_White
+#define MCU_FAN2			exio_output.bit.RF_White
 #define FAN1				MCU_FAN1
 #define FAN2				MCU_FAN2
 //充电电极短路检测
@@ -72,13 +72,13 @@ extern float Z_Radian_Max; 				//弧度最大值
 #define AKMCAR_YAW_HIGH 				AKMCAR_MAXYAWVELOCITY					//高速档角速度系数
 //Diff_Car		
 #define DIFFCAR_MAXLINEARVELOCITY 		2000									//最大线速度
-#define DIFFCAR_MAXYAWVELOCITY 			8000									//最大角速度
+#define DIFFCAR_MAXYAWVELOCITY 			4000									//最大角速度
 #define DIFFCAR_SPEED_LOW 				DIFFCAR_MAXLINEARVELOCITY / 3			//低速档线速度系数
 #define DIFFCAR_SPEED_MIDDLE 			DIFFCAR_MAXLINEARVELOCITY / 3 * 2		//中速档线速度系数
 #define DIFFCAR_SPEED_HIGH 				DIFFCAR_MAXLINEARVELOCITY				//高速档线速度系数
 #define DIFFCAR_YAW_LOW 				DIFFCAR_MAXYAWVELOCITY / 3				//低速档角速度系数
-#define DIFFCAR_YAW_MIDDLE 				DIFFCAR_MAXYAWVELOCITY / 3 * 2			//中速档角速度系数
-#define DIFFCAR_YAW_HIGH 				DIFFCAR_MAXYAWVELOCITY					//高速档角速度系数
+#define DIFFCAR_YAW_MIDDLE 				DIFFCAR_MAXYAWVELOCITY / 2				//中速档角速度系数
+#define DIFFCAR_YAW_HIGH 				DIFFCAR_MAXYAWVELOCITY / 3				//高速档角速度系数
 //FourWheel_Car		
 #define FOURWHEELCAR_MAXLINEARVELOCITY 	1500									//最大线速度
 #define FOURWHEELCAR_MAXYAWVELOCITY 	3000									//最大角速度

@@ -81,8 +81,8 @@ static rt_uint8_t Modbus_stack[512];
 static rt_uint8_t ADC_stack[512];
 static rt_uint8_t LED_stack[512];
 static rt_uint8_t RJJT_stack[512];
-static rt_uint8_t Ultrasonic1_stack[512];
-static rt_uint8_t Ultrasonic2_stack[512];
+static rt_uint8_t Charge_stack[512];
+static rt_uint8_t CircularCar_stack[512];
 static struct rt_thread Balance_thread;
 static struct rt_thread Motor_thread;
 static struct rt_thread Remote_thread;
@@ -91,8 +91,8 @@ static struct rt_thread LED_thread;
 static struct rt_thread RJJT_thread;
 static struct rt_thread Modbus_thread;
 static struct rt_thread ADC_thread;
-static struct rt_thread Ultrasonic1_thread;
-static struct rt_thread Ultrasonic2_thread;
+static struct rt_thread Charge_thread;
+static struct rt_thread CircularCar_thread;
 
 
 
@@ -152,8 +152,8 @@ void DiyFunctionBasedCar(uint16_t data)
             Adc_Init();
             IR_Init();
             ElectrodePad_Init();
-            GPIO_SetBits(MCU_CHARGE_ON_GPIO, MCU_CHARGE_ON_PIN);    //自动充电
-						//TEST		
+            GPIO_SetBits(MCU_CHARGE_ON_GPIO, MCU_CHARGE_ON_PIN);    //自动充电	
+            pdu[ros_chargingcommand] = 1;//圆形底盘没有电池SOC传感器，默认开启充电信号，红外一直工作。
             break;
         case FourWheel_Car: 
             Adc_Init();                     
@@ -162,6 +162,7 @@ void DiyFunctionBasedCar(uint16_t data)
             RCCAR_Init();
             break;
         case Charger: 
+            ChargerBalanceInit();
             NVIC_Config();
             IR_RX_Init();
             IC_Init();
@@ -182,41 +183,52 @@ static void InitTask(void* parameter)
         result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);
         if (result == RT_EOK)   rt_thread_startup(&Balance_thread);
 
-		//if ((pdu[car_type] != Charger) && (pdu[car_type] != RC_Car)){
-  //      /* init Remote thread */
-  //      result = rt_thread_init(&Remote_thread, "Remote", Remote_Task, (void*)pdu, (rt_uint8_t*)&Remote_stack[0], sizeof(Remote_stack), 5, 5);
-  //      if (result == RT_EOK)   rt_thread_startup(&Remote_thread);
+		if ((pdu[car_type] != Charger) && (pdu[car_type] != RC_Car))
+        {
+        /* init Remote thread */
+        result = rt_thread_init(&Remote_thread, "Remote", Remote_Task, (void*)pdu, (rt_uint8_t*)&Remote_stack[0], sizeof(Remote_stack), 5, 5);
+        if (result == RT_EOK)   rt_thread_startup(&Remote_thread);
 
 		/* init Modbus thread */
 		result = rt_thread_init(&Modbus_thread, "Modbus", Modbus_task, RT_NULL, (rt_uint8_t*)&Modbus_stack[0], sizeof(Modbus_stack), 7, 5);
 		if (result == RT_EOK)	rt_thread_startup(&Modbus_thread);  
 
-//        /* init Motor thread */
-//        result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
-//        if (result == RT_EOK)   rt_thread_startup(&Motor_thread);
-//
-////        /* init Can thread */
-////        result = rt_thread_init(&CAN_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&CAN_stack[0], sizeof(CAN_stack), 3, 5);
-////        if (result == RT_EOK)   rt_thread_startup(&CAN_thread);
-//
-//        /* init adc thread */
-//        result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
-//        if (result == RT_EOK)   rt_thread_startup(&ADC_thread);
-//
-//        // init RJJT thread
-//         result = rt_thread_init(&RJJT_thread, "RJJT_task", RJJT_task, (void*)pdu, (rt_uint8_t*)&RJJT_stack[0], sizeof(RJJT_stack), 2, 5);
-//		if (result == RT_EOK)   rt_thread_startup(&RJJT_thread);	
-//
-//        // init Led thread
-//        result = rt_thread_init(&LED_thread, "Led_task", Led_task, (void*)pdu, (rt_uint8_t*)&LED_stack[0], sizeof(LED_stack), 9, 5);
-//        if (result == RT_EOK)   rt_thread_startup(&LED_thread);           
-//    }
-//
-//    if (pdu[car_type] == Diff_Car){
-//        result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
-//        if (result == RT_EOK)   rt_thread_startup(&Ultrasonic1_thread);
-//    }
+        /* init Motor thread */
+        result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
+        if (result == RT_EOK)   rt_thread_startup(&Motor_thread);
 
+        /* init Can thread */
+        result = rt_thread_init(&CAN_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&CAN_stack[0], sizeof(CAN_stack), 3, 5);
+        if (result == RT_EOK)   rt_thread_startup(&CAN_thread);
+
+        /* init adc thread */
+        result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
+        if (result == RT_EOK)   rt_thread_startup(&ADC_thread);
+
+        // init RJJT thread
+         result = rt_thread_init(&RJJT_thread, "RJJT_task", RJJT_task, (void*)pdu, (rt_uint8_t*)&RJJT_stack[0], sizeof(RJJT_stack), 2, 5);
+		if (result == RT_EOK)   rt_thread_startup(&RJJT_thread);	
+
+        // init Led thread
+        result = rt_thread_init(&LED_thread, "Led_task", Led_task, (void*)pdu, (rt_uint8_t*)&LED_stack[0], sizeof(LED_stack), 9, 5);
+        if (result == RT_EOK)   rt_thread_startup(&LED_thread);           
+        }
+
+        // init ChargeStation thread
+        result = rt_thread_init(&Charge_thread, "Charge_task", Charge_task, (void*)pdu, (rt_uint8_t*)&Charge_stack[0], sizeof(Charge_stack), 9, 5);
+        if (result == RT_EOK)   rt_thread_startup(&LED_thread);
+
+}        // init CircularCar thread
+        result = rt_thread_init(&CircularCar_thread, "CircularCar_task", CircularCar_task, (void*)pdu, (rt_uint8_t*)&CircularCar_stack[0], sizeof(CircularCar_stack), 9, 5);
+        if (result == RT_EOK)   rt_thread_startup(&LED_thread);           
+        }
+
+        if (pdu[car_type] == Diff_Car)
+        {
+            result = rt_thread_init(&Ultrasonic1_thread, "Ultrasonic", Ultrasonic1_task, (void*)pdu, (rt_uint8_t*)&Ultrasonic1_stack[0], sizeof(Ultrasonic1_stack), 13, 14);
+            if (result == RT_EOK)   rt_thread_startup(&Ultrasonic1_thread);
+        }
+    
     
 }
 

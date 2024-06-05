@@ -311,10 +311,13 @@ void SPI1_ReadWriteByte(void)
 }
 #endif
 /**************************************************************************
-函数功能：超声波检测定时器1
+函数功能：超声波检测定时器
 入口参数：void
 返回  值：void
 **************************************************************************/
+uint16_t tmp1 = 0;
+uint16_t ultrasonic1_distance;
+uint16_t ultrasonic2_distance;
 void Ultrasonic1_task(void* pvParameters)
 {
 	pdu = (uint16_t*)pvParameters;
@@ -323,10 +326,10 @@ void Ultrasonic1_task(void* pvParameters)
 		rt_thread_delay(100);  //< 10ms
 		//圆形底盘默认启动超声波
 			Ultrasonic_Start();
-			//将超声波距离传送到上位机，单位mm。  
-			uint16_t ultrasonic1_distance = Get_U1distance();
-			pdu[Ultrasonic1] = ultrasonic1_distance;
-			uint16_t ultrasonic2_distance = Get_U2distance();
+			//将超声波距离传送到上位机，单位mm。 			
+			ultrasonic1_distance = Get_U1distance();
+			pdu[Ultrasonic1] = ultrasonic1_distance;			
+			ultrasonic2_distance = Get_U2distance();
 			pdu[Ultrasonic2] = ultrasonic2_distance;
 	}
 }
@@ -562,10 +565,11 @@ void Relay_Switch(void)
 入口参数：
 返回  值：
 **************************************************************************/
+//uint8_t tmp1 = 0;
 void Balance_task(void* pvParameters)
 {
-	uint8_t tmp1 = 0;
-	ChargerBalanceInit();
+	
+	
 	while (1){
 		rt_thread_delay(50);   //< 5ms
 		/*test*/
@@ -578,11 +582,11 @@ void Balance_task(void* pvParameters)
 		}
 		tmp1++;
 		//上位机output识别运行中
-		pdu[car_light_messages] = tmp1;
-
+		pdu[car_height] = tmp1;
 		SetReal_Velocity();             							//获取到设定的速度和方向值
 		Kinematic_Analysis(pdu[target_linear_speed], Move_Y, pdu[target_yaw_speed]);//将线速度和角速度转化为电机的输入值
-		ClassificationOfMotorMotionModes(pdu[motor2_sport_mode]);	//电机运动模式分类
+		uint16_t x_sport_mode = (pdu[car_type] == Diff_Car)? pdu[motor1_sport_mode] : pdu[motor2_sport_mode];
+		ClassificationOfMotorMotionModes(x_sport_mode);	//电机运动模式分类
 	}
 }
 
@@ -643,6 +647,7 @@ void Kinematic_Analysis(short Vx, float Vy, short Vz)
 {
 	float common_part = LineSpeedToMotorSpeed * MAGNIFIC_1000x_DOWN;	// 提取共同部分
 	short wheel_distance_factor;										// 提取车轮与轴间的距离部分
+	float correction_factor;										   // 校正参数
 	short m; 
 	uint16_t line_, angle_;
 	switch (pdu[car_type]){//运动学分析
@@ -654,15 +659,11 @@ void Kinematic_Analysis(short Vx, float Vy, short Vz)
 			break;
 		case FourWheel_Car:
 			wheel_distance_factor = (Vz * (pdu[car_tread] + pdu[car_wheelbase]) * MAGNIFIC_10000x_DOWN / 2.0f); 
-			pdu[motor2_target_rpm] = pdu[motor1_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);
-			pdu[motor4_target_rpm] = pdu[motor3_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);
+			correction_factor = 0.578f;
+			pdu[motor2_target_rpm] = pdu[motor1_target_rpm] = (short)((Vx - correction_factor * wheel_distance_factor) * common_part);
+			pdu[motor4_target_rpm] = pdu[motor3_target_rpm] = -(short)((Vx + correction_factor * wheel_distance_factor) * common_part);
 			break;
 		case Diff_Car:
-			wheel_distance_factor = (Vz * (pdu[car_tread] + pdu[car_wheelbase]) * MAGNIFIC_10000x_DOWN / 2.0f);
-			pdu[motor1_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);
-			pdu[motor2_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);
-			
-			break;
 		case TwoWheel_Car:
 		case Tank_Car:
 			wheel_distance_factor = (Vz * (pdu[car_tread] + pdu[car_wheelbase]) * MAGNIFIC_10000x_DOWN / 2.0f); 
@@ -695,10 +696,9 @@ void Kinematic_Analysis(short Vx, float Vy, short Vz)
 				default:
 					break;
 			}
-			Relay_Switch();
-			//按键切换RGB颜色，测试用
-			//Key_Change_RGB();
-				
+			//按键切换RGB颜色
+			Key_Change_RGB();
+			Relay_Switch();		
 		default:
 			break;
 	}

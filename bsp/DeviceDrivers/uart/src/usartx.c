@@ -60,7 +60,6 @@ void Usart1_Init(uint32_t baud)
 	GPIO_InitType GPIO_InitStructure;
 	USART_InitType USART_InitStructure;
 	NVIC_InitType NVIC_InitStruct;
-	//可疑点。RCC_APB2_PERIPH_AFIO
 	RCC_EnableAPB2PeriphClk(USARTOne_GPIO_CLK | USARTOne_CLK, ENABLE);
 
 	GPIO_InitStructure.Pin = USARTOne_TxPin;
@@ -91,6 +90,24 @@ void Usart1_Init(uint32_t baud)
 	USART_Enable(USARTOne, ENABLE);
 }
 
+/**
+ *  @brief  MA1 通道4, UART1_TX 中断控制器配置
+ *  @param  无
+ *  @retval 无
+ *  @note   中断优先级分组全工程只配置一次，在 main 函数最开始进行配置
+ *  @note   中断处理函数在 CMSIS/stm32f10x_it.c 中进行处理
+ */
+void DMA1_Channel4_nvic_config(void)
+{
+	NVIC_InitType NVIC_InitStruct;
+
+	// 配置串口1的中断控制器
+	NVIC_InitStruct.NVIC_IRQChannel = DMA1_Channel4_IRQn;   // 在 stm32f10x.h 中找 IRQn_Type 枚举
+	NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;  // 抢占优先级
+	NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;         // 子优先级
+	NVIC_Init(&NVIC_InitStruct);
+}
 /*******************************************************************************
  *  @brief  串口1 DMA初始化配置
  *  @param  无
@@ -138,11 +155,7 @@ void Usart1_Dma_Config(void)
 	DMA_RequestRemap(DMA1_REMAP_USART1_RX, DMA1, USARTOne_Rx_DMA_Channel, ENABLE);
 
 	// 配置串口1的中断控制器
-	NVIC_InitStruct.NVIC_IRQChannel = DMA1_Channel4_IRQn;   
-	NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;  // 抢占优先级
-	NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;         // 子优先级
-	NVIC_Init(&NVIC_InitStruct);
+	DMA1_Channel4_nvic_config();
 
 	DMA_ConfigInt(USARTOne_Tx_DMA_Channel, DMA_INT_TXC, ENABLE);// 配置 DMA1 通道4, UART1_TX 传输完成中断
 	USART_EnableDMA(USARTOne, USART_DMAREQ_RX | USART_DMAREQ_TX, ENABLE);// 使能DMA串口发送和接受请求
@@ -199,7 +212,9 @@ void modbus_task_init(void)
 		eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);
 		Pdu_Init();
 		MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
+		pdu[para_save] = 10;
 	}
+	else pdu[para_save] = 0;
 }
 
 /*******************************************************************************
@@ -856,10 +871,14 @@ void Uart5_Init(unsigned int unBound)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;		//子优先级3
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
 	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器  
-
-	USART_ConfigInt(UARTFive, USART_INT_IDLEF, ENABLE);//开启串口空闲中断
-
 	Uart5_Dma_Config();     // DMA配置
+	USART_ConfigInt(UARTFive, USART_INT_IDLEF, ENABLE);//开启串口空闲中断
+//	//test
+//	USART_ConfigInt(UARTFive, USART_INT_OREF, ENABLE);//开启串口溢出中断
+//	USART_ConfigInt(UARTFive, USART_INT_ERRF, ENABLE);//开启串口错误中断
+//	USART_ConfigInt(UARTFive, USART_INT_NEF, ENABLE);//开启串口错误中断
+//	USART_ConfigInt(UARTFive, USART_INT_FEF, ENABLE);//开启串口错误中断
+
 	USART_Enable(UARTFive, ENABLE);                    //使能串口5 
 }
 
@@ -873,7 +892,7 @@ void Uart5_Dma_Config(void)
 	DMA_InitType DMA_InitStruct;
 
 	DMA_DeInit(UARTFive_Rx_DMA_Channel);  // DMA1 通道8, UART5_RX
-
+	DMA_StructInit(&DMA_InitStruct);
 	// 配置 DMA1 通道8, UART5_RX
 	DMA_InitStruct.PeriphAddr = UARTFive_DR_Base;   	// 数据寄存器(USART_DR) 地址偏移：0x04
 	DMA_InitStruct.MemAddr = (uint32_t)Uart5_Buffer;  // 内存地址
@@ -911,6 +930,38 @@ void UARTFive_IRQHandler()
 		DMA_SetCurrDataCounter(UARTFive_Rx_DMA_Channel, UART5_RX_MAXBUFF);
 		DMA_EnableChannel(UARTFive_Rx_DMA_Channel, ENABLE);     // DMA1 通道3, UART3_RX
 	}
+//	if (USART_GetIntStatus(UARTFive, USART_INT_ERRF) != RESET)
+//	{// USART_FLAG_ERRF
+//		USART_ClrFlag(UARTFive, USART_INT_ERRF);
+//		USART_ReceiveData(UARTFive);
+//	}
+//	else if (USART_GetIntStatus(UARTFive, USART_INT_OREF) != RESET)
+//	{// USART_FLAG_ORE
+//		USART_ClrFlag(UARTFive, USART_INT_OREF);
+//		USART_ReceiveData(UARTFive);
+//	}
+//	else if (USART_GetIntStatus(UARTFive, USART_INT_IDLEF) != RESET) //中断产生 
+//	{
+//		UARTFive->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
+//		UARTFive->DAT; // 清除空闲中断
+//		Sbus_Data_Parsing_Flag = 1;                // 接收标志置1
+//		pdu[control_mode] = control_mode_remote;   // 航模控制
+//		// 统计收到的数据的长度
+//		//ucRcvCount = Max_BUFF_Len - DMA_GetCurrDataCounter(UARTFive_Rx_DMA_Channel);
+//		DMA_EnableChannel(UARTFive_Rx_DMA_Channel, DISABLE);    // DMA1 通道3, UART3_RX
+//		DMA_SetCurrDataCounter(UARTFive_Rx_DMA_Channel, Max_BUFF_Len);
+//		DMA_EnableChannel(UARTFive_Rx_DMA_Channel, ENABLE);     // DMA1 通道3, UART3_RX
+//	}
+//	else if (USART_GetIntStatus(UARTFive, USART_INT_NEF) != RESET)
+//	{
+//		UARTFive->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
+//		UARTFive->DAT; // 清除空闲中断
+//	}
+//	else if (USART_GetIntStatus(UARTFive, USART_INT_FEF) != RESET)
+//	{
+//		UARTFive->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
+//		UARTFive->DAT; // 清除空闲中断
+//	}
 }
 
 /**************************************************
@@ -929,7 +980,7 @@ uint32_t Abs_int(int nValue)
 **************************************************************************/
 void Pdu_Init(void)
 {
-	enum enum_CarMode CarMode = CARMODE;	//小车类型
+	enum enum_CarType CarType = CARMODE;	//小车类型
 	enum enum_motor_type motor_type[MAX_MOTOR_NUMBER] = {0};	//电机类型
 	enum enum_sport_mode sport_mode[MAX_MOTOR_NUMBER] = {0};	//电机运动模式
 	uint16_t CAN_id[MAX_MOTOR_NUMBER] = {0};					//电机canid
@@ -1008,7 +1059,7 @@ void Pdu_Init(void)
 	struct_RobotBasePara DefaultBasePara = {0};
 	struct_RobotBasePara* RobotBasePara;
 
-	switch (CarMode){
+	switch (CarType){
 		case Akm_Car:
 			RobotBasePara = &AkmCarBasePara;
 			motor_type[0] = motor_type[1] = motor_type[2] = servo_zlac;
@@ -1039,7 +1090,7 @@ void Pdu_Init(void)
 			RobotBasePara = &FourWheelCarPara;
 			motor_type[0] = motor_type[1] = motor_type[2] = motor_type[3] = servo_wanze;
 			sport_mode[0] = sport_mode[1] = sport_mode[2] = sport_mode[3] = speed_mode;
-			CAN_id[0] = 6; CAN_id[1] = 2; CAN_id[2] = 5; CAN_id[3] = 1;
+			CAN_id[0] = 1; CAN_id[1] = 5; CAN_id[2] = 2; CAN_id[3] = 6;
 			reduction_ratio[0] = reduction_ratio[1] = reduction_ratio[2] = reduction_ratio[3] = 28;
 			direction[0] = direction[1] = direction[2] = direction[3] = car_direct_forward;
 			acceleration_time[0] = acceleration_time[1] = acceleration_time[2] = acceleration_time[3] = 100;

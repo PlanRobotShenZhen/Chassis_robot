@@ -326,27 +326,30 @@ void Car_Light(void)
                 break;
             case car_standby://待机
             case car_running://运行
-                exio_output.bit.RGB_G = 1;      //RGB绿灯亮
-                exio_output.bit.RGB_R = 0;      //RGB红灯灭
-		        BatteryThresholdAlarm();
-                if((short)pdu[target_yaw_speed] > 0){//左转    
-                    exio_output.bit.Light_RR = exio_output.bit.Light_RF = 0;
-                    light_time.t_cnt_Light_LF ++;
-                    if(light_time.t_cnt_Light_LF >= 25){//500ms
-                        exio_output.bit.Light_LF = exio_output.bit.Light_LR = ~exio_output.bit.Light_LR;
-                        light_time.t_cnt_Light_LF = 0;
+#if(CARMODE != Diff)	
+                exio_output.bit.RGB_R = 1;      //RGB绿灯亮
+                exio_output.bit.Front_Red = 0;      //RGB红灯灭
+								BatteryThresholdAlarm();
+                if((short)pdu[target_yaw_speed] > 0){//左转 
+										light_time.t_cnt_RR_White ++;
+									exio_output.bit.LF_White = exio_output.bit.LR_White = 0;
+									if(light_time.t_cnt_RR_White >= 25){//500ms
+											exio_output.bit.RR_White = exio_output.bit.RF_White = ~exio_output.bit.RF_White;								                                     											
+                        light_time.t_cnt_RR_White = 0;
                     }     	
                 }else if((short)pdu[target_yaw_speed] < 0){//右转
-                    exio_output.bit.Light_LF = exio_output.bit.Light_LR = 0;
-                    light_time.t_cnt_Light_RF ++;
-                    if(light_time.t_cnt_Light_RF >= 25){//500ms
-                        exio_output.bit.Light_RR = exio_output.bit.Light_RF = ~exio_output.bit.Light_RF;
-                        light_time.t_cnt_Light_RF = 0;
+										light_time.t_cnt_LR_White ++;								
+                    exio_output.bit.RR_White = exio_output.bit.RF_White = 0;                    
+                    if(light_time.t_cnt_LR_White >= 25){//500ms
+                        exio_output.bit.LF_White = exio_output.bit.LR_White = ~exio_output.bit.LR_White;							
+                        light_time.t_cnt_LR_White = 0;
                     }     	
-                }else if((short)pdu[target_linear_speed] < 0){//倒车
+                }else if((short)pdu[target_linear_speed] < 0){//倒车									
                     exio_output.output |= 0xA0;//后车灯全亮
+					                    
                 }else{
-                    if(myabs(pdu[rc_ch8_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR){//常灭
+								
+									if(myabs(pdu[rc_ch8_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR){//常灭
                         exio_output.output &= 0x0F; //灯全灭（除RGB、蜂鸣器）
                         light_time.t_cnt_Light_ALL = 0;
                     }else if(myabs(pdu[rc_ch8_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR){//常亮
@@ -359,8 +362,35 @@ void Car_Light(void)
                             light_time.t_cnt_Light_ALL = 0;
                         }                
                     }
+		
                 }
-                break;  
+                break;
+#else               
+
+                light_time.t_cnt_LF_White ++;//用同一个计数器保证同频率。
+                if (light_time.t_cnt_LF_White >= 25)
+                {//500ms
+                    light_time.t_cnt_LF_White = 0;
+                    if ((short)pdu[target_linear_speed] > 0) 
+                    {//倒车                       
+                        LedBlink(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+                        LedBlink(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+                    }
+                    else if ((short)pdu[target_yaw_speed] > 0)
+                    {//左转 
+                        LedBlink(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+                    }
+                    else if ((short)pdu[target_yaw_speed] < 0)
+                    {//右转 
+                        LedBlink(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+                    }
+                    else
+                    {
+                        GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+                        GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+                    }
+                }	
+#endif								
         }                     
     }
 }
@@ -381,11 +411,11 @@ void BatteryThresholdAlarm(void)
         BuzzerTimes = 30;   //响铃600ms
     }else{
         BuzzerTimes = 0;    //不响铃
-        exio_output.bit.Light_Side = 0;//蜂鸣器不响
+        exio_output.bit.RGB_R = 0;//蜂鸣器不响
     }
     if((NowTimes >= BuzzerTimes) && (BuzzerTimes)){
         NowTimes = 0;
-        exio_output.bit.Light_Side = ~exio_output.bit.Light_Side; // 蜂鸣器响
+        exio_output.bit.RGB_R = ~exio_output.bit.RGB_R; // 蜂鸣器响
     }
 }
 
@@ -409,11 +439,22 @@ void JT_Light(void)
             rt_thread_delay(5000);		
         }
     }else if(pdu[Power_board_version]){//新电源板     
-        if(Soft_JT_Flag){
-            exio_output.output = 0xFC;  //红灯以及车灯常亮
+#if (CARMODE != Diff)
+			if(Soft_JT_Flag){
+					exio_output.output = 0xFC;  //红灯以及车灯常亮
+
         }else{
             exio_output.output = 0x00;  //灯全灭（除RGB、蜂鸣器）
-        }  
+        }
+#else
+				if(Soft_JT_Flag)
+				{
+					GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+					GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);  //红灯以及车灯常亮
+
+        }
+	
+#endif			
     }
 }
 /*PWM类型灯光初始化*/
