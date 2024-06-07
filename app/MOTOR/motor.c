@@ -331,7 +331,6 @@ enum enum_car_running_state Judge_CarState(uint16_t Car_Error_Label, bool Soft_J
  * 参数：     ID为从机地址。
  * 说明：     无。
  **********************************************************/
-uint16_t temp1, temp2, temp3;
 void Motor_Init(int count)
 {		
 	uint16_t i_start = (count == pdu[motor_number])? 0 : count;
@@ -339,9 +338,6 @@ void Motor_Init(int count)
 	uint16_t type, mode, id, ah, al, dh, dl;
 	for (int i = i_start; i < i_end; i++) {        //初始化MOTOR参数
 			type = pdu[motor1_type + i * pdu[ro_motor_gap]]; 
-			temp1 = motor1_type;
-			temp2 = motor1_type + i * pdu[ro_motor_gap];
-			temp3 = pdu[motor1_type + i * pdu[ro_motor_gap]];
 			mode = pdu[motor1_sport_mode + i * pdu[ro_motor_gap]];
 			id = pdu[motor1_CAN_id + i * pdu[rw_motor_gap]];
 			ah = (pdu[motor1_acceleration_time + i * pdu[rw_motor_gap]] >> 8) & 0x00FF;

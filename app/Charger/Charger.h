@@ -1,6 +1,20 @@
 #ifndef __CHARGER_H
 #define __CHARGER_H
 #include "n32g45x.h"                // Device header
+//充电桩相关参数
+#define LED_LEFT 			RR_White
+#define LED_RIGHT 			LF_White
+#define MCU_INF_TX 			exio_output.bit.RGB_R
+#define MCU_RELAY2 			exio_output.bit.Buzzer
+#define IrDA_TX 			MCU_INF_TX
+//风扇相关参数
+#define MCU_FAN1			exio_output.bit.LR_White
+#define MCU_FAN2			exio_output.bit.RF_White
+#define FAN1				MCU_FAN1
+#define FAN2				MCU_FAN2
+//充电电极短路检测
+//#define MCU_CH_DET			exio_input.bit.CS2_Ttig
+
 #define MCU_INF_RX_CLK 				RCC_APB2_PERIPH_GPIOA
 #define MCU_INF_RX_GPIO 			GPIOA
 #define MCU_INF_RX_PIN 				GPIO_PIN_0
@@ -62,4 +76,5 @@ void RGB_ShowError(void);
 void LimitSwitch_Init(void);
 void ChargeDetection_Init(void);
 void Key_Change_RGB(void);
+void Charge_task(void* pvParameters);
 #endif

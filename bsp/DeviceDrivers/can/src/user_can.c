@@ -9,7 +9,6 @@
 #include "rtthread.h"
 #include "n32g45x.h"
 #include "485_address.h"
-#include "rtthread.h"
 #include "robot_select_init.h"
 #include "balance.h"
 
@@ -600,7 +599,7 @@ void Can_task(void* pvParameters)
 		CAN_SDOSend(CAN2);
 		CAN_PDOSend(pdu[motor_number], CAN2);
 #endif
-		rt_thread_delay(20);
+		
 	}
 
 }

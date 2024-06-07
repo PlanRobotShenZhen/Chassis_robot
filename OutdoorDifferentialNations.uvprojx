@@ -186,7 +186,6 @@
             <RvdsVP>2</RvdsVP>
             <RvdsMve>0</RvdsMve>
             <RvdsCdeCp>0</RvdsCdeCp>
-            <nBranchProt>0</nBranchProt>
             <hadIRAM2>0</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -340,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>N32G45X, USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>.\bsp\inc;.\firmware\CMSIS\core;.\firmware\CMSIS\device;.\firmware\n32g45x_std_periph_driver\inc;.\rt-thread\include;.\app\inc;.\rt-thread\include\libc;.\bsp\DeviceDrivers\inc;.\app\MODBUS;.\app\MODBUS\include;.\app\MOTOR;.\app\BALANCE;.\bsp\DeviceDrivers\uart\inc;.\bsp\DeviceDrivers\can\inc;.\app\MODBUS\rtu;.\FLASH;.\bsp\DeviceDrivers\adc\inc;.\app\RCCAR;.\app\Charger;.\app\JDQ_EN;.\app\RJ_JT;.\app\REMOTE</IncludePath>
+              <IncludePath>.\bsp\inc;.\firmware\CMSIS\core;.\firmware\CMSIS\device;.\firmware\n32g45x_std_periph_driver\inc;.\rt-thread\include;.\app\inc;.\rt-thread\include\libc;.\bsp\DeviceDrivers\inc;.\app\MODBUS;.\app\MODBUS\include;.\app\MOTOR;.\app\BALANCE;.\bsp\DeviceDrivers\uart\inc;.\bsp\DeviceDrivers\can\inc;.\app\MODBUS\rtu;.\FLASH;.\bsp\DeviceDrivers\adc\inc;.\app\RCCAR;.\app\Charger;.\app\JDQ_EN;.\app\RJ_JT;.\app\REMOTE;.\app\CircularCar</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -499,6 +498,11 @@
               <FileType>1</FileType>
               <FilePath>.\app\JDQ_EN\JDQ_EN.c</FilePath>
             </File>
+            <File>
+              <FileName>CircularCar.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\CircularCar\CircularCar.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -648,11 +652,6 @@
               <FileName>user_adc.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\bsp\DeviceDrivers\adc\src\user_adc.c</FilePath>
-            </File>
-            <File>
-              <FileName>IC.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\bsp\src\IC.c</FilePath>
             </File>
           </Files>
         </Group>
