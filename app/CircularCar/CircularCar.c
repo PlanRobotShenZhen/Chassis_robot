@@ -535,7 +535,7 @@ void CircularCar_task(void* pvParameters)
 {    
     while(1)
     {
-        rt_thread_delay(100);   // 10ms
+        rt_thread_delay(100);   // 10ms进入一次该线程
         IrDA_task();
         Ultrasonic_task();
     }
