@@ -45,19 +45,6 @@ extern float Move_X,Move_Y,Move_Z;   	//小车各个轴的速度
 extern float Voltage;
 extern float Z_Radian_Max; 				//弧度最大值
 
-//充电桩相关参数
-#define LED_LEFT 			RR_White
-#define LED_RIGHT 			LF_White
-#define MCU_INF_TX 			exio_output.bit.RGB_R
-#define MCU_RELAY2 			exio_output.bit.Buzzer
-#define IrDA_TX 			MCU_INF_TX
-//风扇相关参数
-#define MCU_FAN1			exio_output.bit.LR_White
-#define MCU_FAN2			exio_output.bit.RF_White
-#define FAN1				MCU_FAN1
-#define FAN2				MCU_FAN2
-//充电电极短路检测
-//#define MCU_CH_DET			exio_input.bit.CS2_Ttig
 
 /*----------------------各小车速度宏定义--------------------------*/
 #define MAXDEGREE 300 		//前轮最大转角

@@ -2,6 +2,21 @@
 #include <rtthread.h>
 #include "led.h"
 #include  "485_address.h"
+#include "mb.h"
+extern EXIO_INPUT exio_input;
+/*红外通讯发送部分参数*/
+uint8_t IrDA_SendState = 1;		//0：关闭红外传感器；1：红外对接；2：红外通讯；
+uint8_t SendCout = 0;			//发送计次
+uint8_t SendGuide_Flag = 0;		//引导位状态
+int Send_i = 3;					//发送数据指针，从高位开始发送
+int BitFree = 1;				//发送通道空闲
+uint8_t SendData = 0x01;		//要发送的数据
+/*红外通讯接收部分参数*/
+uint8_t ReceiveData;			//接收到的数据
+uint8_t IrDA_AlignOK = 0;		//红外对齐，断开0，闭合1；
+
+uint8_t LimitSwitch_OK = 0;		//限位开关，断开0，闭合1；
+uint8_t CH_ON = 0;				//充电电极短路检测模块开启信号
 /*接收数据部分参数*/
 int Receive_i = 3; 		//接收数据指针，从高位开始发送
 uint8_t guide_flag = 0;	//接收到引导位
@@ -47,7 +62,199 @@ int RGB_Error[][3] = {//错误状态下的 RGB 灯光模式。
 	{0xFF,0x00,0x00},
 	{0x00,0x00,0x00},
 };
+/**************************************************************************
+函数功能：MCU_INF_RX接收到来自小车的红外信号之后，开启充电桩的红外发送功能
+入口参数：无
+引脚信息：未接收到信号时，RX信号端低，ADCJT(PA0)高；
+**************************************************************************/
+void IrDA_TX_Control()
+{
+	//接收到红外信号
+	if (GPIO_ReadInputDataBit(MCU_INF_RX_GPIO, MCU_INF_RX_PIN) == RESET) {
+		//1启动红外传感器发送端
+		MCU_INF_TX = 1;
+	}
+	else {
+		MCU_INF_TX = 0;
+	}
+}
 
+/**************************************************************************
+函数功能：红外通讯发送数据部分
+入口参数：无/要发送的数据
+引脚信息：发送信号端低电平时，TX信号端高，RGBG低；
+**************************************************************************/
+void IrDA_Guide(void)
+{
+	SendCout++;
+	//高电平100ms
+	if (SendCout <= 10)
+	{
+		MCU_INF_TX = 1;
+		SendGuide_Flag = 0;
+		BitFree = 0;
+	}
+	else if (SendCout <= 14)
+	{
+		MCU_INF_TX = 0;
+	}
+	else
+	{
+		SendCout = 0;
+		SendGuide_Flag = 1;
+		BitFree = 1;
+	}
+
+}
+void IrDA_Send0(void)
+{
+	SendCout++;
+	//高电平30ms
+	if (SendCout <= 3)
+	{
+		MCU_INF_TX = 1;
+		BitFree = 0;
+	}
+	else if (SendCout <= 10)
+	{
+		MCU_INF_TX = 0;
+		BitFree = 0;
+	}
+	else
+	{
+		MCU_INF_TX = 0;
+		SendCout = 0;
+		BitFree = 1;
+	}
+}
+void IrDA_Send1(void)
+{
+	SendCout++;
+	//高电平70ms
+	if (SendCout <= 7)
+	{
+		MCU_INF_TX = 1;
+		BitFree = 0;
+	}
+	else if (SendCout <= 10)
+	{
+		MCU_INF_TX = 0;
+		BitFree = 0;
+	}
+	else
+	{
+		MCU_INF_TX = 0;
+		SendCout = 0;
+		BitFree = 1;
+	}
+}
+
+void IrDA_SendData(uint8_t SendData)
+{
+	if (SendGuide_Flag == 0)//0:未发送引导位；1：已发送引导位；
+	{
+		IrDA_Guide();
+	}
+	else
+	{
+		uint8_t bit = (SendData >> Send_i) & 0x01;
+		if (bit)
+		{
+			IrDA_Send1();
+			if (BitFree)//等待发送完成
+			{
+				Send_i--;//指针指向低位				
+			}
+		}
+		else
+		{
+			IrDA_Send0();
+			if (BitFree)//等待发送完成
+			{
+				Send_i--;//指针指向低位				
+			}
+		}
+		if (Send_i == -1)
+		{
+			//数据发送完成
+			Send_i = 3;//指针重置到数据高位
+			SendGuide_Flag = 0;//置零引导位
+		}
+	}
+}
+/**************************************************************************
+函数功能：红外通讯接收端解码
+入口参数：无
+备注信息：1-对接正常；2-关闭充电；3-充电异常
+			TX端发送解码值，并保存到PDU
+**************************************************************************/
+void IrDA_RX_Decode(void)
+{
+	ReceiveData = IrDA_ReceiveData(pdu);
+	//test
+	//ReceiveData = 1;
+	/*红外接收端解码*/
+	switch (ReceiveData) {
+	case 0:
+		break;
+	case 0x01://红外对接正常
+		SendData = 1;
+		IrDA_SendData(SendData);
+		RGB_ShowCharging();
+		IrDA_AlignOK = 1;
+		break;
+	case 0x02://关闭充电
+		SendData = 2;
+		IrDA_SendData(SendData);
+		RGB_ShowCharged();
+		IrDA_AlignOK = 0;
+		break;
+	case 0x03://充电异常
+		SendData = 3;
+		IrDA_SendData(SendData);
+		RGB_ShowError();
+		IrDA_AlignOK = 0;
+		break;
+	default:
+		break;
+	}
+	/*等待限位开关信号*/
+	if (GPIO_ReadInputDataBit(MCU_SW_DET_GPIO, MCU_SW_DET_PIN) == RESET) {
+		LimitSwitch_OK = 1;
+	}
+	else {
+		LimitSwitch_OK = 0;
+	}
+	//小车与充电桩对接成功(红外对接成功+限位开关闭合)，MCU关闭MCU_CH_DET_ON
+	if (IrDA_AlignOK == 1 && LimitSwitch_OK == 1) {
+		GPIO_ResetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+	}
+	else {
+		GPIO_SetBits(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN);
+	}
+}
+
+
+void Relay_Switch(void)
+{
+	// CH_ON = 1:小车与充电桩对接成功(红外通讯正常和限位开关闭合)
+	if (GPIO_ReadOutputDataBit(MCU_CH_DET_ON_GPIO, MCU_CH_DET_ON_PIN) == RESET) {
+		CH_ON = 1;
+	}
+	else {
+		CH_ON = 0;
+	}
+	if (GPIO_ReadInputDataBit(MCU_CH_DET_GPIO, MCU_CH_DET_PIN) == SET) {
+		//开启继电器
+		GPIO_SetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+		MCU_RELAY2 = 1;
+	}
+	else {
+		GPIO_ResetBits(MCU_RELAY1_GPIO, MCU_RELAY1_PIN);
+		MCU_RELAY2 = 0;
+	}
+
+}
 /**************************************************************************
 函数功能：初始化红外接收 GPIO 引脚
 入口参数：无
@@ -502,4 +709,35 @@ void ChargeDetection_Init(void) {
 	GPIO_InitPeripheral(MCU_WARM_GPIO, &GPIO_InitStructure);
 	GPIO_ResetBits(MCU_WARM_GPIO, MCU_WARM_PIN);
 }
-
+void Charge_IrDA(void)
+{
+	/*红外发送端功能切换*/
+	switch (IrDA_SendState) {//0：关闭发送端；1：红外对接；2：红外通讯；
+	case 0:
+		break;
+	case 1:
+		IrDA_TX_Control();
+		//如果对接成功，转通讯	
+		if (MCU_INF_TX == 1) {
+			IrDA_SendState = 2;
+		}
+		break;
+	case 2:
+		IrDA_RX_Decode();
+		break;
+	default:
+		break;
+	}
+	//test:按键切换RGB颜色
+	//Key_Change_RGB();
+	Relay_Switch();
+}
+void Charge_task(void* pvParameters)
+{
+	while (1)
+	{
+		rt_thread_delay(100);   // 10ms
+		//红外对接状态不完善
+		Charge_IrDA();
+	}
+}
