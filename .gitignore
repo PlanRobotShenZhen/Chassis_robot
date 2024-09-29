@@ -1,4 +1,6 @@
 .vs/
+Objects/
+Listings/
 *.uvguix.Administrator
 *.scvd
 *.uvoptx
