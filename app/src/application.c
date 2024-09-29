@@ -50,23 +50,23 @@
 #include "RJ_JT.h"
 #include "CircularCar.h"
 #ifdef RT_USING_DFS
-/* dfs filesystem:ELM filesystem init */
-#include <dfs_elm.h>
-/* dfs Filesystem APIs */
-#include <dfs_fs.h>
+    /* dfs filesystem:ELM filesystem init */
+    #include <dfs_elm.h>
+    /* dfs Filesystem APIs */
+    #include <dfs_fs.h>
 #endif
 
 #ifdef RT_USING_RTGUI
-#include <rtgui/rtgui.h>
-#include <rtgui/rtgui_server.h>
-#include <rtgui/rtgui_system.h>
-#include <rtgui/driver.h>
-#include <rtgui/calibration.h>
+    #include <rtgui/rtgui.h>
+    #include <rtgui/rtgui_server.h>
+    #include <rtgui/rtgui_system.h>
+    #include <rtgui/driver.h>
+    #include <rtgui/calibration.h>
 #endif
 
 //JTAG模式设置定义
-#define JTAG_SWD_DISABLE   0X02	
-#define SWD_ENABLE         0X01	
+#define JTAG_SWD_DISABLE   0X02
+#define SWD_ENABLE         0X01
 #define JTAG_SWD_ENABLE    0X00
 
 ALIGN(RT_ALIGN_SIZE)
@@ -99,11 +99,13 @@ static struct rt_thread CircularCar_thread;
 // 手动软件复位
 void Soft_Reset()
 {
-	int nDelay = 0;
-	__DSB();
-	while (nDelay < 100){
-		nDelay++;
-	}
+    int nDelay = 0;
+    __DSB();
+
+    while (nDelay < 100)
+    {
+        nDelay++;
+    }
 }
 
 #ifdef RT_USING_RTGUI
@@ -125,49 +127,76 @@ void cali_store(struct calibration_data *data)
 
 uint32_t GetUsart1_baud(uint16_t data)
 {
-    switch (data){
-        case 0: return 9600;
-        case 1: return 19200;
-        case 2: return 57600;
-        case 3: return 115200;
-        case 4: return 256000;
-        case 5: return 512000;
-        case 6: return 921600;
-        case 7: return 1000000;
-        case 8: return 1500000;
-        case 9: return 2000000;
+    switch (data)
+    {
+        case 0:
+            return 9600;
+
+        case 1:
+            return 19200;
+
+        case 2:
+            return 57600;
+
+        case 3:
+            return 115200;
+
+        case 4:
+            return 256000;
+
+        case 5:
+            return 512000;
+
+        case 6:
+            return 921600;
+
+        case 7:
+            return 1000000;
+
+        case 8:
+            return 1500000;
+
+        case 9:
+            return 2000000;
     }
-		return 2000000;
+
+    return 2000000;
 }
 
 void DiyFunctionBasedCar(uint16_t data)
 {
-    switch (data){
-        case Akm_Car: 
-            Adc_Init();                     //采集电池电压ADC引脚初始化	
+    switch (data)
+    {
+        case Akm_Car:
+            Adc_Init();                     //采集电池电压ADC引脚初始化
             break;
+
         case Diff_Car: //圆形底盘
             Usart2_Init(9600);              //串口2初始化，圆形底盘用串口2代替串口4，用于读取电池信息
             Ultrasonic_Init();
             Adc_Init();
             IR_Init();
             ElectrodePad_Init();
-            GPIO_SetBits(MCU_CHARGE_ON_GPIO, MCU_CHARGE_ON_PIN);    //自动充电	
+            //GPIO_SetBits(MCU_CHARGE_ON_GPIO, MCU_CHARGE_ON_PIN);    //圆形底盘充电电极片,对接成功后才开启，默认关闭
             pdu[ros_chargingcommand] = 1;//圆形底盘没有电池SOC传感器，默认开启充电信号，红外一直工作。
             break;
-        case FourWheel_Car: 
-            Adc_Init();                     
+
+        case FourWheel_Car:
+            Adc_Init();
             break;
+
         case RC_Car:
             RCCAR_Init();
             break;
-        case Charger: 
+
+        case Charger:
             ChargerBalanceInit();
             NVIC_Config();
             IR_RX_Init();
             IC_Init();
             JTAG_Set(SWD_ENABLE);
             break;
+
         default:
             break;
     }
@@ -178,54 +207,75 @@ static void InitTask(void* parameter)
     rt_err_t result;
     systemInit();
 
-        /* init Balance thread */
+    /* init Balance thread */
 
-        result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);
-        if (result == RT_EOK)   rt_thread_startup(&Balance_thread);
+    result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);
 
-		if ((pdu[car_type] != Charger) && (pdu[car_type] != RC_Car))
-        {
-            /* init Remote thread */
-            result = rt_thread_init(&Remote_thread, "Remote", Remote_Task, (void*)pdu, (rt_uint8_t*)&Remote_stack[0], sizeof(Remote_stack), 5, 5);
-            if (result == RT_EOK)   rt_thread_startup(&Remote_thread);
+    if (result == RT_EOK)   rt_thread_startup(&Balance_thread);
 
-		    /* init Modbus thread */
-		    result = rt_thread_init(&Modbus_thread, "Modbus", Modbus_task, RT_NULL, (rt_uint8_t*)&Modbus_stack[0], sizeof(Modbus_stack), 7, 5);
-		    if (result == RT_EOK)	rt_thread_startup(&Modbus_thread);  
+    if ((pdu[car_type] != Charger) && (pdu[car_type] != RC_Car))
+    {
+        /* init Remote thread */
+        result = rt_thread_init(&Remote_thread, "Remote", Remote_Task, (void*)pdu, (rt_uint8_t*)&Remote_stack[0], sizeof(Remote_stack), 5, 5);
 
-            /* init Motor thread */
-            result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
-            if (result == RT_EOK)   rt_thread_startup(&Motor_thread);
+        if (result == RT_EOK)
+            rt_thread_startup(&Remote_thread);
 
-            /* init Can thread */
-            result = rt_thread_init(&CAN_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&CAN_stack[0], sizeof(CAN_stack), 3, 5);
-            if (result == RT_EOK)   rt_thread_startup(&CAN_thread);
+        /* init Modbus thread */
+        result = rt_thread_init(&Modbus_thread, "Modbus", Modbus_task, RT_NULL, (rt_uint8_t*)&Modbus_stack[0], sizeof(Modbus_stack), 7, 5);
 
-            /* init adc thread */
-            result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
-            if (result == RT_EOK)   rt_thread_startup(&ADC_thread);
+        if (result == RT_EOK)
+            rt_thread_startup(&Modbus_thread);
 
-            // init RJJT thread
-             result = rt_thread_init(&RJJT_thread, "RJJT_task", RJJT_task, (void*)pdu, (rt_uint8_t*)&RJJT_stack[0], sizeof(RJJT_stack), 2, 5);
-		    if (result == RT_EOK)   rt_thread_startup(&RJJT_thread);	
+        /* init Motor thread */
+        result = rt_thread_init(&Motor_thread, "Motor", Motor_task, (void*)pdu, (rt_uint8_t*)&Motor_stack[0], sizeof(Motor_stack), 4, 5);
 
-            // init Led thread
-            result = rt_thread_init(&LED_thread, "Led_task", Led_task, (void*)pdu, (rt_uint8_t*)&LED_stack[0], sizeof(LED_stack), 9, 5);
-            if (result == RT_EOK)   rt_thread_startup(&LED_thread);           
-        }
-        if (pdu[car_type] == Diff_Car)
-        {
-            // init CircularCar thread
-            result = rt_thread_init(&CircularCar_thread, "CircularCar_task", CircularCar_task, (void*)pdu, (rt_uint8_t*)&CircularCar_stack[0], sizeof(CircularCar_stack), 8, 5);
-            if (result == RT_EOK)   rt_thread_startup(&CircularCar_thread);
-        }
-        if (pdu[car_type] == Charger)
-        {
-            // init ChargeStation thread
-            result = rt_thread_init(&Charge_thread, "Charge_task", Charge_task, (void*)pdu, (rt_uint8_t*)&Charge_stack[0], sizeof(Charge_stack), 10, 5);
-            if (result == RT_EOK)   rt_thread_startup(&Charge_thread);
-        }   
-    
+        if (result == RT_EOK)
+            rt_thread_startup(&Motor_thread);
+
+        /* init Can thread */
+        result = rt_thread_init(&CAN_thread, "Can", Can_task, (void*)pdu, (rt_uint8_t*)&CAN_stack[0], sizeof(CAN_stack), 3, 5);
+
+        if (result == RT_EOK)
+            rt_thread_startup(&CAN_thread);
+
+        /* init adc thread */
+        result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
+
+        if (result == RT_EOK)
+            rt_thread_startup(&ADC_thread);
+
+        // init RJJT thread      //急停开关
+        result = rt_thread_init(&RJJT_thread, "RJJT_task", RJJT_task, (void*)pdu, (rt_uint8_t*)&RJJT_stack[0], sizeof(RJJT_stack), 2, 5);
+
+        if (result == RT_EOK)
+            rt_thread_startup(&RJJT_thread);
+
+        // init Led thread
+        result = rt_thread_init(&LED_thread, "Led_task", Led_task, (void*)pdu, (rt_uint8_t*)&LED_stack[0], sizeof(LED_stack), 9, 5);
+
+        if (result == RT_EOK)
+            rt_thread_startup(&LED_thread);
+    }
+
+    if (pdu[car_type] == Diff_Car) //  圆形差速度底盘   与自动 充电相关，所以要增加这样一个函数
+    {
+        // init CircularCar thread
+        result = rt_thread_init(&CircularCar_thread, "CircularCar_task", CircularCar_task, (void*)pdu, (rt_uint8_t*)&CircularCar_stack[0], sizeof(CircularCar_stack), 8, 5);
+
+        if (result == RT_EOK)
+            rt_thread_startup(&CircularCar_thread);
+    }
+
+    if (pdu[car_type] == Charger)//充电桩与圆盘 两选一
+    {
+        // init ChargeStation thread
+        result = rt_thread_init(&Charge_thread, "Charge_task", Charge_task, (void*)pdu, (rt_uint8_t*)&Charge_stack[0], sizeof(Charge_stack), 10, 5);
+
+        if (result == RT_EOK)
+            rt_thread_startup(&Charge_thread);
+    }
+
 }
 
 /**
@@ -236,11 +286,12 @@ void rt_application_init(void)
     rt_err_t result;
 
     result = rt_thread_init(&InitHandle, "Init", InitTask, RT_NULL, (rt_uint8_t*)&InitStack[0], sizeof(InitStack), 2, 5);
+
     if (result == RT_EOK)
     {
         rt_thread_startup(&InitHandle);
     }
-   
+
 }
 
 /*@}*/

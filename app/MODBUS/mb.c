@@ -63,7 +63,7 @@ static UCHAR    ucMBAddress;
 /* к╫сп╠Да© ------------------------------------------------------------------*/
 PDUData_TypeDef PduData;
 REG_VALUE R_value;
-static uint16_t mbdata[MB_RTU_DATA_MAX_SIZE];
+ uint16_t mbdata[MB_RTU_DATA_MAX_SIZE];
 uint16_t* pdu = mbdata;
 static enum
 {

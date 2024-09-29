@@ -203,18 +203,28 @@ void DMA1_Channel4_IRQHandler(void)
 * 输    入         : 无
 * 说    明         :无
 *******************************************************************************/ 
+
+int tt=0;
+int tt2=0;
 void modbus_task_init(void)
 {
 	UCHAR mySlaveAddress = 0x01;//< 从机地址
 	eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);//参数分别为modbus的工作模式、从机地址、端口号、波特率、奇偶校验设置。
 	MyFLASH_ReadByte(FINAL_PAGE_ADDRESS,pdu , MB_RTU_DATA_MAX_SIZE);
-	if (pdu[car_type] == 0xFFFF){//< 芯片首次初始化
+	
+	tt2=car_type;
+	
+	tt  =  pdu[car_type];
+	
+	if (pdu[car_type] == 0xFFFF)
+		{//< 芯片首次初始化
 		eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);
 		Pdu_Init();
 		MyFLASH_WriteWord(FINAL_PAGE_ADDRESS, pdu, MB_RTU_DATA_MAX_SIZE);
 		pdu[para_save] = 10;
 	}
-	else pdu[para_save] = 0;
+	else 
+		pdu[para_save] = 0;
 }
 
 /*******************************************************************************
@@ -370,7 +380,7 @@ void USART2_DMA_Config(void)
 	DMA_Init(USARTTwo_Rx_DMA_Channel, &DMA_InitStruct);
 	DMA_RequestRemap(DMA1_REMAP_USART2_RX, DMA1, USARTTwo_Rx_DMA_Channel, ENABLE);
 
-	// 配置串口4的DMA发送中断
+	// 配置串口2的DMA发送中断
 	NVIC_InitStruct.NVIC_IRQChannel = DMA1_Channel7_IRQn;
 	NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0; 	// 抢占优先级
@@ -606,7 +616,9 @@ void Usart3_Send(void)
 {
 	if (usart3_send_flag){
 		usart3_send_flag = 0;	
+		
 		Data_Assignment(); 
+		
 		rt_memcpy(usart3_send_data, Send_Data.buffer, USART3_TX_MAXBUFF);
 		DMA_SetCurrDataCounter(USARTThree_Tx_DMA_Channel, USART3_TX_MAXBUFF); 
 		DMA_EnableChannel(USARTThree_Tx_DMA_Channel, ENABLE);    // 开启DMA1 通道2，USART3_TX	
@@ -622,8 +634,10 @@ void Data_Assignment(void)
 {
 	Send_Data.d.Frame_Header = FRAME_HEADER;			//1个字节 = FRAME_HEADER; //帧头(固定值)      		
 	Send_Data.d.Motor_Enable_Flag = Motor_Enable_Flag;
+	
 	Send_Data.d.X_speed = pdu[linear_speed_feedback];	  
 	Send_Data.d.Z_speed = pdu[yaw_speed_feedback];    
+	
 	Send_Data.d.Power_Quantity = pdu[BatteryQuantity]; 
 	Send_Data.d.Power_Voltage = pdu[BatteryVoltage]; 
 	Send_Data.d.Power_Current = pdu[BatteryCurrent];    
@@ -655,9 +669,9 @@ unsigned char Check_Sum(unsigned char Count_Number, unsigned char Mode)
 入口参数：高8位，低8位
 返回  值：机器人X/Y/Z轴的目标速度
 **************************************************************************/
-float ConvertBytesToFloat(u8 highByte,u8 lowByte)
+short ConvertBytesToShort(u8 highByte,u8 lowByte)
 {
-    return (short)((highByte << 8) + lowByte);    
+    return (((short)highByte << 8) + (short)lowByte);    
 }
 
 /*******************************************************************************UART4*******************************************************************************/
@@ -747,6 +761,7 @@ void Uart4_Dma_Config(void)
 	DMA_InitStruct.CircularMode = DMA_MODE_NORMAL;
 	DMA_InitStruct.Priority = DMA_PRIORITY_HIGH;
 	DMA_InitStruct.Mem2Mem = DMA_M2M_DISABLE;
+ 
 	DMA_Init(UARTFour_Tx_DMA_Channel, &DMA_InitStruct);
 	DMA_RequestRemap(DMA2_REMAP_UART4_TX, DMA2, UARTFour_Tx_DMA_Channel, ENABLE);
 
@@ -1018,7 +1033,7 @@ void Pdu_Init(void)
 		.car_wheelbase = 0,
 		.car_tread = 3500,	
 		.car_ground_clearance = NULL,
-		.wheel_radius = 850,
+		.wheel_radius = 1300,
 		.gross_max = NULL,
 		.rated_load = 80,
 		.motor_number = 1,
@@ -1110,11 +1125,12 @@ void Pdu_Init(void)
 	}
 	rt_memcpy(pdu, RobotBasePara, sizeof(struct_RobotBasePara));
 	int i;	
-	pdu[BatteryManufacturer] = batterydefault;
 	if(pdu[car_type] == Diff_Car){
 		pdu[TpdoGroupCount] = 1;	
+		pdu[BatteryManufacturer] = lishen;
 	}else{
 	pdu[TpdoGroupCount] = 2;
+		pdu[BatteryManufacturer] = batterydefault;
 	}
 	pdu[ro_motor_gap] = motor2_type - motor1_type;
 	pdu[rw_motor_gap] = motor2_CAN_id - motor1_CAN_id;

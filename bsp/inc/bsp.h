@@ -354,6 +354,12 @@ extern unsigned char SPI_ReadWriteCycle;
 #define USARTOne_Tx_DMA_FLAG	DMA1_FLAG_TC4
 
 /*USART2 RS485*/
+//引脚统一命名
+#define UARTFour_485en_GPIO 		USARTTwo_GPIO
+#define UARTFour_485enPin			USARTTwo_CTS
+#define UARTFour_Tx_DMA_Channel		USARTTwo_Tx_DMA_Channel
+#define UARTFour_Rx_DMA_Channel		USARTTwo_Rx_DMA_Channel
+
 #define RS485						USART2
 #define USARTTwo					USART2
 #define USARTTwo_GPIO				GPIOC

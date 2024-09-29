@@ -174,6 +174,7 @@ void ADC_task(void* pvParameters)
 	as[i].ADC_Channel = MCU_ADC_12VPC_IOUT_Channel;
 	as[i++].step = 0;
 	i = 0;
+	BatteryInfoInit();
 #endif
 	while (1)
 		{
@@ -261,6 +262,7 @@ void ADC_task(void* pvParameters)
 			}
 			if (ADC_GetData(&as[4]) == 1)pdu[IOUT_12VPC_Value] = as[4].value;//< ADC4
 		}
+		BatteryInformation();
 		#endif
 	}
 		

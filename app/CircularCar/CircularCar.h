@@ -9,8 +9,9 @@ uint16_t Get_U1distance(void);
 uint16_t Get_U2distance(void);
 enum IRFunctionCode  // 0-14
 {
-    CHARGEON = 1,
-    CHARGEOFF = 2,
+    Charge_On = 1,
+    Charge_Off = 2,
+    Charge_Error = 3
 };
 
 enum IRSendState
@@ -47,6 +48,8 @@ void ir_sendfunctioncode(int* IrSendArray);
 void get_hightime(void);
 void ir_decodefunctioncode(int* IrReceiveArray);
 int BinaryToInt(int* IrReceiveArray);
+void CarIr_SendDataFcn(uint8_t SendData);
+int CarIr_RecvDataFcn(void);
 
 
 // �缫Ƭ

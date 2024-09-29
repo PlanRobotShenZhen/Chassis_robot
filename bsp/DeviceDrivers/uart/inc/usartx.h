@@ -83,7 +83,7 @@ void Uart4_Init(uint32_t baud);         //uart4作为读取电池信息模块
 void Uart4_Dma_Config(void);     		// DMA配置
 
 
-float ConvertBytesToFloat(u8 highbyte,u8 lowbyte);   //上位机传输下来的速度信息解析
+short ConvertBytesToShort(u8 highbyte,u8 lowbyte);   //上位机传输下来的速度信息解析
 
 //Uart5任务（航模）
 void Uart5_Init(unsigned int unBound);              //串口5作为航模数据接收

@@ -271,11 +271,12 @@ void Led_task(void *pvParameters)
 {
     while(1){                    
 			rt_thread_delay(200);   //< 20ms			
-			Car_Light();
 			JT_Light();
+			Car_Light();
+			
+			
     }	
 }  
-
 /**************************************************************************
 函数功能：根据状态控制车灯
 入口参数：无 
@@ -368,28 +369,30 @@ void Car_Light(void)
 #else               
 
                 light_time.t_cnt_LF_White ++;//用同一个计数器保证同频率。
-                if (light_time.t_cnt_LF_White >= 25)
+                if (light_time.t_cnt_LF_White >= 25 && Soft_JT_Flag == 0)//急停指示灯优先级最高
                 {//500ms
-                    light_time.t_cnt_LF_White = 0;
+                    light_time.t_cnt_LF_White = 0;										
                     if ((short)pdu[target_linear_speed] > 0) 
                     {//倒车                       
                         LedBlink(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
                         LedBlink(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
                     }
-                    else if ((short)pdu[target_yaw_speed] > 0)
+                    else if ((short)pdu[target_yaw_speed] < 0)
                     {//左转 
                         LedBlink(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+												GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
                     }
-                    else if ((short)pdu[target_yaw_speed] < 0)
+                    else if ((short)pdu[target_yaw_speed] > 0)
                     {//右转 
                         LedBlink(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+												GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
                     }
                     else
-                    {
+                    {//清空指示灯，包括急停结束后的熄灯
                         GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
-                        GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+												GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
                     }
-                }	
+                }
 #endif								
         }                     
     }
@@ -453,6 +456,7 @@ void JT_Light(void)
 					GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);  //红灯以及车灯常亮
 
         }
+
 	
 #endif			
     }

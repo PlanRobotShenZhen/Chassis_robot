@@ -388,17 +388,17 @@ void ZLAC8015D_PDO_Config(uint8_t id, uint8_t mode, uint8_t ah, uint8_t al, uint
 		{0x23,0x84,0x60,0x02,dl,dh,0x00,0x00},  	// 6084 02右电机设置减速时间100ms
 		// 读参数映射（TPDO0）
 		{0x2F,0x00,0x1A,0x00,0x00,0x00,0x00,0x00},  // 消去个数: 发送sdo 600+id,22 00 16 00 00 00 00 00
-		{0x23,0x00,0x1A,0x01,0x20,0x00,0x41,0x60},  // 6041 状态字
+		{0x23,0x00,0x1A,0x01,0x20,0x00,0x41,0x60},  // 6041 状态字 //wjj 
 		{0x23,0x00,0x1A,0x02,0x20,0x03,0x6C,0x60},  // 606C 实时反馈速度
 		{0x2F,0x00,0x18,0x02,0xFF,0x00,0x00,0x00},    //②Hex1800_02，传输形式：0xFE：事件触发；0xFF：定时器触发 1个有效数据，设置TPDO1的传输类型，SYNC 
 		{0x2B,0x00,0x18,0x05,0x28,0x00,0x00,0x00},    //定时器触发时间40ms(刷新率为25Hz)
 		{0x2F,0x00,0x1A,0x00,0x02,0x00,0x00,0x00},    //⑥Hex1A00_0，启用【映射参数】 【实际映射多少组】 
 		{0x2B,0x10,0x20,0x00,0x01,0x00,0x00,0x00},  // 保存参数至 EEPROM
 		// 写参数映射（RPDO0）
-		{0x2F,0x01,0x16,0x00,0x00,0x00,0x00,0x00},  // 清除映射: 发送sdo 600+id,22 00 16 00 00 00 00 00
-		{0x23,0x01,0x16,0x01,0x10,0x00,0x40,0x60},  // 6040 控制字
-		{0x23,0x01,0x16,0x02,0x20,0x03,0xFF,0x60},  // 60FF 目标速度
-		{0x2F,0x01,0x16,0x00,0x02,0x00,0x00,0x00},  //映射对象子索引个数	⑥Hex1600_0，启用【映射参数】 【实际映射多少组】 
+		{0x2F,0x00,0x16,0x00,0x00,0x00,0x00,0x00},  // 清除映射: 发送sdo 600+id,22 00 16 00 00 00 00 00
+		{0x23,0x00,0x16,0x01,0x10,0x00,0x40,0x60},  // 6040 控制字
+		{0x23,0x00,0x16,0x02,0x20,0x03,0xFF,0x60},  // 60FF 目标速度
+		{0x2F,0x00,0x16,0x00,0x02,0x00,0x00,0x00},  //映射对象子索引个数	⑥Hex1600_0，启用【映射参数】 【实际映射多少组】 
 	};
 	Add_Sdo_Linked_List(id, Init_sdo, sizeof(Init_sdo)/sizeof(Init_sdo[0]));
 }
@@ -582,6 +582,8 @@ struct PointFrame* PointFramCereat(void)
 	return NULL;
 }
 
+short YUY=1;
+
 /**************************************************************************
 函数功能：CAN PDO任务
 入口参数：无
@@ -597,7 +599,10 @@ void Can_task(void* pvParameters)
 		CAN_PDOSend(pdu[motor_number], CAN1);
 #else
 		CAN_SDOSend(CAN2);
+			if(YUY)
 		CAN_PDOSend(pdu[motor_number], CAN2);
+			
+			
 #endif
 		
 	}
@@ -640,6 +645,20 @@ void CAN_SDOSend(CAN_Module* CANx)
  * 说明：     该函数必须在PDO配置完成之后运行。
  * 返回值：   发送成功数量
  **********************************************************/
+
+char tt1=0;
+char tt22=0;
+char tt3=0;
+char tt4=0;
+char tt5=0;
+char tt6=0;
+char tt7=0;
+char tt8=0;
+char tt9=0;
+
+
+
+
 void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 {
 	MOTOR_RPDO* rpdo;
@@ -681,16 +700,27 @@ void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 					pTxMessage.Data[5] = (target_pos_pulse >> 24) & 0xFF; // 高八位写入 Data[5]
 					break;
 				case servo_zlacd:
-					pTxMessage.Data[2] = mrd[0].d.target_pos_vel & 0xFF;       	// 左电机目标速度，低八位写入 Data[2]
+//					pTxMessage.Data[2] = tt1 ;//   mrd[0].d.target_pos_vel & 0xFF;       	// 左电机目标速度，低八位写入 Data[2]
+//					pTxMessage.Data[3] = tt22 ;//(mrd[0].d.target_pos_vel >> 8) & 0xFF; // 
+//					pTxMessage.Data[4] = tt3 ;//mrd[1].d.target_pos_vel & 0xFF; 		// 右电机目标速度，低八位写入 Data[2]
+//					pTxMessage.Data[5] = tt4 ;//(mrd[1].d.target_pos_vel >> 8) & 0xFF; // 高八位写入 Data[5]
+				
+					pTxMessage.Data[2] =    mrd[0].d.target_pos_vel & 0xFF;       	// 左电机目标速度，低八位写入 Data[2]
 					pTxMessage.Data[3] = (mrd[0].d.target_pos_vel >> 8) & 0xFF; // 
 					pTxMessage.Data[4] = mrd[1].d.target_pos_vel & 0xFF; 		// 右电机目标速度，低八位写入 Data[2]
 					pTxMessage.Data[5] = (mrd[1].d.target_pos_vel >> 8) & 0xFF; // 高八位写入 Data[5]
+				
+				
 					break;
 				case servo_plan:
 					/* code */
 					break;
 			}
+			
 			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //若发送失败，返回0x04
+			
+			
+			
 		if (nReturn != 0x04){
 			send_number++;//< 发送下一个
 			if (send_number >= number){
