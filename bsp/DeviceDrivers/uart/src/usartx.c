@@ -1022,7 +1022,7 @@ void Pdu_Init(void)
 		.rated_load = 70,
 		.motor_number = 3,
 		.driving_method = rear_drive,
-	};
+	};  
 	struct_RobotBasePara DiffCarPara = {
 		.car_type = Diff_Car,
 		.car_product_number = DIFF_PRODUCT_NUM,
@@ -1037,7 +1037,7 @@ void Pdu_Init(void)
 		.gross_max = NULL,
 		.rated_load = 80,
 		.motor_number = 1,
-		.driving_method = full_drive,
+		.driving_method = full_drive,  
 	};
 	struct_RobotBasePara FourWheelCarPara = {
 		.car_type = FourWheel_Car,
