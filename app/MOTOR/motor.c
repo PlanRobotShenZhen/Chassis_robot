@@ -112,9 +112,10 @@ short testraw1=0;
 short  linear_speed_feedbacktmp;
 short  yaw_speed_feedbacktmp;
 
-
-
-
+short  test_linear_feedback;
+short  test_yaw_feedback;
+short  test_m1_fb;
+short  test_m2_fb;
 void Detect_Motor_Status(void)
 {
     int i, j, k;
@@ -328,18 +329,16 @@ void Detect_Motor_Status(void)
 		yaw_speed_feedbacktmp= -(short)((float)(pdu[wheel_radius] * (ms1 + ms2) * MAGNIFIC_10x_DOWN * PI /30 *  MAGNIFIC_1000x_UP) / (float)pdu[car_tread] );//角速度反馈(0.1r/min -> 10-3rad/s)			
         
 
+
 		
 		if((yaw_speed_feedbacktmp>3000)||(yaw_speed_feedbacktmp<-3000))
 		{
 			
-			  yaw_speed_feedbacktmp=0;
+			  //yaw_speed_feedbacktmp=0;
 		}
-		
-		//testlinear1 = 
-		
-		pdu[linear_speed_feedback]=-linear_speed_feedbacktmp/10;
-		//testlinear2 =	
-		pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp/10;
+				
+		pdu[linear_speed_feedback]=-linear_speed_feedbacktmp;	
+		pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp;
 		
 
 		if(pdu[car_type] == Diff_Car) {
@@ -349,7 +348,10 @@ void Detect_Motor_Status(void)
 			 pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp/2;
 			
 		}
-		
+		test_linear_feedback = pdu[linear_speed_feedback];
+		test_yaw_feedback = pdu[yaw_speed_feedback];
+		test_m1_fb = pdu[motor1_rpm_feedback];
+		test_m2_fb = pdu[motor2_rpm_feedback];
     //角速度公式错误，等待角度可求之后，再用正确公式求出角速度
 }
 

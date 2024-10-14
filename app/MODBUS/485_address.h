@@ -12,7 +12,7 @@ enum address_485 {
     car_height,
     car_wheelbase, //机器人轴距
     car_tread,//机器人轮距
-    car_ground_clearance, 
+    car_ground_clearance,
     wheel_radius,//车轮半径
     gross_max,
     rated_load,
@@ -22,7 +22,7 @@ enum address_485 {
     car_running_state = 15,
     car_error_messages,
     car_light_messages,
-    linear_speed_feedback,
+    linear_speed_feedback,//10-3m/s
     yaw_speed_feedback,
     degree_feedback,
     exio_input_status,
@@ -242,7 +242,7 @@ enum address_485 {
     motor1_deceleration_time, 
     motor1_target_position1, 
     motor1_target_position2, 
-    motor1_target_rpm, 
+    motor1_target_rpm, //1rpm
     motor1_target_torque,
     motor1_profile_rpm,    
     motor1_profile_acce,
