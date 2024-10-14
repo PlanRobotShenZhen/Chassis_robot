@@ -32,7 +32,6 @@ void Remote_Task(void *pvParameters)
 * 参    数：  Uart5_Buffer为接收到的串口数据
 * 返 回 值：  0代表成功，1代表失败
 **************************************************/
-int tytyy=0;
 void Sbus_Data_Parsing(void)
 {
 //这里用的是SBUS协议，参考网址：https://os.mbed.com/users/Digixx/notebook/futaba-s-bus-controlled-by-mbed/
@@ -62,7 +61,6 @@ void Sbus_Data_Parsing(void)
             pdu[rc_ch14_value] = ((int16_t)Uart5_Buffer[18] >> 7 | ((int16_t)Uart5_Buffer[19] << 1 ) | (int16_t)Uart5_Buffer[20] << 9 ) & 0x07FF;
             pdu[rc_ch15_value] = ((int16_t)Uart5_Buffer[20] >> 2 | ((int16_t)Uart5_Buffer[21] << 6 )) & 0x07FF;
             pdu[rc_ch16_value] = ((int16_t)Uart5_Buffer[21] >> 5 | ((int16_t)Uart5_Buffer[22] << 3 )) & 0x07FF;
-        tytyy =pdu[rc_ch3_value];
 				}
 
         Sbus_Data_Parsing_Flag = false;

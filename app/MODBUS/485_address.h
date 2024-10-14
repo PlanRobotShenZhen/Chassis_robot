@@ -10,10 +10,10 @@ enum address_485 {
     car_length,
     car_width,
     car_height,
-    car_wheelbase,
-    car_tread,
-    car_ground_clearance,
-    wheel_radius,
+    car_wheelbase, //机器人轴距
+    car_tread,//机器人轮距
+    car_ground_clearance, 
+    wheel_radius,//车轮半径
     gross_max,
     rated_load,
     motor_number,
@@ -38,7 +38,7 @@ enum address_485 {
     BatteryAvailabilityTime,
     Odom1ForRobot,
     Odom2ForRobot,
-    TpdoGroupCount,
+    TpdoGroupCount,//TPDO组数
     // 电机参数
     motor1_type = 35,
     motor1_state_word,
@@ -49,7 +49,7 @@ enum address_485 {
     motor1_error_code,
     motor1_position1_feedback,
     motor1_position2_feedback,
-    motor1_rpm_feedback,
+    motor1_rpm_feedback,//反馈角速度0.1rpm
     motor1_torgue_feedback,
     motor1_voltage,
     motor1_current,
@@ -189,7 +189,7 @@ enum address_485 {
     rc_min_value,
     rc_base_value,
     rc_max_value,
-    rc_gears_difference,
+    rc_gears_difference,//拨杆半量程
     // adc
     adc1_jt_value = 181,
     adc2_value,
@@ -224,8 +224,8 @@ enum address_485 {
     max_linear_speed,
     max_yaw_speed,
     max_angle,
-    target_linear_speed,
-    target_yaw_speed,
+    target_linear_speed,//目标线速度（m/s)
+    target_yaw_speed,//目标角速度（rad/s)
     target_angle,
     linear_low,
     linear_middle,
@@ -236,7 +236,7 @@ enum address_485 {
 
     // 电机参数
 	motor1_CAN_id = 220,
-    motor1_reduction_ratio,
+    motor1_reduction_ratio,//减速比
     motor1_direction,
     motor1_acceleration_time, 
     motor1_deceleration_time, 
@@ -355,9 +355,9 @@ enum address_485 {
     undefined337, 
     undefined338, 
     undefined339,
-    ro_motor_gap = 340,
-    rw_motor_gap,
-    torque_cofficient,
+    ro_motor_gap = 340,//电机类型的地址差值
+    rw_motor_gap,//电机CANid的地址差值
+    torque_cofficient,//力矩档位，1-3
     undefined343, 
     undefined344,    
     // 航模参数

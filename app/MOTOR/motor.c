@@ -24,7 +24,7 @@ int NowPos_Right = 0;//右轮当前位置
 uint32_t Odom_distance_mm = 0;//里程计(单位mm)
 float TireCircumference = 0;//轮胎周长->轮胎半径,
 float MotorSpeedToLineSpeed = 0; //电机转速->线速度,
-float LineSpeedToMotorSpeed = 0; //线速度->电机转速
+float LineSpeedToMotorSpeed = 0; //线速度->电机转速(r/min)
 float MotorSpeedZLACToPulse = 0; //速度反馈单位转换
 float MotorPulseWANZEToMotorSpeed = 0;//速度反馈单位转换
 
@@ -305,7 +305,9 @@ void Detect_Motor_Status(void)
     {
         //根据电机的速度方向来判断运行方向
          //pdu[linear_speed_feedback]
-			linear_speed_feedbacktmp= (short)(((short)ms1 + ((short)(0xFFFF - ms2 + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1r/min -> mm/s)
+            //v = (w1+w2)/2 * C / 60
+			linear_speed_feedbacktmp= (short)(((short)ms1 + ((short)(0xFFFF - ms2 + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1r/min -> 10-3m/s)
+                //-ms2也可，这么算是为了在处理溢出、类型一致性以及处理补码转换等问题时保证准确性
     }
     else
     {
@@ -321,10 +323,10 @@ void Detect_Motor_Status(void)
 		}
 		
 			
-
-		//pdu[yaw_speed_feedback] 
-		yaw_speed_feedbacktmp= -(short)(((float)((ms1 + ms2) * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP) / ((float)pdu[car_tread] * MAGNIFIC_10000x_DOWN)));//角速度反馈			
-	
+                 
+		//pdu[yaw_speed_feedback] w = r * (wr + wl) / H。 H为轮距，r为车轮半径,1 rpm = 2pi/60 rad/s
+		yaw_speed_feedbacktmp= -(short)((float)(pdu[wheel_radius] * (ms1 + ms2) * MAGNIFIC_10x_DOWN * PI /30 *  MAGNIFIC_1000x_UP) / (float)pdu[car_tread] );//角速度反馈(0.1r/min -> 10-3rad/s)			
+        
 
 		
 		if((yaw_speed_feedbacktmp>3000)||(yaw_speed_feedbacktmp<-3000))
@@ -335,9 +337,9 @@ void Detect_Motor_Status(void)
 		
 		//testlinear1 = 
 		
-		pdu[linear_speed_feedback]=-linear_speed_feedbacktmp/2;
+		pdu[linear_speed_feedback]=-linear_speed_feedbacktmp/10;
 		//testlinear2 =	
-		pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp/2;
+		pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp/10;
 		
 
 		if(pdu[car_type] == Diff_Car) {

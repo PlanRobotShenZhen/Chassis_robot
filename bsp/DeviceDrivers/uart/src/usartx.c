@@ -204,17 +204,11 @@ void DMA1_Channel4_IRQHandler(void)
 * 说    明         :无
 *******************************************************************************/ 
 
-int tt=0;
-int tt2=0;
 void modbus_task_init(void)
 {
 	UCHAR mySlaveAddress = 0x01;//< 从机地址
 	eMBInit(MB_RTU, mySlaveAddress, 3, 115200, MB_PAR_NONE);//参数分别为modbus的工作模式、从机地址、端口号、波特率、奇偶校验设置。
 	MyFLASH_ReadByte(FINAL_PAGE_ADDRESS,pdu , MB_RTU_DATA_MAX_SIZE);
-	
-	tt2=car_type;
-	
-	tt  =  pdu[car_type];
 	
 	if (pdu[car_type] == 0xFFFF)
 		{//< 芯片首次初始化
@@ -1008,20 +1002,20 @@ void Pdu_Init(void)
 	uint16_t profile_jerk[MAX_MOTOR_NUMBER] = {0};				//加加速度（WANZE）
 
 	struct_RobotBasePara AkmCarBasePara = {
-		.car_type = Akm_Car,
-		.car_product_number = AKM_PRODUCT_NUM,
-		.car_version = AKM_VERSION,
-		.car_length = 11460,
-		.car_width = 7220,
-		.car_height = 3940,
-		.car_wheelbase = 6500,
-		.car_tread = 5800,
-		.car_ground_clearance = 890,
-		.wheel_radius = 1650,
-		.gross_max = 80,
-		.rated_load = 70,
-		.motor_number = 3,
-		.driving_method = rear_drive,
+		.car_type = Akm_Car,					
+		.car_product_number = AKM_PRODUCT_NUM,	
+		.car_version = AKM_VERSION,				
+		.car_length = 11460,					
+		.car_width = 7220,						
+		.car_height = 3940,						
+		.car_wheelbase = 6500,					//轴距
+		.car_tread = 5800,					    //轮距
+		.car_ground_clearance = 890,			//底盘高度
+		.wheel_radius = 1650,					//车轮半径
+		.gross_max = 80,						//净重量
+		.rated_load = 70,						//额定载荷
+		.motor_number = 3,						//电机数量
+		.driving_method = rear_drive,			//驱动方式
 	};  
 	struct_RobotBasePara DiffCarPara = {
 		.car_type = Diff_Car,
@@ -1033,10 +1027,10 @@ void Pdu_Init(void)
 		.car_wheelbase = 0,
 		.car_tread = 3500,	
 		.car_ground_clearance = NULL,
-		.wheel_radius = 1300,
+		.wheel_radius = 695,
 		.gross_max = NULL,
 		.rated_load = 80,
-		.motor_number = 1,
+		.motor_number = 1,//实际为2，这里是统一方便，写1是为了好实现pdo，驱动器一拖二
 		.driving_method = full_drive,  
 	};
 	struct_RobotBasePara FourWheelCarPara = {
@@ -1147,6 +1141,7 @@ void Pdu_Init(void)
 		pdu[motor1_profile_acce + i * pdu[rw_motor_gap]] = profile_acce[i];
 		pdu[motor1_profile_jerk + i * pdu[rw_motor_gap]] = profile_jerk[i];
 	}
+	//pdu部分数据初始化
 	i = rc_min_value;
 	pdu[i++] = RC_MIN_VALUE;
 	pdu[i++] = RC_BASE_VALUE;
@@ -1158,21 +1153,21 @@ void Pdu_Init(void)
 	pdu[i++] = usart_baud_2000000;
 	pdu[i++] = control_mode_unknown;
 	i = robot_acceleration;
-	pdu[i++] = 5000;
-	pdu[i++] = car_direct_forward;
-	pdu[i++] = car_direct_forward;
+	pdu[i++] = 5000;//机器人加速度系数
+	pdu[i++] = car_direct_forward;//机器人前进方向
+	pdu[i++] = car_direct_forward;//机器人转弯方向
 	switch (pdu[car_type]){
 		case Akm_Car:
-			pdu[i++] = AKMCAR_MAXLINEARVELOCITY;
-			pdu[i++] = AKMCAR_MAXYAWVELOCITY;
-			pdu[i++] = MAXDEGREE;		
+			pdu[i++] = AKMCAR_MAXLINEARVELOCITY;//max_linear_speed
+			pdu[i++] = AKMCAR_MAXYAWVELOCITY;	//max_yaw_speed
+			pdu[i++] = MAXDEGREE;				//max_angle
 			i = linear_low;
-			pdu[i++] = (short)AKMCAR_SPEED_LOW;
-			pdu[i++] = (short)AKMCAR_SPEED_MIDDLE;
-			pdu[i++] = (short)AKMCAR_SPEED_HIGH;
-			pdu[i++] = (short)AKMCAR_YAW_LOW;
-			pdu[i++] = (short)AKMCAR_YAW_MIDDLE;
-			pdu[i++] = (short)AKMCAR_YAW_HIGH;
+			pdu[i++] = (short)AKMCAR_SPEED_LOW;	//linear_low
+			pdu[i++] = (short)AKMCAR_SPEED_MIDDLE;//linear_middle
+			pdu[i++] = (short)AKMCAR_SPEED_HIGH;//linear_high
+			pdu[i++] = (short)AKMCAR_YAW_LOW;	//angular_low
+			pdu[i++] = (short)AKMCAR_YAW_MIDDLE;//angular_middle
+			pdu[i++] = (short)AKMCAR_YAW_HIGH;	//angular_high
 			break;
 		case Diff_Car:
 			pdu[i++] = DIFFCAR_MAXLINEARVELOCITY;

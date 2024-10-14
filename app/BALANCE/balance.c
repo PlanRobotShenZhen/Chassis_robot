@@ -460,7 +460,7 @@ void SetReal_Velocity()
         switch(pdu[control_mode])  //0:未知，1:航模，2:ROS，3:上位机，4:其他
         {
             case control_mode_ros:
-                Odom_distance_mm += DiffposForOdom;
+                //Odom_distance_mm += DiffposForOdom;
 
                 if(ROS_RecvFlag)
                 {
@@ -468,22 +468,22 @@ void SetReal_Velocity()
 									
                     Move_Y = ConvertBytesToShort(Receive_Data[5], Receive_Data[6]);	//Y轴速度(小车在Y轴速度为0)
 									
-                    test_Raw = pdu[target_yaw_speed] =(0- ConvertBytesToShort(Receive_Data[7], Receive_Data[8]))*2;	//Z轴速度 //wjj
+                    test_Raw = pdu[target_yaw_speed] =(0- ConvertBytesToShort(Receive_Data[7], Receive_Data[8]));	//Z轴速度 //wjj
 									
 									
 									/****************** 阿克曼 专用 5个  ******************/
-									if(pdu[car_type] == Akm_Car){
+					if(pdu[car_type] == Akm_Car){
 									  // 阿克曼 专用 
-                    Z_Radian = atan(pdu[car_wheelbase] * MAGNIFIC_10000x_DOWN * pdu[target_yaw_speed] / (pdu[target_linear_speed] + EPSILON));//阿克曼前轮转角弧度
-									  // 阿克曼 专用 
-                    Z_Radian = fmin(Z_Radian_Max, fmax(-Z_Radian_Max, Z_Radian));//转角弧度限幅(单位：0.1rad) 阿克曼
-									   // 阿克曼 专用 
-                    pdu[target_angle] = (short)(Z_Radian * RADtoANG * MAGNIFIC_10x_UP); //更正转角  阿克曼				
-									  // 阿克曼 专用 
-                    pdu[target_yaw_speed] = (short)(tan(Z_Radian) * (pdu[target_linear_speed] + EPSILON) / (pdu[car_wheelbase] * MAGNIFIC_10000x_DOWN));	//修正角速度
-									  // 阿克曼 专用 
-                    Servo_pulse = (pdu[target_angle] / DEGREE_MAX) * MYHALF * ENCODER_LINES * CORRECTION_FACTOR * pdu[motor1_reduction_ratio];
-									}
+                        Z_Radian = atan(pdu[car_wheelbase] * MAGNIFIC_10000x_DOWN * pdu[target_yaw_speed] / (pdu[target_linear_speed] + EPSILON));//阿克曼前轮转角弧度
+									      // 阿克曼 专用 
+                        Z_Radian = fmin(Z_Radian_Max, fmax(-Z_Radian_Max, Z_Radian));//转角弧度限幅(单位：0.1rad) 阿克曼
+									       // 阿克曼 专用 
+                        pdu[target_angle] = (short)(Z_Radian * RADtoANG * MAGNIFIC_10x_UP); //更正转角  阿克曼				
+									      // 阿克曼 专用 
+                        pdu[target_yaw_speed] = (short)(tan(Z_Radian) * (pdu[target_linear_speed] + EPSILON) / (pdu[car_wheelbase] * MAGNIFIC_10000x_DOWN));	//修正角速度
+									      // 阿克曼 专用 
+                        Servo_pulse = (pdu[target_angle] / DEGREE_MAX) * MYHALF * ENCODER_LINES * CORRECTION_FACTOR * pdu[motor1_reduction_ratio];
+					}
 									
 									
                     ROS_RecvFlag = false;
@@ -533,8 +533,8 @@ void SetReal_Velocity()
 int test=1;
 int test2=2;
 short testvz=1;
-short testm1=2;
-short testm2=2;
+short testm1;
+short testm2;
 
 void Kinematic_Analysis(short Vx, float Vy, short Vz)
 {
@@ -561,14 +561,15 @@ void Kinematic_Analysis(short Vx, float Vy, short Vz)
             break;
 
         case Diff_Car:   //圆形差速度底盘
+            pdu[car_wheelbase] = 0;//确保圆形底盘轴距为0
         case TwoWheel_Car: //两轮室内差速度
         case Tank_Car:      //坦克
-						testvz = Vz;
+			testvz = Vz;
             wheel_distance_factor = (Vz * (pdu[car_tread] + pdu[car_wheelbase]) * MAGNIFIC_10000x_DOWN / 2.0f);
-            testm1 = pdu[motor1_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);
-            testm2 = pdu[motor2_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);
-				    test    = pdu[motor1_target_rpm];
-				    test2   = pdu[motor2_target_rpm];
+            pdu[motor1_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);
+            pdu[motor2_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);
+            testm1 = pdu[motor1_target_rpm];
+            testm2 = pdu[motor2_target_rpm];
 				
             break;
 
@@ -781,7 +782,7 @@ short LinearVelocityGet(void)
         case TwoWheel_Car: 	// 室内差速二驱车
         case Tank_Car:   	// 坦克车
         case RC_Car:   		// RC车
-            return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?
+            return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?//使能拨杆
                    (short)(VelocityCoefficient * VelocityTemp) : 0;
 
         default:
@@ -799,7 +800,7 @@ short AngularVelocityGet(short linearValue)
 {
     uint16_t YawCoefficient = (pdu[rc_ch6_value] == pdu[rc_min_value]) ? pdu[angular_low] : //角速度系数
                               (pdu[rc_ch6_value] == pdu[rc_base_value]) ? pdu[angular_middle] : pdu[angular_high];
-    float YawTemp = -(pdu[robot_forward_direction] * (pdu[rc_ch1_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference]); //角速度与转向通道值正方向相反
+    float YawTemp = -(pdu[robot_forward_direction] * (pdu[rc_ch1_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference]); //角速度与转向通道值正方向相反，归一法(-1,1)
 
     switch(pdu[car_type])
     {
@@ -815,6 +816,7 @@ short AngularVelocityGet(short linearValue)
         case Tank_Car :   	// 坦克车
             return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?
                    (short)(YawCoefficient * YawTemp / PI * 4) : 0; // Z轴角速度
+            //系数存疑
 
         default:
             return 0;
@@ -868,13 +870,14 @@ short VirtuallyAngularVelocityGet(short linearValue)
             pdu[target_angle] = round(YawTemp * DEGREE_MAX); //前轮转角
             Servo_pulse = YawTemp * MYHALF * ENCODER_LINES * CORRECTION_FACTOR * pdu[motor1_reduction_ratio];//脉冲
             return (short)(linearValue * YawTemp / AKM_RAW_FACTOR); // Z轴角速度
-
+            break;
         case Diff_Car:		// 差速车(圆形底盘)
         case FourWheel_Car:	// 室外差速四驱车
         case TwoWheel_Car: 	// 室内差速二驱车
         case Tank_Car:   	// 坦克车
-            return (short)(YawCoefficient * YawTemp / PI * 4); // Z轴角速度
-
+            return (myabs(pdu[virtually_rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?
+                (short)(YawCoefficient * YawTemp / PI * 4) : 0; // Z轴角速度
+            break;
         default:
             return 0;
     }

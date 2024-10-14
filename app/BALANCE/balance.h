@@ -58,14 +58,14 @@ extern float Z_Radian_Max; 				//弧度最大值
 #define AKMCAR_YAW_MIDDLE 				AKMCAR_MAXYAWVELOCITY / 3 * 2			//中速档角速度系数
 #define AKMCAR_YAW_HIGH 				AKMCAR_MAXYAWVELOCITY					//高速档角速度系数
 //Diff_Car		
-#define DIFFCAR_MAXLINEARVELOCITY 		2000									//最大线速度
-#define DIFFCAR_MAXYAWVELOCITY 			4000									//最大角速度
+#define DIFFCAR_MAXLINEARVELOCITY 		800										//最大线速度
+#define DIFFCAR_MAXYAWVELOCITY 			1500									//最大角速度
 #define DIFFCAR_SPEED_LOW 				DIFFCAR_MAXLINEARVELOCITY / 3			//低速档线速度系数
 #define DIFFCAR_SPEED_MIDDLE 			DIFFCAR_MAXLINEARVELOCITY / 3 * 2		//中速档线速度系数
 #define DIFFCAR_SPEED_HIGH 				DIFFCAR_MAXLINEARVELOCITY				//高速档线速度系数
-#define DIFFCAR_YAW_LOW 				DIFFCAR_MAXYAWVELOCITY / 3				//低速档角速度系数
-#define DIFFCAR_YAW_MIDDLE 				DIFFCAR_MAXYAWVELOCITY / 2				//中速档角速度系数
-#define DIFFCAR_YAW_HIGH 				DIFFCAR_MAXYAWVELOCITY / 3				//高速档角速度系数
+#define DIFFCAR_YAW_LOW 				DIFFCAR_MAXYAWVELOCITY / 15 * 3			//低速档角速度系数
+#define DIFFCAR_YAW_MIDDLE 				DIFFCAR_MAXYAWVELOCITY / 15 * 5 		//中速档角速度系数
+#define DIFFCAR_YAW_HIGH 				DIFFCAR_MAXYAWVELOCITY / 15 * 8			//高速档角速度系数
 //FourWheel_Car		
 #define FOURWHEELCAR_MAXLINEARVELOCITY 	1500									//最大线速度
 #define FOURWHEELCAR_MAXYAWVELOCITY 	3000									//最大角速度

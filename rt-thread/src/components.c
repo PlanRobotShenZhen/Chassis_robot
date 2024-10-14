@@ -180,7 +180,7 @@ void main_thread_entry(void *parameter)
 #ifdef RT_USING_COMPONENTS_INIT
     /* RT-Thread components initialization */
     rt_components_init();
-#endif
+#endif 
     /* invoke system main function */
 #if defined(__CC_ARM) || defined(__CLANG_ARM)
     $Super$$main(); /* for ARMCC. */
@@ -211,7 +211,7 @@ void ori_rt_application_init(void)
 
     rt_thread_startup(tid);
 }
-
+ 
 int ori_rtthread_startup(void)
 {
     /* init board */
