@@ -140,7 +140,7 @@ int ori_rtthread_startup(void);
 extern int $Sub$$main(void);
 /* re-define main function */
 int $Sub$$main(void)
-{
+ {
     rtthread_startup();
     return 0;
 }
@@ -151,7 +151,7 @@ extern void __iar_data_init3(void);
 int __low_level_init(void)
 {
     // call IAR table copy function.
-    __iar_data_init3();
+    __iar_data_init3();h
     rtthread_startup();
     return 0;
 }

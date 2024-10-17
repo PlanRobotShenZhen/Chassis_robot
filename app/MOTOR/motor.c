@@ -103,8 +103,8 @@ void Motor_task(void* pvParameters)
 short tmp111=0;
 short tmp222=0;
 
-short tmp333=0;
-short tmp444=0;
+int tmp333=0;
+int tmp444=0;
 short testlinear1=0;
 short testlinear2=0;
 short testraw1=0;
@@ -168,8 +168,8 @@ void Detect_Motor_Status(void)
                             case servo_zlacd:
                                 pdu[state_word]  = TPDOMessage[i][j]->Data[k++];					//状态字
                                 pdu[state_word] |= TPDOMessage[i][j]->Data[k++] << 8;
-														    tmp111 = TPDOMessage[i][j]->Data[k++];//wjj
-														    tmp222 = TPDOMessage[i][j]->Data[k++];//wjj
+														    TPDOMessage[i][j]->Data[k++];//wjj
+														    TPDOMessage[i][j]->Data[k++];//wjj
                                 pdu[motor1_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];			//左电机
                                 pdu[motor1_rpm_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
                                 pdu[motor2_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];			//右电机
@@ -239,6 +239,8 @@ void Detect_Motor_Status(void)
             }
         }
     }
+		tmp111 = pdu[motor1_rpm_feedback];
+		tmp222 = pdu[motor2_rpm_feedback];
 
     for(int count = 0; count < pdu[motor_number]; count++)
     {
@@ -282,9 +284,12 @@ void Detect_Motor_Status(void)
             break;
     }
 
+		tmp333 = mpl1;
+		tmp444 = mpr1;
 		
-		 tmp333=ms1;
-		 tmp444=ms2;
+		
+		 //tmp333=(int)((uint32_t)mpl2 << 16 | mpl1);;
+		 //tmp444=(int)((uint32_t)mpr2 << 16 | mpr1);
 		
 
     //计算位移差，公式：脉冲数/一圈脉冲数/减速比*轮胎周长(m)*1000 = mm
@@ -307,26 +312,23 @@ void Detect_Motor_Status(void)
         //根据电机的速度方向来判断运行方向
          //pdu[linear_speed_feedback]
             //v = (w1+w2)/2 * C / 60
-			linear_speed_feedbacktmp= (short)(((short)ms1 + ((short)(0xFFFF - ms2 + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1r/min -> 10-3m/s)
+			linear_speed_feedbacktmp= (short)(((short)ms1 + ((short)(0xFFFF - ms2 + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> 10-3m/s)
                 //-ms2也可，这么算是为了在处理溢出、类型一致性以及处理补码转换等问题时保证准确性
     }
     else
     {
        //pdu[linear_speed_feedback]
- 			linear_speed_feedbacktmp= -(short)(((short)ms2 + ((short)(0xFFFF - ms1 + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1r/min -> m/s)
+ 			linear_speed_feedbacktmp= -(short)(((short)ms2 + ((short)(0xFFFF - ms1 + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> m/s)
     }
 		
 
-				if((linear_speed_feedbacktmp>3000)||(linear_speed_feedbacktmp<-3000))
+		if((linear_speed_feedbacktmp>3000)||(linear_speed_feedbacktmp<-3000))
 		{
 			
 			 linear_speed_feedbacktmp=0;
-		}
-		
-			
-                 
+		}                
 		//pdu[yaw_speed_feedback] w = r * (wr + wl) / H。 H为轮距，r为车轮半径,1 rpm = 2pi/60 rad/s
-		yaw_speed_feedbacktmp= -(short)((float)(pdu[wheel_radius] * (ms1 + ms2) * MAGNIFIC_10x_DOWN * PI /30 *  MAGNIFIC_1000x_UP) / (float)pdu[car_tread] );//角速度反馈(0.1r/min -> 10-3rad/s)			
+		yaw_speed_feedbacktmp= -(short)((float)(pdu[wheel_radius] * (ms1 + ms2) * MAGNIFIC_10x_DOWN * PI /30 *  MAGNIFIC_1000x_UP) / (float)pdu[car_tread] );//角速度反馈(0.1rpm -> 10-3rad/s)			
         
 
 
@@ -344,8 +346,8 @@ void Detect_Motor_Status(void)
 		if(pdu[car_type] == Diff_Car) {
 			//pdu[yaw_speed_feedback] += 0.2 * pdu[yaw_speed_feedback];//角速度反馈
 			
-			  yaw_speed_feedbacktmp += (yaw_speed_feedbacktmp/5);
-			 pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp/2;
+			 // yaw_speed_feedbacktmp += (yaw_speed_feedbacktmp/5);
+			 //pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp/2;
 			
 		}
 		test_linear_feedback = pdu[linear_speed_feedback];

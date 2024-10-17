@@ -464,11 +464,11 @@ void SetReal_Velocity()
 
                 if(ROS_RecvFlag)
                 {
-                    test_Linear = pdu[target_linear_speed] =0- ConvertBytesToShort(Receive_Data[3], Receive_Data[4]);	//X轴速度  //wjj
+                    test_Linear = pdu[target_linear_speed] =0- ConvertBytesToShort(Receive_Data[3], Receive_Data[4]);	//X轴速度
 									
                     Move_Y = ConvertBytesToShort(Receive_Data[5], Receive_Data[6]);	//Y轴速度(小车在Y轴速度为0)
 									
-                    test_Raw = pdu[target_yaw_speed] =(0- ConvertBytesToShort(Receive_Data[7], Receive_Data[8]));	//Z轴速度 //wjj
+                    test_Raw = pdu[target_yaw_speed] =(0- ConvertBytesToShort(Receive_Data[7], Receive_Data[8]));	//Z轴速度
 									
 									
 									/****************** 阿克曼 专用 5个  ******************/

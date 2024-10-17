@@ -1025,7 +1025,7 @@ void Pdu_Init(void)
 		.car_width = NULL,
 		.car_height = NULL,
 		.car_wheelbase = 0,
-		.car_tread = 3500,	
+		.car_tread = 3200,	
 		.car_ground_clearance = NULL,
 		.wheel_radius = 695,
 		.gross_max = NULL,
