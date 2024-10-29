@@ -126,13 +126,13 @@ void Detect_Motor_Status(void)
     int rpm_feedback_temp;//后面有解释
 
 	
-    for (i = 0; i < pdu[TpdoGroupCount]; i++)
+    for (i = 0; i < pdu[TpdoGroupCount]; i++)//圆形底盘驱动器1拖2，count = 1
     {
         for (j = 0; j < pdu[motor_number]; j++)
         {
             if(*TPDOMessage_FLAG[i][j])
             {
-                *TPDOMessage_FLAG[i][j] = false;
+                *TPDOMessage_FLAG[i][j] = false; 
                 x_rpm_feedback = motor1_rpm_feedback + j * pdu[ro_motor_gap];
                 type = motor1_type + j * pdu[ro_motor_gap];
                 sport_mode = motor1_sport_mode + j * pdu[ro_motor_gap];
@@ -354,7 +354,7 @@ void Detect_Motor_Status(void)
 		test_yaw_feedback = pdu[yaw_speed_feedback];
 		test_m1_fb = pdu[motor1_rpm_feedback];
 		test_m2_fb = pdu[motor2_rpm_feedback];
-    //角速度公式错误，等待角度可求之后，再用正确公式求出角速度
+    
 }
 
 /**************************************************************************

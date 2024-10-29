@@ -72,7 +72,7 @@ struct SdoFrame
 	uint16_t ID;
 	uint8_t mode;//<0:sdo,1:nmt
 	uint8_t data[8];
-	struct SdoFrame* next;
+	struct SdoFrame *next;
 };
 struct SdoFrame* SdoFrameCreate(void);
 

@@ -222,7 +222,7 @@ static void InitTask(void* parameter)
             rt_thread_startup(&Remote_thread);
 
         /* init Modbus thread */
-        result = rt_thread_init(&Modbus_thread, "Modbus", Modbus_task, RT_NULL, (rt_uint8_t*)&Modbus_stack[0], sizeof(Modbus_stack), 7, 5);
+        result = rt_thread_init(&Modbus_thread, "Modbus", Modbus_task, RT_NULL, (rt_ uint8_t*)&Modbus_stack[0], sizeof(Modbus_stack), 7, 5);
 
         if (result == RT_EOK)
             rt_thread_startup(&Modbus_thread);

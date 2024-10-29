@@ -169,7 +169,7 @@ enum address_485 {
     Ultrasonic1,
     Ultrasonic2,
     // 航模参数
-    rc_connect_state = 160,
+    rc_connect_state = 160,//航模接收成功
     rc_ch1_value,
     rc_ch2_value,
     rc_ch3_value,
@@ -224,8 +224,8 @@ enum address_485 {
     max_linear_speed,
     max_yaw_speed,
     max_angle,
-    target_linear_speed,//目标线速度（m/s)
-    target_yaw_speed,//目标角速度（rad/s)
+    target_linear_speed,//目标线速度（10-3m/s)
+    target_yaw_speed,//目标角速度（10-3rad/s)
     target_angle,
     linear_low,
     linear_middle,

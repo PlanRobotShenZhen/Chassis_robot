@@ -614,6 +614,7 @@ void Can_task(void* pvParameters)
 入口参数：无 
 返回  值：无
 **************************************************************************/
+int test_nReturn = 8;
 void CAN_SDOSend(CAN_Module* CANx)
 {
 	if (sdo_head != NULL){
@@ -631,7 +632,7 @@ void CAN_SDOSend(CAN_Module* CANx)
 		nIndex = 0;
 		do{
 			nIndex++;
-			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
+			test_nReturn = nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
 		} while (nReturn == 0x04);
 		struct SdoFrame* next_sdo = sdo_head->next;
 		rt_free(sdo_head);
@@ -762,7 +763,7 @@ struct SdoFrame* SdoFrameCreate(void)
 {
 	struct SdoFrame* new_sdo_frame = NULL;
 	struct SdoFrame* next_sdo_frame;
-	new_sdo_frame = (struct SdoFrame*)rt_malloc(sizeof(struct SdoFrame));
+	new_sdo_frame = (struct SdoFrame*)rt_malloc(sizeof(struct SdoFrame));//如果内存分配失败，仍是NULL
 	if (new_sdo_frame != NULL)
 	{
 		if (sdo_head == NULL)
@@ -780,9 +781,9 @@ struct SdoFrame* SdoFrameCreate(void)
 			next_sdo_frame->next = new_sdo_frame;
 			new_sdo_frame->next = NULL;
 		}
-		return new_sdo_frame;
+		return new_sdo_frame;//如果成功创建并添加了节点，返回新创建的节点指针。
 	}
-	return NULL;
+	return NULL;//如果内存分配失败，返回 NULL，表示创建失败。
 }
 
 /**********************************************************

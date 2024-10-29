@@ -70,7 +70,7 @@ typedef union MOTOR_RPDO__
 {
     struct
     {
-        CANOPEN_CONTROLWORD ctrl;						//控制字
+        CANOPEN_CONTROLWORD ctrl;						//控制字(16位）
         int target_pos_vel;									//目标位置/速度
         uint8_t mode;												//工作模式
         uint16_t target_torque;							//目标转矩

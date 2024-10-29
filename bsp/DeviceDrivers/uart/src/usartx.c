@@ -234,7 +234,7 @@ void Modbus_task(void* pvParameters)
 	while (1){
 		rt_thread_delay(10);   //< 1ms
 		if (usart1_recv_flag){
-			LedBlink(LED17_GPIO, LED17_PIN);
+			//LedBlink(LED17_GPIO, LED17_PIN);
 			usart1_recv_flag = 0;
 			pxMBFrameCBByteReceived();
 		}
@@ -465,14 +465,14 @@ void Usart3_Init(u32 baud)
 	USART_InitStructure.Mode = USART_MODE_RX | USART_MODE_TX;
 	USART_Init(USARTThree, &USART_InitStructure);
 
-	//UsartNVIC 配置
-	NVIC_InitStructure.NVIC_IRQChannel = USARTThree_IRQn;
+	//Usart3 NVIC 配置
+	NVIC_InitStructure.NVIC_IRQChannel = USARTThree_IRQn; 
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;//抢占优先级，中断优先级最高
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;		//子优先级
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
 	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
 
-	USART_ConfigInt(USARTThree, USART_INT_IDLEF, ENABLE);  // 使能空闲中断
+	USART_ConfigInt(USARTThree, USART_INT_IDLEF, ENABLE);  // 使能空闲中断,串口在接收状态下一段时间没有接收到数据时触发
 	Usart3_dma_config();     // DMA配置	
 
 	USART_Enable(USARTThree, ENABLE);
@@ -529,7 +529,7 @@ void Usart3_dma_config(void)
 	NVIC_Init(&NVIC_InitStruct);
 
 	// 配置 DMA1 通道4, USART3_TX 传输完成中断
-	DMA_ConfigInt(USARTThree_Tx_DMA_Channel, DMA_INT_TXC, ENABLE);
+	DMA_ConfigInt(USARTThree_Tx_DMA_Channel, DMA_INT_TXC, ENABLE);//发送完成中断
 	USART_EnableDMA(USARTThree, USART_DMAREQ_RX | USART_DMAREQ_TX, ENABLE);
 
 	DMA_EnableChannel(USARTThree_Rx_DMA_Channel, ENABLE);     // 开启接收
@@ -573,24 +573,25 @@ void DMA1_Channel2_IRQHandler(void)
 **************************************************************************/
 void Usart3_Recv(void)
 {
-	if(ROS_Count < 10000){//防止数据溢出
+	if(ROS_Count < 10000){//防止数据溢出,只有正确接收数据才清零
 		ROS_Count++;
 	}
 	if((pdu[control_mode] != control_mode_remote)){						
 		if(usart3_recv_flag){	
 			usart3_recv_flag = 0;
-			rt_memcpy(Receive_Data, usart3_recv_data, RECEIVE_DATA_SIZE);	
-			u8 temp11 = Check_Sum(RECEIVE_DATA_SIZE - 2,0);
+			rt_memcpy(Receive_Data, usart3_recv_data, RECEIVE_DATA_SIZE);	//src->dest
 			if ((usart3_recv_data[0] == FRAME_HEADER) &&
 				(usart3_recv_data[RECEIVE_DATA_SIZE - 1] == FRAME_TAIL) &&
 				(Receive_Data[RECEIVE_DATA_SIZE -2] == Check_Sum(RECEIVE_DATA_SIZE - 2, 0))){	//验证数据包的长度、帧头帧尾
 				pdu[control_mode] = control_mode_ros;	
 				ROS_Count = 0;
 				ROS_RecvFlag = true;
-				robot_control.ctrl = Receive_Data[1];
-			}else{		
-				CheckSum_sdo[0][0] = Check_Sum(RECEIVE_DATA_SIZE - 2, 0);
-				Add_Sdo_Linked_List(CHECKSUM_ID, CheckSum_sdo, sizeof(CheckSum_sdo)/sizeof(CheckSum_sdo[0]));//通过CAN显示争取的Sum
+				robot_control.ctrl = Receive_Data[1];//控制权转ros
+			}
+			else{
+				//测试用，发送到can查数据
+				//CheckSum_sdo[0][0] = Check_Sum(RECEIVE_DATA_SIZE - 2, 0);
+				//Add_Sdo_Linked_List(CHECKSUM_ID, CheckSum_sdo, sizeof(CheckSum_sdo)/sizeof(CheckSum_sdo[0]));
 				if(ROS_Count > 300)	pdu[control_mode] = control_mode_unknown;//1500ms未接收到正确ros消息，则置零控制模式
 			}
 			DMA_SetCurrDataCounter(USARTThree_Rx_DMA_Channel, USART3_RX_MAXBUFF);//传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
@@ -620,33 +621,33 @@ void Usart3_Send(void)
 }
 
 /**************************************************************************
-函数功能：串口发送的数据进行赋值
+函数功能：串口发送的数据进行赋值（一帧24字节）
 入口参数：无
 返回  值：无
 **************************************************************************/
 void Data_Assignment(void)
 {
 	Send_Data.d.Frame_Header = FRAME_HEADER;			//1个字节 = FRAME_HEADER; //帧头(固定值)      		
-	Send_Data.d.Motor_Enable_Flag = Motor_Enable_Flag;
+	Send_Data.d.Motor_Enable_Flag = Motor_Enable_Flag;	//存疑，和联合体中的Motor_Enable_Flag不是一个变量，遥控或者ROS下发都可以置1
+	 
+	Send_Data.d.X_speed = pdu[linear_speed_feedback];	//2字节
+	Send_Data.d.Z_speed = pdu[yaw_speed_feedback];		//2字节
 	
-	Send_Data.d.X_speed = pdu[linear_speed_feedback];	  
-	Send_Data.d.Z_speed = pdu[yaw_speed_feedback];    
-	
-	Send_Data.d.Power_Quantity = pdu[BatteryQuantity]; 
-	Send_Data.d.Power_Voltage = pdu[BatteryVoltage]; 
-	Send_Data.d.Power_Current = pdu[BatteryCurrent];    
-	Send_Data.d.Power_Temperature = pdu[BatteryTemperature];    
-	Send_Data.d.M1_current = 0;    
-	Send_Data.d.M2_current = 0;      		
-	Send_Data.d.Odometry1 = pdu[Odom1ForRobot];
-	Send_Data.d.Odometry2 = pdu[Odom2ForRobot];       	//2个字节	
+	Send_Data.d.Power_Quantity = pdu[BatteryQuantity];	//2字节
+	Send_Data.d.Power_Voltage = pdu[BatteryVoltage];	//2字节
+	Send_Data.d.Power_Current = pdu[BatteryCurrent];    //2字节
+	Send_Data.d.Power_Temperature = pdu[BatteryTemperature];//2字节    
+	Send_Data.d.M1_current = 0;    //2字节
+	Send_Data.d.M2_current = 0;    //2字节  		
+	Send_Data.d.Odometry1 = pdu[Odom1ForRobot];			//2字节
+	Send_Data.d.Odometry2 = pdu[Odom2ForRobot];       	//2字节	
 	Send_Data.d.Check_SUM = Check_Sum(USART3_TX_MAXBUFF-2, 1);;
 	Send_Data.d.Frame_Tail = FRAME_TAIL; //帧尾（固定值）
 }
 
 /**************************************************************************
 函数功能：计算发送的数据校验位
-入口参数：23位为校验位，结果是数组1-22的异或结果；后一个参数为发送或是接收校验位
+入口参数：第23位为校验位，结果是前面22位的异或结果；Mode:0-接收；1-发送
 返 回 值：检验位
 **************************************************************************/
 unsigned char Check_Sum(unsigned char Count_Number, unsigned char Mode) 
@@ -867,13 +868,13 @@ void Uart5_Init(unsigned int unBound)
 
    	//UART 初始化设置
 	USART_InitStructure.BaudRate = unBound;//串口波特率
-	USART_InitStructure.WordLength = USART_WL_9B;//字长为8位数据格式
+	USART_InitStructure.WordLength = USART_WL_9B;//
+	USART_InitStructure.Parity = USART_PE_EVEN;//
 	USART_InitStructure.StopBits = USART_STPB_2;//2个停止位
-	USART_InitStructure.Parity = USART_PE_NO;//偶校验位
 	USART_InitStructure.HardwareFlowControl = USART_HFCTRL_NONE;//无硬件数据流控制
 	USART_InitStructure.Mode = USART_MODE_RX;	//收模式
   	USART_Init(UARTFive, &USART_InitStructure); //初始化串口5
-
+	//接收9字节，第9位为偶校验，测试无校验出错，没有进行中断处理
   	//UART5 NVIC 配置
     NVIC_InitStructure.NVIC_IRQChannel = UARTFive_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=1 ;//抢占优先级3
@@ -882,12 +883,6 @@ void Uart5_Init(unsigned int unBound)
 	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器  
 	Uart5_Dma_Config();     // DMA配置
 	USART_ConfigInt(UARTFive, USART_INT_IDLEF, ENABLE);//开启串口空闲中断
-//	//test
-//	USART_ConfigInt(UARTFive, USART_INT_OREF, ENABLE);//开启串口溢出中断
-//	USART_ConfigInt(UARTFive, USART_INT_ERRF, ENABLE);//开启串口错误中断
-//	USART_ConfigInt(UARTFive, USART_INT_NEF, ENABLE);//开启串口错误中断
-//	USART_ConfigInt(UARTFive, USART_INT_FEF, ENABLE);//开启串口错误中断
-
 	USART_Enable(UARTFive, ENABLE);                    //使能串口5 
 }
 
@@ -931,8 +926,10 @@ void UARTFive_IRQHandler()
 {
 	if (USART_GetIntStatus(UARTFive, USART_INT_IDLEF)) //空闲中断产生 
 	{
+		
 		UARTFive->STS; // 清除空闲中断, 由软件序列清除该位(先读USART_SR，然后读USART_DR)
 		UARTFive->DAT; // 清除空闲中断
+
 		Sbus_Data_Parsing_Flag = 1;                // 接收标志置1
 		pdu[control_mode] = control_mode_remote;                // 航模控制
 		DMA_EnableChannel(UARTFive_Rx_DMA_Channel, DISABLE);    // DMA1 通道3, UART3_RX

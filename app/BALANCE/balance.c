@@ -414,36 +414,33 @@ void Balance_task(void* pvParameters)
     while (1)
     {
         rt_thread_delay(50);   //< 5ms
-
-        /*test*/
+        //存疑，中菱说10ms下发速度比较好
+        /*RunningTest*/
+        tmp1++;
         if (tmp1 == 100)
         {
             //运行指示灯
             LedBlink(LED17_GPIO, LED17_PIN);//  灯闪烁 用于判断此函数是否正常运行
-            //GPIO_SetBits(MCU_RGB_RED_GPIO, MCU_RGB_RED_PIN);
             tmp1 = 0;
-        }
-
-        tmp1++;
-        //上位机output识别运行中
-        //pdu[car_height] = tmp1;  测试上位机的数据  是否有变化
-        SetReal_Velocity();             							//获取到设定的速度和方向值
+        }        
+        SetReal_Velocity(); //获取到设定的速度和方向值
 				
-				// 阿克曼 有三个电机 ，只有前轮一个电机转向，位置模式，  其它电机 全部速度模式   
+		// 阿克曼 有三个电机 ，只有前轮一个电机转向，位置模式，  其它电机 全部速度模式   
         Kinematic_Analysis(pdu[target_linear_speed], Move_Y, pdu[target_yaw_speed]);//将线速度和角速度转化为电机的输入值
        
-				// 用于解决电机 编号的问题，   通过 判断2号电机的模式(),  最大的原因   圆盘的驱动器 是一拖二，其它都 是一拖一
-				uint16_t x_sport_mode = (pdu[car_type] == Diff_Car) ? pdu[motor1_sport_mode] : pdu[motor2_sport_mode];
+		// 用于解决电机 编号的问题，   通过 判断2号电机的模式(),  最大的原因   圆盘的驱动器 是一拖二，其它都 是一拖一
+		uint16_t x_sport_mode = (pdu[car_type] == Diff_Car) ? pdu[motor1_sport_mode] : pdu[motor2_sport_mode];
 				
-				//目前最有效的结果，就是解决了 中凌电机的 电流限制问题
+		//目前最有效的结果，就是解决了 中凌电机的 电流限制问题
         ClassificationOfMotorMotionModes(x_sport_mode);	//电机运动模式分类
     }
 }
-short test_Raw = 0;
-short test_Linear = 0;
+
 /**************************************************
 * 函数功能：获取到设定的速度和方向值
 **************************************************/
+short test_Raw = 0;
+short test_Linear = 0;
 void SetReal_Velocity()
 {
     if (Soft_JT_Flag) //< 急停
@@ -460,15 +457,13 @@ void SetReal_Velocity()
         switch(pdu[control_mode])  //0:未知，1:航模，2:ROS，3:上位机，4:其他
         {
             case control_mode_ros:
-                //Odom_distance_mm += DiffposForOdom;
-
                 if(ROS_RecvFlag)
                 {
-                    test_Linear = pdu[target_linear_speed] =0- ConvertBytesToShort(Receive_Data[3], Receive_Data[4]);	//X轴速度
+                    test_Linear = pdu[target_linear_speed] =0- ConvertBytesToShort(Receive_Data[3], Receive_Data[4]);	//X轴速度(10-3m/s)
 									
                     Move_Y = ConvertBytesToShort(Receive_Data[5], Receive_Data[6]);	//Y轴速度(小车在Y轴速度为0)
 									
-                    test_Raw = pdu[target_yaw_speed] =(0- ConvertBytesToShort(Receive_Data[7], Receive_Data[8]));	//Z轴速度
+                    test_Raw = pdu[target_yaw_speed] =(0- ConvertBytesToShort(Receive_Data[7], Receive_Data[8]));	//Z轴速度(10-3rad/s)
 									
 									
 									/****************** 阿克曼 专用 5个  ******************/
@@ -492,16 +487,17 @@ void SetReal_Velocity()
                 break;
 
             case control_mode_ipc:   //qth 上位机
-							 //X 轴
-                test_Linear = pdu[target_linear_speed] = VirtuallyLinearVelocityGet();						//线速度单位10(-3)m/s
+				//未完善
+                //X 轴
+                pdu[target_linear_speed] = VirtuallyLinearVelocityGet();						//线速度单位10(-3)m/s
                  //z 轴
-						    test_Raw = pdu[target_yaw_speed] = VirtuallyAngularVelocityGet(pdu[target_linear_speed]);	//角速度单位10(-3)rad/s
+				pdu[target_yaw_speed] = VirtuallyAngularVelocityGet(pdu[target_linear_speed]);	//角速度单位10(-3)rad/s
                 break;
 
             case control_mode_remote:  //航模遥控器
-							  //X 轴
+				//X 轴
                 test_Linear = pdu[target_linear_speed] = LinearVelocityGet();							//线速度单位10(-3)m/s
-						    //z 轴
+				//z 轴
                 test_Raw = pdu[target_yaw_speed] = AngularVelocityGet(pdu[target_linear_speed]);	//角速度单位10(-3)rad/s
                 break;
 
@@ -517,7 +513,7 @@ void SetReal_Velocity()
         //小车线速度/角速度/前轮转角限幅
         if(pdu[car_type] != RC_Car)
         {   
-					  //限幅 防止超限，最大最小值  由用户 设置
+			//限幅 防止超限，最大最小值  由用户 设置
             pdu[target_linear_speed] = limit_value((short)pdu[target_linear_speed], (short)pdu[max_linear_speed]);
             pdu[target_yaw_speed] = limit_value((short)pdu[target_yaw_speed], (short)pdu[max_yaw_speed]);
             pdu[target_angle] = limit_value((short)pdu[target_angle], (short)pdu[max_angle]);
@@ -530,9 +526,6 @@ void SetReal_Velocity()
 入口参数：角速度线速度
 返回  值：无
 **************************************************************************/
-int test=1;
-int test2=2;
-short testvz=1;
 short testm1;
 short testm2;
 
@@ -561,16 +554,14 @@ void Kinematic_Analysis(short Vx, float Vy, short Vz)
             break;
 
         case Diff_Car:   //圆形差速度底盘
-            pdu[car_wheelbase] = 0;//确保圆形底盘轴距为0
+            pdu[car_wheelbase] = 0;//确保圆形底盘轴距为0，两轮差速运动学模型一致
         case TwoWheel_Car: //两轮室内差速度
         case Tank_Car:      //坦克
-			testvz = Vz;
             wheel_distance_factor = (Vz * (pdu[car_tread] + pdu[car_wheelbase]) * MAGNIFIC_10000x_DOWN / 2.0f);
             pdu[motor1_target_rpm] = (short)((Vx - wheel_distance_factor) * common_part);
             pdu[motor2_target_rpm] = -(short)((Vx + wheel_distance_factor) * common_part);
             testm1 = pdu[motor1_target_rpm];
-            testm2 = pdu[motor2_target_rpm];
-				
+            testm2 = pdu[motor2_target_rpm];				
             break;
 
         case RC_Car:
@@ -590,7 +581,7 @@ void Kinematic_Analysis(short Vx, float Vy, short Vz)
 }
 
 /**************************************************************************
-函数功能：电机运动模式分类
+函数功能：电机运动模式分类,目前是根据遥控器档位给力矩
 入口参数：sport_mode
 返 回 值：无
 **************************************************************************/
@@ -627,7 +618,7 @@ void ClassificationOfMotorMotionModes(uint16_t sport_mode)
             }
 
 						
-						//左边的旋钮，电流被分成九档
+			//左边的旋钮，电流被分成九档
             if ((Last_RC10_Value == pdu[rc_max_value]) && ((pdu[rc_ch10_value] - Last_RC10_Value) < 0) && (pdu[torque_cofficient] < TORQUE_COEFFICIENT_MAX))
             {
                 pdu[torque_cofficient] ++;
@@ -640,15 +631,15 @@ void ClassificationOfMotorMotionModes(uint16_t sport_mode)
             }
 
 						
-					  //更新值，作为对比
+			//更新值，作为对比
             Last_RC6_Value = pdu[rc_ch6_value];
             Last_RC10_Value = pdu[rc_ch10_value];
 
 						
-						//sdo  把电流 值 发送出去
+			//sdo  把电流 值 发送出去
             if(torque_switch)
             {
-                Odom_distance_mm = 0; //里程计清零
+                Odom_distance_mm = 0; //里程计清零。存疑
                 Torque_Max = pdu[torque_cofficient] * Torque_SWB;	//2015h（电流）范围为0-300
                 Torque_sdo[0][4] = Torque_Max & 0xFF;
                 Torque_sdo[0][5] = ((Torque_Max) >> 8) & 0xFF;
