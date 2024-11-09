@@ -29,7 +29,7 @@ float MotorSpeedZLACToPulse = 0; //速度反馈单位转换
 float MotorPulseWANZEToMotorSpeed = 0;//速度反馈单位转换
 
 #define VELOCITY_LIMIT       0x0005
-
+//Motor x TPDO y标志位
 bool* TPDOMessage_FLAG[TPDO_GROUP_COUNT][MAX_MOTOR_NUMBER] = {{
         &M1T0Message_FLAG, &M2T0Message_FLAG, &M3T0Message_FLAG, &M4T0Message_FLAG, &M5T0Message_FLAG,
         &M6T0Message_FLAG, &M7T0Message_FLAG, &M8T0Message_FLAG, &M9T0Message_FLAG, &M10T0Message_FLAG
@@ -43,7 +43,7 @@ bool* TPDOMessage_FLAG[TPDO_GROUP_COUNT][MAX_MOTOR_NUMBER] = {{
         &M6T2Message_FLAG, &M7T2Message_FLAG, &M8T2Message_FLAG, &M9T2Message_FLAG, &M10T2Message_FLAG
     }
 };
-
+//Motor x TPDO y报文
 CanRxMessage* TPDOMessage[TPDO_GROUP_COUNT][MAX_MOTOR_NUMBER] = {{
         &M1T0Message, &M2T0Message, &M3T0Message, &M4T0Message, &M5T0Message,
         &M6T0Message, &M7T0Message, &M8T0Message, &M9T0Message, &M10T0Message
@@ -118,11 +118,13 @@ short  test_m1_fb;
 short  test_m2_fb;
 void Detect_Motor_Status(void)
 {
-    int i, j, k;
+    int i, //TPDO序号
+        j, //电机序号
+        k; //报文位
     uint16_t type, sport_mode, state_word, temperature, voltage, current, error_code;
     uint16_t x_rpm_feedback, position1_feedback, position2_feedback, torgue_feedback;//后面有解释
     uint16_t mpl1, mpl2, mpr1, mpr2; 
-		short ms1, ms2;//后面要用到的临时变量
+	short ms1, ms2;//后面要用到的临时变量
     int rpm_feedback_temp;//后面有解释
 
 	
@@ -499,9 +501,15 @@ enum enum_car_running_state Judge_CarState(uint16_t Car_Error_Label, bool Soft_J
  **********************************************************/
 void Motor_Init(int count)
 {
+    //兼容电机掉线重启功能
     uint16_t i_start = (count == pdu[motor_number]) ? 0 : count;
     uint16_t i_end = (count == pdu[motor_number]) ? pdu[motor_number] : (count + 1);
-    uint16_t type, mode, id, ah, al, dh, dl;
+    uint16_t mode, id,
+        type,//驱动器型号
+        ah, //加速时间高位
+        al, //加速时间低位
+        dh, //减速时间高位
+        dl; //减速时间低位
 
     for (int i = i_start; i < i_end; i++)
     {
@@ -515,7 +523,8 @@ void Motor_Init(int count)
         dl = pdu[motor1_deceleration_time + i * pdu[rw_motor_gap]] & 0x00FF;
 
         switch(type)
-        {
+        {   
+            //单片机为主站，驱动器为从站。
             case servo_zlac:
                 ZLAC8015_PDO_Config(id, mode, ah, al, dh, dl);//电机PDO配置
                 Driver_JT_Inv(id);			//反转电平
@@ -562,7 +571,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 }
 
 /**********************************************************
- * 函数功能： can2中断服务函数
+ * 函数功能： can2 FIFO0接收中断服务函数
  * 参数：     无
  * 说明：     通过检测TPDO消息来判断从机是否在线
  **********************************************************/

@@ -144,6 +144,7 @@ static xMBFunctionHandler xFuncHandlers[MB_FUNC_HANDLERS_MAX] = {
 /**
 * @brief  Set system clock as 72M with HSI and PLL.
 */
+  
 void SetSysClock_HSI_PLL(void)
 {
     /* It is necessary to initialize the RCC peripheral to the reset state.*/
@@ -175,7 +176,9 @@ void SetSysClock_HSI_PLL(void)
 
     /* Config PLL */
     RCC_ConfigPll(RCC_PLL_SRC_HSI_DIV2, RCC_PLL_MUL_18);
+		
 
+		
     /* Enable PLL */
     RCC_EnablePll(ENABLE);
     while (RCC_GetFlagStatus(RCC_FLAG_PLLRD) == RESET)
@@ -187,6 +190,7 @@ void SetSysClock_HSI_PLL(void)
     while (RCC_GetSysclkSrc() != RCC_CFG_SCLKSTS_PLL)
     {
     }
+
 }
 
 

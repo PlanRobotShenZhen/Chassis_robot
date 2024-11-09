@@ -61,9 +61,9 @@ enum Offline_Time_Threshold
 enum NMT_ORDER
 {
 	Start_Command 							= 0x01,	//启动
-	Stop_Command 								= 0x02,	//停止
+	Stop_Command 							= 0x02,	//停止
 	Pre_Oper_Command 						= 0x80,	//预操作
-	Reset_Application_Command 	= 0x81,	//复位节点应用层
+	Reset_Application_Command 				= 0x81,	//复位节点应用层
 	Reset_Command 							= 0x82,	//复位节点通讯
 };
 

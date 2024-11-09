@@ -13,7 +13,7 @@
 #include "balance.h"
 
 
-static struct SdoFrame* sdo_head = NULL;
+static struct SdoFrame* sdo_head = NULL;//整个链表的头指针
 
 CanRxMessage M1T0Message, M2T0Message, M3T0Message, M4T0Message, M5T0Message, 
 			 M6T0Message, M7T0Message, M8T0Message, M9T0Message, M10T0Message,
@@ -104,17 +104,17 @@ void CAN2_Filter_Init(void)
 {
     CAN_FilterInitType CAN_FilterInitStructure;
     /* CAN filter init */
-    CAN_FilterInitStructure.Filter_Num            = CAN_FILTERNUM0;
-    CAN_FilterInitStructure.Filter_Mode           = CAN_Filter_IdMaskMode;
-    CAN_FilterInitStructure.Filter_Scale          = CAN_Filter_32bitScale;
-    CAN_FilterInitStructure.Filter_HighId         = CAN_STD_ID_L_MASK_DONT_CARE;
+    CAN_FilterInitStructure.Filter_Num            = CAN_FILTERNUM0;				//CAN有0-13个独立的过滤器
+    CAN_FilterInitStructure.Filter_Mode           = CAN_Filter_IdMaskMode;		//Mask-屏蔽模式：R1写报文，R2置1的位全一致时报文保留；List-列表模式：保留R1、R2报文格式的报文。
+    CAN_FilterInitStructure.Filter_Scale          = CAN_Filter_32bitScale;		//R1、R2两个32位过滤器，16位时分成四个ID用
+    CAN_FilterInitStructure.Filter_HighId         = CAN_STD_ID_H_MASK_DONT_CARE;//这里未做过滤处理。R1寄存器
     CAN_FilterInitStructure.Filter_LowId          = CAN_STD_ID_L_MASK_DONT_CARE;
-    CAN_FilterInitStructure.FilterMask_HighId     = CAN_STD_ID_H_MASK_DONT_CARE;
+    CAN_FilterInitStructure.FilterMask_HighId     = CAN_STD_ID_H_MASK_DONT_CARE;//R2寄存器
     CAN_FilterInitStructure.FilterMask_LowId      = CAN_STD_ID_L_MASK_DONT_CARE;
-    CAN_FilterInitStructure.Filter_FIFOAssignment = CAN_FIFO0;
-    CAN_FilterInitStructure.Filter_Act            = ENABLE;
+    CAN_FilterInitStructure.Filter_FIFOAssignment = CAN_FIFO0;					//接收到的报文放到FIFO0邮箱中
+    CAN_FilterInitStructure.Filter_Act            = ENABLE;						//开启过滤器
     CAN2_InitFilter(&CAN_FilterInitStructure);
-    CAN_INTConfig(CAN2, CAN_INT_FMP0, ENABLE);
+    CAN_INTConfig(CAN2, CAN_INT_FMP0, ENABLE);	//FIFO 0 消息挂起中断。有新的接收消息时，会触发这个中断。					
 }
 /**
  * @brief  Configures the NVIC for CAN.
@@ -128,8 +128,10 @@ void CAN_NVIC_Config(void)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
-	NVIC_InitStructure.NVIC_IRQChannel = CAN2_RX0_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannel = CAN2_RX0_IRQn;			//CAN2 FIFO0接收中断
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x2;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 }
 /**
@@ -155,7 +157,7 @@ void CAN_Config(uint16_t baud)
 	CAN_InitStructure.TXFP = DISABLE;
 	CAN_InitStructure.OperatingMode = CAN_Normal_Mode;
 	switch (baud)
-	{
+	{// CAN baud = APB1 baud /(SS+PTS+PBS1+PBS2)/预分频系数
 	case 1://< 500K
 		CAN_InitStructure.RSJW = CAN_RSJW_1tq;
 		CAN_InitStructure.TBS1 = CAN_TBS1_5tq;
@@ -243,34 +245,6 @@ uint8_t Reset_Driver(uint8_t ID)
 	return DevCANOpen_send_sdo(0x600 + ID, 0x08, Data);
 }
 
-struct SdoFrame* SdoFramCereat(void) 
-{
-	struct SdoFrame* new_sdo_frame = NULL;
-	struct SdoFrame* next_sdo_frame;
-	//rt_malloc
-	new_sdo_frame = (struct SdoFrame*)rt_malloc(sizeof(struct SdoFrame));
-	if (new_sdo_frame != NULL)
-	{
-		if (sdo_head == NULL)
-			
-		{
-			sdo_head = new_sdo_frame;//创建一个头结点
-			sdo_head->next = NULL;
-		}
-		else
-		{
-			next_sdo_frame = sdo_head;
-			while (next_sdo_frame->next != NULL)
-			{
-				next_sdo_frame = next_sdo_frame->next;
-			}
-			next_sdo_frame->next = new_sdo_frame;
-			new_sdo_frame->next = NULL;
-		}
-		return new_sdo_frame;
-	}
-	return NULL;
-}
 
 /**********************************************************
  * 函数功能： ZLAC_PDO事件配置。
@@ -371,8 +345,8 @@ void Driver_JT_Inv(uint8_t id)
 
 
 /**********************************************************
- * 函数功能： RPDO0事件触发。
- * 参数：     ID代表节点地址。
+ * 函数功能： 配置T/RPDO，设置电机模式、加减速，映射状态字控制字，通过SDO发送给
+ * 参数：     ID代表从机节点地址。
  * 说明：     RPDO0映射0x6040（控制字）；
  *            RPDO0-COB-ID:0x200 + ID
  **********************************************************/
@@ -381,24 +355,24 @@ void ZLAC8015D_PDO_Config(uint8_t id, uint8_t mode, uint8_t ah, uint8_t al, uint
 	uint8_t Init_sdo[][8] = {// 主站(单片机)，恢复从站的初始值 	
 		{0x2B,0x0F,0x20,0x00,0x01,0x00,0x00,0x00},	//设置同步控制
 		{0x2F,0x60,0x60,0x00,0x03,0x00,0x00,0x00},	//设置速度模式
-		//// 中菱伺服
+		//// 中菱伺服（最高支持32位，只用到16位）
 		{0x23,0x83,0x60,0x01,al,ah,0x00,0x00},  	// 6083 01左电机设置加速时间100ms
 		{0x23,0x83,0x60,0x02,al,ah,0x00,0x00},  	// 6083 02右电机设置加速时间100ms
 		{0x23,0x84,0x60,0x01,dl,dh,0x00,0x00},  	// 6084 01左电机设置减速时间100ms
 		{0x23,0x84,0x60,0x02,dl,dh,0x00,0x00},  	// 6084 02右电机设置减速时间100ms
-		// 读参数映射（TPDO0）
+		// 单片机读参数映射（TPDO0）
 		{0x2F,0x00,0x1A,0x00,0x00,0x00,0x00,0x00},  // 消去个数: 发送sdo 600+id,22 00 16 00 00 00 00 00
-		{0x23,0x00,0x1A,0x01,0x20,0x00,0x41,0x60},  // 6041 状态字 //wjj 
-		{0x23,0x00,0x1A,0x02,0x20,0x03,0x6C,0x60},  // 606C 实时反馈速度
-		{0x2F,0x00,0x18,0x02,0xFF,0x00,0x00,0x00},    //②Hex1800_02，传输形式：0xFE：事件触发；0xFF：定时器触发 1个有效数据，设置TPDO1的传输类型，SYNC 
-		{0x2B,0x00,0x18,0x05,0x28,0x00,0x00,0x00},    //定时器触发时间40ms(刷新率为25Hz)
-		{0x2F,0x00,0x1A,0x00,0x02,0x00,0x00,0x00},    //⑥Hex1A00_0，启用【映射参数】 【实际映射多少组】 
+		{0x23,0x00,0x1A,0x01,0x20,0x00,0x41,0x60},  // 映射6041 00状态字到0x1A00 01 
+		{0x23,0x00,0x1A,0x02,0x20,0x03,0x6C,0x60},  // 映射606C 03实时反馈速度到0x1A00 02
+		{0x2F,0x00,0x18,0x02,0xFF,0x00,0x00,0x00},  // 设置TPDO0 的传输方式为定时器触发。传输形式：0xFE：事件触发；0xFF：定时器触发，SYNC
+		{0x2B,0x00,0x18,0x05,0x28,0x00,0x00,0x00},  // 定时器触发时间40ms(刷新率为25Hz)
+		{0x2F,0x00,0x1A,0x00,0x02,0x00,0x00,0x00},  // 开启2个TPDO0 映射
 		{0x2B,0x10,0x20,0x00,0x01,0x00,0x00,0x00},  // 保存参数至 EEPROM
-		// 写参数映射（RPDO0）
+		// 单片机写参数映射（RPDO0）
 		{0x2F,0x00,0x16,0x00,0x00,0x00,0x00,0x00},  // 清除映射: 发送sdo 600+id,22 00 16 00 00 00 00 00
-		{0x23,0x00,0x16,0x01,0x10,0x00,0x40,0x60},  // 6040 控制字
-		{0x23,0x00,0x16,0x02,0x20,0x03,0xFF,0x60},  // 60FF 目标速度
-		{0x2F,0x00,0x16,0x00,0x02,0x00,0x00,0x00},  //映射对象子索引个数	⑥Hex1600_0，启用【映射参数】 【实际映射多少组】 
+		{0x23,0x00,0x16,0x01,0x10,0x00,0x40,0x60},  // 映射6040 00控制字到0x1600 01 
+		{0x23,0x00,0x16,0x02,0x20,0x03,0xFF,0x60},  // 映射60FF 03左右电机目标速度到0x1600 02
+		{0x2F,0x00,0x16,0x00,0x02,0x00,0x00,0x00},  // 开启2个RPDO0 映射
 	};
 	Add_Sdo_Linked_List(id, Init_sdo, sizeof(Init_sdo)/sizeof(Init_sdo[0]));
 }
@@ -582,8 +556,6 @@ struct PointFrame* PointFramCereat(void)
 	return NULL;
 }
 
-short YUY=1;
-
 /**************************************************************************
 函数功能：CAN PDO任务
 入口参数：无
@@ -599,7 +571,6 @@ void Can_task(void* pvParameters)
 		CAN_PDOSend(pdu[motor_number], CAN1);
 #else
 		CAN_SDOSend(CAN2);
-			if(YUY)
 		CAN_PDOSend(pdu[motor_number], CAN2);
 			
 			
@@ -607,21 +578,20 @@ void Can_task(void* pvParameters)
 		
 	}
 
-}
+} 
 
 /**************************************************************************
 函数功能：电机CAN之RPDO传输任务
 入口参数：无 
 返回  值：无
 **************************************************************************/
-int test_nReturn = 8;
 void CAN_SDOSend(CAN_Module* CANx)
 {
 	if (sdo_head != NULL){
 		CanTxMessage pTxMessage;
 		int nIndex = 0;
 		volatile int nReturn = -1;
-		uint8_t Data_Size = sdo_head->mode == 0 ? 8 : 2;
+		uint8_t Data_Size = sdo_head->mode == 0 ? 8 : 2;//SDO或者NMT数据格式
 		pTxMessage.DLC = Data_Size;
 		pTxMessage.IDE = CAN_Standard_Id;
 		pTxMessage.RTR = CAN_RTRQ_Data;
@@ -632,7 +602,7 @@ void CAN_SDOSend(CAN_Module* CANx)
 		nIndex = 0;
 		do{
 			nIndex++;
-			test_nReturn = nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
+			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
 		} while (nReturn == 0x04);
 		struct SdoFrame* next_sdo = sdo_head->next;
 		rt_free(sdo_head);
@@ -735,19 +705,21 @@ void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 
 /**********************************************************
  * 函数功能： 将消息加入到sdo链表
- * 参数：     无
+ * 参数：     sdo_id、报文、报文长度（8字节数据为1个报文)
  * 返回值：   无
  **********************************************************/
 void Add_Sdo_Linked_List(uint8_t id, uint8_t Init_sdo[][8], int sdo_count)
 {
     struct SdoFrame *new_sdo_frame;
-    for (int i = 0; i < sdo_count; i++){
+    //包装每个报文
+	for (int i = 0; i < sdo_count; i++){
         new_sdo_frame = SdoFrameCreate();
         if (new_sdo_frame != NULL){
             new_sdo_frame->ID = SDO_M_ID + id;
             new_sdo_frame->mode = 0;
             for (int k = 0; k < 8; k++){
-                new_sdo_frame->data[k] = Init_sdo[i][k];
+                //每次填充8字节报文
+				new_sdo_frame->data[k] = Init_sdo[i][k];
 			}
         }
     }
@@ -761,25 +733,25 @@ void Add_Sdo_Linked_List(uint8_t id, uint8_t Init_sdo[][8], int sdo_count)
  **********************************************************/
 struct SdoFrame* SdoFrameCreate(void) 
 {
-	struct SdoFrame* new_sdo_frame = NULL;
-	struct SdoFrame* next_sdo_frame;
+	struct SdoFrame* new_sdo_frame = NULL;//新创建节点指针
+	struct SdoFrame* next_sdo_frame;//链表查找指针
 	new_sdo_frame = (struct SdoFrame*)rt_malloc(sizeof(struct SdoFrame));//如果内存分配失败，仍是NULL
 	if (new_sdo_frame != NULL)
 	{
 		if (sdo_head == NULL)
 		{
 			sdo_head = new_sdo_frame;//创建一个头结点
-			sdo_head->next = NULL;
+			sdo_head->next = NULL;//链表尾为NULL
 		}
-		else
+		else //链表已有表头
 		{
 			next_sdo_frame = sdo_head;
-			while (next_sdo_frame->next != NULL)
+			while (next_sdo_frame->next != NULL)//指针遍历，查找链表的尾
 			{
 				next_sdo_frame = next_sdo_frame->next;
 			}
-			next_sdo_frame->next = new_sdo_frame;
-			new_sdo_frame->next = NULL;
+			next_sdo_frame->next = new_sdo_frame;//链表尾指向新节点
+			new_sdo_frame->next = NULL;//新节点指向NULL
 		}
 		return new_sdo_frame;//如果成功创建并添加了节点，返回新创建的节点指针。
 	}

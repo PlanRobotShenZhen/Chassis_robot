@@ -27,7 +27,7 @@ extern uint8_t usart1_send_len;      // 发送的数据长度
 extern uint8_t usart1_send_flag;     // 发送完成标志位
 
 //Usart3任务（RS232）
-#define USART3_RX_MAXBUFF   11 		// 接收数据最大缓冲区
+#define USART3_RX_MAXBUFF   256 		// 接收数据最大缓冲区
 extern uint8_t usart3_recv_data[USART3_RX_MAXBUFF]; // 接收数据缓冲区
 extern uint8_t usart3_recv_len;      // 接收的数据长度
 extern uint8_t usart3_recv_flag;     // 接收完成标志位
