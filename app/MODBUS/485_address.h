@@ -40,7 +40,7 @@ enum address_485 {
     Odom2ForRobot,
     TpdoGroupCount,//TPDO组数
     // 电机参数
-    motor1_type = 35,
+    motor1_type = 35,//电机厂商及型号
     motor1_state_word,
     motor1_temperature,
     motor1_sport_mode,
@@ -215,7 +215,7 @@ enum address_485 {
     power_control,
     software_reset,
     error_clearance,
-    can_reinitialize,
+    can_reinitialize,//CAN总线初始化s
     para_save,
 
     robot_acceleration,

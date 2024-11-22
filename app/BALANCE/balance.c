@@ -677,7 +677,7 @@ void ClassificationOfMotorMotionModes(uint16_t sport_mode)
             }
 
             break;
-             //  目前只是简单测试过，没有速度模式好用，所以此方案暂时废弃
+             //  存疑，目前只是简单测试过，没有速度模式好用，所以此方案暂时废弃
         case torque_mode:
             switch (pdu[car_type])
             {

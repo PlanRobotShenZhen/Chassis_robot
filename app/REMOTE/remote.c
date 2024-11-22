@@ -33,6 +33,7 @@ void Remote_Task(void *pvParameters)
 * 参    数：Uart5_Buffer为接收到的串口数据
 * 返 回 值：无
 **************************************************/
+uint16_t test_Data[16] = {0};
 void Sbus_Data_Parsing(void)
 {
 //这里用的是SBUS协议，参考网址：https://os.mbed.com/users/Digixx/notebook/futaba-s-bus-controlled-by-mbed/
@@ -48,7 +49,7 @@ void Sbus_Data_Parsing(void)
     if(Sbus_Data_Parsing_Flag)
     {   //0起始字节为0F，23标志正常为00，24结束字节00
         //FS-i6S遥控器最多只支持到前10个通道
-        if(Uart5_Buffer[0] == 0x0F && Uart5_Buffer[23] == 0x00 && Uart5_Buffer[24] == 0x00)
+        if(Uart5_Buffer[0] == 0x0F && Uart5_Buffer[23] == 0x03 && Uart5_Buffer[24] == 0x00)
         {
             pdu[rc_ch1_value] = ((int16_t)Uart5_Buffer[ 1] >> 0  | ((int16_t)Uart5_Buffer[ 2] << 8 )) & 0x07FF;
             pdu[rc_ch2_value] = ((int16_t)Uart5_Buffer[ 2] >> 3  | ((int16_t)Uart5_Buffer[ 3] << 5 )) & 0x07FF;
@@ -66,7 +67,14 @@ void Sbus_Data_Parsing(void)
             pdu[rc_ch14_value] = ((int16_t)Uart5_Buffer[18] >> 7 | ((int16_t)Uart5_Buffer[19] << 1 ) | (int16_t)Uart5_Buffer[20] << 9 ) & 0x07FF;
             pdu[rc_ch15_value] = ((int16_t)Uart5_Buffer[20] >> 2 | ((int16_t)Uart5_Buffer[21] << 6 )) & 0x07FF;
             pdu[rc_ch16_value] = ((int16_t)Uart5_Buffer[21] >> 5 | ((int16_t)Uart5_Buffer[22] << 3 )) & 0x07FF;
+            for (int i = 0; i < 16; i++)
+            {
+                test_Data[i] = pdu[161 + i];
+            }
 		}
+
+        //HT-8A遥控器最多支持8通道
+
 
         Sbus_Data_Parsing_Flag = false;
         pdu[control_mode] = control_mode_remote;
@@ -98,7 +106,7 @@ void MotorEnableFunction()
         //遥控器使能或者ros下发电机使能
         if ((Abs_int(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) || (robot_control.bit.motor_en))
         {
-            
+            //电机未使能
             if(!pdu[x_enstate])
             {
                 switch (pdu[x_sw] & 0x0F)
@@ -129,28 +137,33 @@ void MotorEnableFunction()
         {
             if(pdu[x_enstate])
             {
-                switch (pdu[x_sw] & 0x0F)
-                {
-                    case 0x07:
-                        mrd[count].d.ctrl.cw = 0x07;
-                        pdu[x_enstate] = enable_state;
-                        break;
+                //无需逐步下使能
+                mrd[count].d.ctrl.cw = 0x00;
+                Motor_Enable_Flag = false;
+                pdu[x_enstate] = disable_state;
+                //switch (pdu[x_sw] & 0x0F)
+                //{
+                //    case 0x07:
+                //        mrd[count].d.ctrl.cw = 0x07;
+                //        pdu[x_enstate] = enable_state;
+                //        break;
 
-                    case 0x03:
-                        mrd[count].d.ctrl.cw = 0x06;
-                        pdu[x_enstate] = enable_state;
-                        break;
+                //    case 0x03:
+                //        mrd[count].d.ctrl.cw = 0x06;
+                //        pdu[x_enstate] = enable_state;
+                //        break;
 
-                    case 0x01:
-                        mrd[count].d.ctrl.cw = 0x00;
-                        pdu[x_enstate] = enable_state;
-                        break;
+                //    case 0x01:
+                //        mrd[count].d.ctrl.cw = 0x00;
+                //        pdu[x_enstate] = enable_state;
+                //        break;
 
-                    case 0x00:
-                        Motor_Enable_Flag = false;
-                        pdu[x_enstate] = disable_state;
-                        break;
-                }
+                //    case 0x00:
+                //        Motor_Enable_Flag = false;
+                //        pdu[x_enstate] = disable_state;
+                //        break;
+                //}
+
             }
         }
     }

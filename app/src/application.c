@@ -207,6 +207,7 @@ static void InitTask(void* parameter)
     rt_err_t result;
     systemInit();
 
+
     /* init Balance thread */
 
     result = rt_thread_init(&Balance_thread, "Balance", Balance_task, (void*)pdu, (rt_uint8_t*)&Balance_stack[0], sizeof(Balance_stack), 6, 5);

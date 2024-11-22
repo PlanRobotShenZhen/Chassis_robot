@@ -95,20 +95,15 @@ void Motor_task(void* pvParameters)
     while (1)
     {
         rt_thread_delay(50);//此任务以5ms的频率运行
-        Detect_Motor_Status();  //  获取电机的状态函数 接收从电机上传的数据  PDO
+        Detect_Motor_Status();  //  获取电机的状态函数 接收从电机上传的数据  PDO。40ms更新一次
         Set_MotorVelocity();    // 发送 PDO数据给电机
     }
 }
-
-short tmp111=0;
-short tmp222=0;
-
-int tmp333=0;
-int tmp444=0;
-short testlinear1=0;
-short testlinear2=0;
-short testraw1=0;
-
+/**************************************************************************
+函数功能：电机TPDO解码刷新任务
+入口参数：无
+返回  值：无
+**************************************************************************/
 short  linear_speed_feedbacktmp;
 short  yaw_speed_feedbacktmp;
 
@@ -120,14 +115,14 @@ void Detect_Motor_Status(void)
 {
     int i, //TPDO序号
         j, //电机序号
-        k; //报文位
+        k; //报文数据位
     uint16_t type, sport_mode, state_word, temperature, voltage, current, error_code;
     uint16_t x_rpm_feedback, position1_feedback, position2_feedback, torgue_feedback;//后面有解释
-    uint16_t mpl1, mpl2, mpr1, mpr2; 
-	short ms1, ms2;//后面要用到的临时变量
+    uint16_t mpl1, mpl2, mpr1, mpr2; //左右电机位置反馈
+	short msl, msr;//左右电机速度反馈
     int rpm_feedback_temp;//后面有解释
 
-	
+	//读取TPDO数据
     for (i = 0; i < pdu[TpdoGroupCount]; i++)//圆形底盘驱动器1拖2，count = 1
     {
         for (j = 0; j < pdu[motor_number]; j++)
@@ -136,7 +131,7 @@ void Detect_Motor_Status(void)
             {
                 *TPDOMessage_FLAG[i][j] = false; 
                 x_rpm_feedback = motor1_rpm_feedback + j * pdu[ro_motor_gap];
-                type = motor1_type + j * pdu[ro_motor_gap];
+                type = motor1_type + j * pdu[ro_motor_gap];                            
                 sport_mode = motor1_sport_mode + j * pdu[ro_motor_gap];
                 state_word = motor1_state_word + j * pdu[ro_motor_gap];
                 temperature = motor1_temperature + j * pdu[ro_motor_gap];
@@ -168,13 +163,13 @@ void Detect_Motor_Status(void)
                                 break;
 
                             case servo_zlacd:
-                                pdu[state_word]  = TPDOMessage[i][j]->Data[k++];					//状态字
-                                pdu[state_word] |= TPDOMessage[i][j]->Data[k++] << 8;
-														    TPDOMessage[i][j]->Data[k++];//wjj
-														    TPDOMessage[i][j]->Data[k++];//wjj
-                                pdu[motor1_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];			//左电机
+                                pdu[motor1_state_word]  = TPDOMessage[i][j]->Data[k++];				//左电机状态字
+                                pdu[motor1_state_word] |= TPDOMessage[i][j]->Data[k++] << 8;
+                                pdu[motor2_state_word]  = TPDOMessage[i][j]->Data[k++];				//右电机状态字
+                                pdu[motor2_state_word] |= TPDOMessage[i][j]->Data[k++] << 8;
+                                pdu[motor1_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];			//左电机速度反馈
                                 pdu[motor1_rpm_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
-                                pdu[motor2_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];			//右电机
+                                pdu[motor2_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];			//右电机速度反馈
                                 pdu[motor2_rpm_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
                                 break;
 
@@ -241,27 +236,27 @@ void Detect_Motor_Status(void)
             }
         }
     }
-		tmp111 = pdu[motor1_rpm_feedback];
-		tmp222 = pdu[motor2_rpm_feedback];
 
-    for(int count = 0; count < pdu[motor_number]; count++)
-    {
-        //更新none_count
-        if(mtd[count].d.none_count < 10000)
-        {
-            mtd[count].d.none_count ++;
-        }
+    //读取超时处理
+    //for(int count = 0; count < pdu[motor_number]; count++)
+    //{
+    //    //更新none_count
+    //    if(mtd[count].d.none_count < 10000)
+    //    {
+    //        mtd[count].d.none_count ++;
+    //    }
+    //    //功能未实现
+    //    if(mtd[count].d.none_count > Offline_Time_1s || pdu[can_reinitialize] == 5)//时间存疑
+    //    {
+    //        //1s内无PDO回复或者重置电机CAN通信
+    //        //mtd[count].d.online = false;												//电机在线状态为掉线
+    //        //Motor_Init(count);
+    //    }
+    //}
 
-        if(mtd[count].d.none_count > Offline_Time_1s || pdu[can_reinitialize] == 5)
-        {
-            //1s内无PDO回复或者重置电机CAN通信
-            //mtd[count].d.online = false;												//电机在线状态为掉线
-            //Motor_Init(count);
-        }
-    }
+    //pdu[can_reinitialize] = 0;
 
-    pdu[can_reinitialize] = 0;
-
+    //变量名称简化
     switch (pdu[car_type])
     {
         case Akm_Car:
@@ -270,57 +265,50 @@ void Detect_Motor_Status(void)
             mpl2 = pdu[motor2_position2_feedback];
             mpr1 = pdu[motor3_position1_feedback];
             mpr2 = pdu[motor3_position2_feedback];
-            ms1 = pdu[motor2_rpm_feedback];
-            ms2 = pdu[motor3_rpm_feedback];
+            msl = pdu[motor2_rpm_feedback];
+            msr = pdu[motor3_rpm_feedback];
             break;
 
         case Diff_Car:
         case TwoWheel_Car:
         case Tank_Car:
-            mpl1 = pdu[motor1_position1_feedback];
+            mpl1 = pdu[motor1_position1_feedback];  //无电机位置反馈
             mpl2 = pdu[motor1_position2_feedback];
             mpr1 = pdu[motor2_position1_feedback];
             mpr2 = pdu[motor2_position2_feedback];
-            ms1 = pdu[motor1_rpm_feedback];
-            ms2 = pdu[motor2_rpm_feedback];
+            msl = pdu[motor1_rpm_feedback];
+            msr = pdu[motor2_rpm_feedback];
             break;
     }
 
-		tmp333 = mpl1;
-		tmp444 = mpr1;
-		
-		
-		 //tmp333=(int)((uint32_t)mpl2 << 16 | mpl1);;
-		 //tmp444=(int)((uint32_t)mpr2 << 16 | mpr1);
-		
-
+    //电机反馈不能计算小车实际位移误差
     //计算位移差，公式：脉冲数/一圈脉冲数/减速比*轮胎周长(m)*1000 = mm
-    if(pdu[control_mode] == control_mode_ros) //控制模式是ROS
-    {
-        NowPos_Left 	= (int)((uint32_t)mpl2 << 16 | mpl1);
-        NowPos_Right 	= (int)((uint32_t)mpr2 << 16 | mpr1);
-        DiffposForOdom 	= (uint32_t)(round((float)((myabs(NowPos_Left - LastPos_Left) + myabs(NowPos_Right - LastPos_Right)) / 2)
-                                           / pdu[motor2_reduction_ratio] / ENCODER_LINES * TireCircumference * MAGNIFIC_1000x_UP));//最后单位:mm
-        Odom_distance_mm += DiffposForOdom;
-        pdu[Odom1ForRobot] = Odom_distance_mm & 0xFFFF;			//里程计记录
-        pdu[Odom2ForRobot] = (Odom_distance_mm >> 16) & 0xFFFF;	//里程计记录
-        LastPos_Left = NowPos_Left;
-        LastPos_Right = NowPos_Right;
-    }
+    //if(pdu[control_mode] == control_mode_ros) //控制模式是ROS
+    //{
+    //    NowPos_Left 	= (int)((uint32_t)mpl2 << 16 | mpl1);
+    //    NowPos_Right 	= (int)((uint32_t)mpr2 << 16 | mpr1);
+    //    DiffposForOdom 	= (uint32_t)(round((float)((myabs(NowPos_Left - LastPos_Left) + myabs(NowPos_Right - LastPos_Right)) / 2)
+    //                                       / pdu[motor2_reduction_ratio] / ENCODER_LINES * TireCircumference * MAGNIFIC_1000x_UP));//最后单位:mm
+    //    Odom_distance_mm += DiffposForOdom;
+    //    pdu[Odom1ForRobot] = Odom_distance_mm & 0xFFFF;			//里程计记录
+    //    pdu[Odom2ForRobot] = (Odom_distance_mm >> 16) & 0xFFFF;	//里程计记录
+    //    LastPos_Left = NowPos_Left;
+    //    LastPos_Right = NowPos_Right;
+    //}
 
-		
-    if((short) ms1 > 0)
+	//速度反馈单位换算	
+    if((short) msl > 0)
     {
         //根据电机的速度方向来判断运行方向
          //pdu[linear_speed_feedback]
             //v = (w1+w2)/2 * C / 60
-			linear_speed_feedbacktmp= (short)(((short)ms1 + ((short)(0xFFFF - ms2 + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> 10-3m/s)
-                //-ms2也可，这么算是为了在处理溢出、类型一致性以及处理补码转换等问题时保证准确性
+			linear_speed_feedbacktmp= (short)(((short)msl + ((short)(0xFFFF - msr + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> 10-3m/s)
+                //-msr也可，这么算是为了在处理溢出、类型一致性以及处理补码转换等问题时保证准确性
     }
     else
     {
        //pdu[linear_speed_feedback]
- 			linear_speed_feedbacktmp= -(short)(((short)ms2 + ((short)(0xFFFF - ms1 + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> m/s)
+ 			linear_speed_feedbacktmp= -(short)(((short)msr + ((short)(0xFFFF - msl + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> m/s)
     }
 		
 
@@ -330,7 +318,7 @@ void Detect_Motor_Status(void)
 			 linear_speed_feedbacktmp=0;
 		}                
 		//pdu[yaw_speed_feedback] w = r * (wr + wl) / H。 H为轮距，r为车轮半径,1 rpm = 2pi/60 rad/s
-		yaw_speed_feedbacktmp= -(short)((float)(pdu[wheel_radius] * (ms1 + ms2) * MAGNIFIC_10x_DOWN * PI /30 *  MAGNIFIC_1000x_UP) / (float)pdu[car_tread] );//角速度反馈(0.1rpm -> 10-3rad/s)			
+		yaw_speed_feedbacktmp= -(short)((float)(pdu[wheel_radius] * (msl + msr) * MAGNIFIC_10x_DOWN * PI /30 *  MAGNIFIC_1000x_UP) / (float)pdu[car_tread] );//角速度反馈(0.1rpm -> 10-3rad/s)			
         
 
 
@@ -338,20 +326,12 @@ void Detect_Motor_Status(void)
 		if((yaw_speed_feedbacktmp>3000)||(yaw_speed_feedbacktmp<-3000))
 		{
 			
-			  //yaw_speed_feedbacktmp=0;
+			  yaw_speed_feedbacktmp=0;
 		}
-				
+		//速度反向		
 		pdu[linear_speed_feedback]=-linear_speed_feedbacktmp;	
 		pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp;
-		
 
-		if(pdu[car_type] == Diff_Car) {
-			//pdu[yaw_speed_feedback] += 0.2 * pdu[yaw_speed_feedback];//角速度反馈
-			
-			 // yaw_speed_feedbacktmp += (yaw_speed_feedbacktmp/5);
-			 //pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp/2;
-			
-		}
 		test_linear_feedback = pdu[linear_speed_feedback];
 		test_yaw_feedback = pdu[yaw_speed_feedback];
 		test_m1_fb = pdu[motor1_rpm_feedback];
@@ -588,26 +568,23 @@ void CAN2_RX0_IRQHandler(void)
 bool CanIRQProcess(CAN_Module* CANx)
 {
     CanRxMessage RxMessage;
-    CAN_ReceiveMessage(CANx, 0, &RxMessage);
-
-    for (int i = 0; i < pdu[TpdoGroupCount]; i++)
-    {
-        for (int j = 0; j < pdu[motor_number]; j++)
+    CAN_ReceiveMessage(CANx, 0, &RxMessage);//调用该函数自动清零
+        
+        for (int i = 0; i < pdu[TpdoGroupCount]; i++)
         {
-            uint16_t TPDOx_ID = TPDO0_ID + i * (TPDO1_ID - TPDO0_ID);
-            uint16_t x_id = pdu[motor1_CAN_id + j * pdu[rw_motor_gap]];
-
-            if(RxMessage.StdId == TPDOx_ID + x_id)
+            for (int j = 0; j < pdu[motor_number]; j++)
             {
-                rt_memcpy(TPDOMessage[i][j], &RxMessage, sizeof(RxMessage));
-                *TPDOMessage_FLAG[i][j] = true;
-                CAN_ClearFlag(CANx, CAN_INT_FMP0);
-                return true;
+                uint16_t TPDOx_ID = TPDO0_ID + i * (TPDO1_ID - TPDO0_ID);
+                uint16_t Node_ID = pdu[motor1_CAN_id + j * pdu[rw_motor_gap]];
+
+                if (RxMessage.IDE == CAN_Standard_Id && RxMessage.StdId == TPDOx_ID + Node_ID)
+                {
+                    rt_memcpy(TPDOMessage[i][j], &RxMessage, sizeof(RxMessage));
+                    *TPDOMessage_FLAG[i][j] = true;
+                    return true;
+                }
             }
         }
-    }
-
-    CAN_ClearFlag(CANx, CAN_INT_FMP0);
     return false;
 }
 

@@ -628,7 +628,7 @@ void Usart3_Send(void)
 void Data_Assignment(void)
 {
 	Send_Data.d.Frame_Header = FRAME_HEADER;			//1个字节 = FRAME_HEADER; //帧头(固定值)      		
-	Send_Data.d.Motor_Enable_Flag = Motor_Enable_Flag;	//存疑，和联合体中的Motor_Enable_Flag不是一个变量，遥控或者ROS下发都可以置1
+	Send_Data.d.Motor_Enable_Flag = Motor_Enable_Flag;	//1个字节
 	 
 	Send_Data.d.X_speed = pdu[linear_speed_feedback];	//2字节
 	Send_Data.d.Z_speed = pdu[yaw_speed_feedback];		//2字节

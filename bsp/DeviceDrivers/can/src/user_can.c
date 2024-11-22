@@ -30,8 +30,8 @@ bool M1T0Message_FLAG, M2T0Message_FLAG, M3T0Message_FLAG, M4T0Message_FLAG, M5T
 	 M6T2Message_FLAG, M7T2Message_FLAG, M8T2Message_FLAG, M9T2Message_FLAG, M10T2Message_FLAG;
 
 
-MOTOR_TPDO mtd[MAX_MOTOR_NUMBER];//< 发送pdo
-MOTOR_RPDO mrd[MAX_MOTOR_NUMBER];//< 接收pdo
+MOTOR_TPDO mtd[MAX_MOTOR_NUMBER];//< 电机发送pdo
+MOTOR_RPDO mrd[MAX_MOTOR_NUMBER];//< 电机接收pdo
 
 //超过时长没产生心跳包1000
 int g_nHeart_Time_LB = 0;
@@ -587,23 +587,36 @@ void Can_task(void* pvParameters)
 **************************************************************************/
 void CAN_SDOSend(CAN_Module* CANx)
 {
+	//链表中有待发数据,打包报文
 	if (sdo_head != NULL){
+		
+		//设定帧格式
 		CanTxMessage pTxMessage;
-		int nIndex = 0;
-		volatile int nReturn = -1;
+		int nIndex = 0;//链表单个节点中的数据索引
+		volatile int nReturn = -1;//
+		int errCount = 0;
 		uint8_t Data_Size = sdo_head->mode == 0 ? 8 : 2;//SDO或者NMT数据格式
-		pTxMessage.DLC = Data_Size;
-		pTxMessage.IDE = CAN_Standard_Id;
-		pTxMessage.RTR = CAN_RTRQ_Data;
 		pTxMessage.StdId = sdo_head->ID;
+		pTxMessage.RTR = CAN_RTRQ_Data;
+		pTxMessage.IDE = CAN_Standard_Id;
+		pTxMessage.DLC = Data_Size;
+		
+		//数据帧赋值
 		for (nIndex = 0; nIndex < Data_Size; nIndex++){
 			pTxMessage.Data[nIndex] = sdo_head->data[nIndex];
 		}
-		nIndex = 0;
+
+		//尝试写入邮箱
 		do{
-			nIndex++;
 			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
+			errCount++;
+			if (errCount > 10)
+			{
+				break;
+			}
 		} while (nReturn == 0x04);
+
+		//释放链表节点
 		struct SdoFrame* next_sdo = sdo_head->next;
 		rt_free(sdo_head);
  		sdo_head = next_sdo;
@@ -617,19 +630,6 @@ void CAN_SDOSend(CAN_Module* CANx)
  * 返回值：   发送成功数量
  **********************************************************/
 
-char tt1=0;
-char tt22=0;
-char tt3=0;
-char tt4=0;
-char tt5=0;
-char tt6=0;
-char tt7=0;
-char tt8=0;
-char tt9=0;
-
-
-
-
 void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 {
 	MOTOR_RPDO* rpdo;
@@ -637,9 +637,9 @@ void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 	static int send_number = 0;
 	int target_pos_pulse;
 	CanTxMessage pTxMessage;
-	pTxMessage.IDE = CAN_Standard_Id;
 	pTxMessage.RTR = CAN_RTRQ_Data;
-	pTxMessage.DLC = 6;//< 
+	pTxMessage.IDE = CAN_Standard_Id;
+	pTxMessage.DLC = 6;//< 存疑
 
 	do{
 		rpdo = &mrd[send_number];
@@ -671,10 +671,6 @@ void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 					pTxMessage.Data[5] = (target_pos_pulse >> 24) & 0xFF; // 高八位写入 Data[5]
 					break;
 				case servo_zlacd:
-//					pTxMessage.Data[2] = tt1 ;//   mrd[0].d.target_pos_vel & 0xFF;       	// 左电机目标速度，低八位写入 Data[2]
-//					pTxMessage.Data[3] = tt22 ;//(mrd[0].d.target_pos_vel >> 8) & 0xFF; // 
-//					pTxMessage.Data[4] = tt3 ;//mrd[1].d.target_pos_vel & 0xFF; 		// 右电机目标速度，低八位写入 Data[2]
-//					pTxMessage.Data[5] = tt4 ;//(mrd[1].d.target_pos_vel >> 8) & 0xFF; // 高八位写入 Data[5]
 				
 					pTxMessage.Data[2] =    mrd[0].d.target_pos_vel & 0xFF;       	// 左电机目标速度，低八位写入 Data[2]
 					pTxMessage.Data[3] = (mrd[0].d.target_pos_vel >> 8) & 0xFF; // 
@@ -688,10 +684,7 @@ void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 					break;
 			}
 			
-			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //若发送失败，返回0x04
-			
-			
-			
+			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //若发送失败，返回0x04			
 		if (nReturn != 0x04){
 			send_number++;//< 发送下一个
 			if (send_number >= number){

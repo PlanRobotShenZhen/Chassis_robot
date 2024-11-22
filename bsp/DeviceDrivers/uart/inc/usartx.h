@@ -103,11 +103,24 @@ void Uart5_Dma_Config(void);
 #define RECEIVE_DATA_SIZE 		11
 
 /*—-------------航模模块--------------*/
-
+#define REMOTE_TPYE				2		//航模遥控器型号切换
+#define FS_i6					1
+#define HT_8A					2
+#if(REMOTE_TPYE == FS_i6)
 #define RC_MIN_VALUE        	240       	//定义三个速度挡位的基准值,swb控制，ch6通道
 #define RC_BASE_VALUE       	1023
 #define RC_MAX_VALUE        	1807
 #define RC_GEARS_DIFFERENCE     784
+
+
+#elif(REMOTE_TPYE == HT_8A)
+#define RC_MIN_VALUE        	200       	//定义三个速度挡位的基准值,swb控制，ch6通道
+#define RC_BASE_VALUE       	1000
+#define RC_MAX_VALUE        	1800
+#define RC_GEARS_DIFFERENCE     800
+#endif
+
+
 
 #define SPEED_LOW              	500        	//定义三个速度等级
 #define SPEED_MIDDLE           	1000

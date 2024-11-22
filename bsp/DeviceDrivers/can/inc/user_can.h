@@ -14,11 +14,12 @@ typedef struct {
 } SDOMessage;
 
 //宏定义从机的RPDO、TPDO帧ID
-#define RPDO0_ID           	0x200
 #define TPDO0_ID           	0x180
+#define RPDO0_ID           	0x200
 #define TPDO1_ID           	0x280
+#define RPDO1_ID           	0x300
 #define TPDO2_ID           	0x380
-
+#define RPDO2_ID           	0x400
 //宏定义从机的测试帧ID
 #define SDO_M_ID           	0x600
 #define SDO_S_ID			0x580
