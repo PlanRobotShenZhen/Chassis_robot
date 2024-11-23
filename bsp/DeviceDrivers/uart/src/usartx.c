@@ -573,7 +573,7 @@ void DMA1_Channel2_IRQHandler(void)
 **************************************************************************/
 void Usart3_Recv(void)
 {
-	if(ROS_Count < 10000){//防止数据溢出,只有正确接收数据才清零
+	if(ROS_Count < DELAY_COUNT_1S * 100){//防止数据溢出,只有正确接收数据才清零
 		ROS_Count++;
 	}
 	if((pdu[control_mode] != control_mode_remote)){						
@@ -592,11 +592,11 @@ void Usart3_Recv(void)
 				//测试用，发送到can查数据
 				//CheckSum_sdo[0][0] = Check_Sum(RECEIVE_DATA_SIZE - 2, 0);
 				//Add_Sdo_Linked_List(CHECKSUM_ID, CheckSum_sdo, sizeof(CheckSum_sdo)/sizeof(CheckSum_sdo[0]));
-				if(ROS_Count > 300)	pdu[control_mode] = control_mode_unknown;//1500ms未接收到正确ros消息，则置零控制模式
+				if(ROS_Count > DELAY_COUNT_1S * 5)	pdu[control_mode] = control_mode_unknown;//5s未接收到正确ros消息，则置零控制模式
 			}
 			DMA_SetCurrDataCounter(USARTThree_Rx_DMA_Channel, USART3_RX_MAXBUFF);//传输数量寄存器只能在通道不工作(DMA_CCRx的EN=0)时写入
 			DMA_EnableChannel(USARTThree_Rx_DMA_Channel, ENABLE);     		// DMA1 通道2, UART3_RX
-		}else if(ROS_Count > 300){	//1500ms未接收到ros消息，则置零控制模式
+		}else if(ROS_Count > DELAY_COUNT_1S * 5){	//5s未接收到ros消息，则置零控制模式
 			pdu[control_mode] = control_mode_unknown;
 		}
 	}
@@ -931,7 +931,6 @@ void UARTFive_IRQHandler()
 		UARTFive->DAT; // 清除空闲中断
 
 		Sbus_Data_Parsing_Flag = 1;                // 接收标志置1
-		pdu[control_mode] = control_mode_remote;                // 航模控制
 		DMA_EnableChannel(UARTFive_Rx_DMA_Channel, DISABLE);    // DMA1 通道3, UART3_RX
 		DMA_SetCurrDataCounter(UARTFive_Rx_DMA_Channel, UART5_RX_MAXBUFF);
 		DMA_EnableChannel(UARTFive_Rx_DMA_Channel, ENABLE);     // DMA1 通道3, UART3_RX

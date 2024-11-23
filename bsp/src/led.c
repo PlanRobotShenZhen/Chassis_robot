@@ -43,7 +43,7 @@
 #include "balance.h"
 #include "bsp.h"
 #include "RJ_JT.h"
-
+#include "usartx.h"
 /**
  * @brief  Configures LED GPIO.
  * @param GPIOx x can be A to G to select the GPIO port.

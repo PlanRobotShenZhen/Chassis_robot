@@ -22,13 +22,13 @@ float Voltage = 0.0f;
 SDOMessage receivedMsg, send0Msg, send1Msg;
 MOTOR_PARA motor_para[MAX_MOTOR_NUMBER];
 
-int REMOTE_Count = 0;
+
 float Z_Radian_Max = 0;
 float Z_Radian = 0;
 float Z_Degree = 0;
 
 uint8_t f1_cnt = 0;
-uint32_t ultrasonic1_filtering[4];
+uint32_t ultrasonic1_filtering[4]; 
 uint8_t f2_cnt = 0;
 uint32_t ultrasonic2_filtering[4];
 
@@ -585,11 +585,12 @@ void Kinematic_Analysis(short Vx, float Vy, short Vz)
 入口参数：sport_mode
 返 回 值：无
 **************************************************************************/
+uint16_t test_Torque_SWB = 0;
 void ClassificationOfMotorMotionModes(uint16_t sport_mode)
 {
     static int mode_count = 0;
     bool torque_switch = false; //速度模式下力矩（电流）切换标志位
-    static uint16_t Torque_SWB = 0, Torque_Max = 0, Last_RC6_Value = 0, Last_RC10_Value = 0;
+    static uint16_t Torque_SWB = 0, Torque_Max = 0, Last_Gear_value = 0, Last_Torque_value = 0;
     uint8_t Speed_Max[4] =  //力矩模式下最大速度挡位，200A地址对应的最大转速为U16，需要进行类型转换
     {
         myabs(pdu[motor2_target_rpm]) & 0xFF, (myabs(pdu[motor2_target_rpm]) >> 8) & 0xFF,
@@ -599,41 +600,57 @@ void ClassificationOfMotorMotionModes(uint16_t sport_mode)
     switch (sport_mode) //模式判断
     {
         case speed_mode:
-            if(pdu[rc_ch6_value] - Last_RC6_Value) //对应遥控器上的高中低三个档位
+            if(pdu[GearPosition_value] - Last_Gear_value) //对应遥控器上的高中低三个档位发生改动
             {
-                if (Abs_int(pdu[rc_ch6_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR)
+                if (Abs_int(pdu[GearPosition_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR)
                 {
                     Torque_SWB = SWB_LOW_GEAR;//速度模式下最大力矩挡位
                 }
-                else if (Abs_int(pdu[rc_ch6_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR)
+                else if (Abs_int(pdu[GearPosition_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR)
                 {
                     Torque_SWB = SWB_MIDDLE_GEAR;
                 }
-                else if (Abs_int(pdu[rc_ch6_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR)
+                else if (Abs_int(pdu[GearPosition_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR)
                 {
                     Torque_SWB = SWB_HIGH_GEAR;  //通过SDO  发过电机力矩  对象字典   只有中凌有，万泽没有此选项。
                 }
-
+								test_Torque_SWB = Torque_SWB;
                 torque_switch = true;
             }
 
-						
-			//左边的旋钮，电流被分成九档
-            if ((Last_RC10_Value == pdu[rc_max_value]) && ((pdu[rc_ch10_value] - Last_RC10_Value) < 0) && (pdu[torque_cofficient] < TORQUE_COEFFICIENT_MAX))
+#if(REMOTE_TYPE == REMOTE_TYPE_FSi6)			
+			//FS-i6s左边的旋钮，电流被分成九档
+            if ((Last_Torque_value == pdu[rc_max_value]) && ((pdu[Torque_value] - Last_Torque_value) < 0) && (pdu[torque_cofficient] < TORQUE_COEFFICIENT_MAX))
             {
                 pdu[torque_cofficient] ++;
                 torque_switch = true;
             }
-            else if ((Last_RC10_Value == pdu[rc_min_value]) && ((pdu[rc_ch10_value] - Last_RC10_Value) > 0) && (pdu[torque_cofficient] > TORQUE_COEFFICIENT_MIN))
+            else if ((Last_Torque_value == pdu[rc_min_value]) && ((pdu[Torque_value] - Last_Torque_value) > 0) && (pdu[torque_cofficient] > TORQUE_COEFFICIENT_MIN))
             {
                 pdu[torque_cofficient] --;
                 torque_switch = true;
             }
-
-						
+#elif(REMOTE_TYPE == REMOTE_TYPE_HT8A)
+            if (pdu[Torque_value] - Last_Torque_value) //对应遥控器上的高中低三个力矩档位发生改动
+            {
+                if (Abs_int(pdu[Torque_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR)
+                {
+                    pdu[torque_cofficient] = TORQUE_COEFFICIENT_MIN;//速度模式下最小力矩挡位
+                }
+                else if (Abs_int(pdu[Torque_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR)
+                {
+                    pdu[torque_cofficient] = TORQUE_COEFFICIENT_BASE;
+                }
+                else if (Abs_int(pdu[Torque_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR)
+                {
+                    pdu[torque_cofficient] = TORQUE_COEFFICIENT_MAX; //通过SDO  发过电机力矩  对象字典   只有中凌有，万泽没有此选项。
+                }
+                torque_switch = true;
+            }
+#endif						
 			//更新值，作为对比
-            Last_RC6_Value = pdu[rc_ch6_value];
-            Last_RC10_Value = pdu[rc_ch10_value];
+            Last_Gear_value = pdu[GearPosition_value];
+            Last_Torque_value = pdu[Torque_value];
 
 						
 			//sdo  把电流 值 发送出去
@@ -677,19 +694,19 @@ void ClassificationOfMotorMotionModes(uint16_t sport_mode)
             }
 
             break;
-             //  存疑，目前只是简单测试过，没有速度模式好用，所以此方案暂时废弃
+             //  目前只是简单测试过，没有速度模式好用，所以此方案暂时废弃
         case torque_mode:
             switch (pdu[car_type])
             {
                 case Akm_Car:
-                    if((mode_count == 1) && (pdu[rc_ch3_value] != pdu[rc_base_value])) //非停止状态下切换成转矩模式，不带刹车
+                    if((mode_count == 1) && (pdu[Forward_value] != pdu[rc_base_value])) //非停止状态下切换成转矩模式，不带刹车
                     {
                         Add_Sdo_Linked_List(pdu[motor2_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
                         Add_Sdo_Linked_List(pdu[motor3_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
                         mode_count = 0;
                     }
 
-                    if((pdu[rc_ch3_value] == pdu[rc_base_value]) && (myabs(pdu[motor2_rpm_feedback]) < 2)) //停止下来切换成速度模式，带刹车
+                    if((pdu[Forward_value] == pdu[rc_base_value]) && (myabs(pdu[motor2_rpm_feedback]) < 2)) //停止下来切换成速度模式，带刹车
                     {
                         Add_Sdo_Linked_List(pdu[motor2_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
                         Add_Sdo_Linked_List(pdu[motor3_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
@@ -707,7 +724,7 @@ void ClassificationOfMotorMotionModes(uint16_t sport_mode)
                     break;
 
                 case FourWheel_Car:
-                    if((mode_count == 1) && (pdu[rc_ch3_value] != pdu[rc_base_value])) //非停止状态下切换成转矩模式，不带刹车
+                    if((mode_count == 1) && (pdu[Forward_value] != pdu[rc_base_value])) //非停止状态下切换成转矩模式，不带刹车
                     {
                         Add_Sdo_Linked_List(pdu[motor1_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
                         Add_Sdo_Linked_List(pdu[motor2_CAN_id], Torque_Mode_Sdo, sizeof(Torque_Mode_Sdo) / sizeof(Torque_Mode_Sdo[0]));
@@ -716,7 +733,7 @@ void ClassificationOfMotorMotionModes(uint16_t sport_mode)
                         mode_count = 0;
                     }
 
-                    if((pdu[rc_ch3_value] == pdu[rc_base_value]) && (myabs(pdu[motor2_rpm_feedback]) < 2)) //停止下来切换成速度模式，带刹车
+                    if((pdu[Forward_value] == pdu[rc_base_value]) && (myabs(pdu[motor2_rpm_feedback]) < 2)) //停止下来切换成速度模式，带刹车
                     {
                         Add_Sdo_Linked_List(pdu[motor1_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
                         Add_Sdo_Linked_List(pdu[motor2_CAN_id], Speed_Mode_Sdo, sizeof(Speed_Mode_Sdo) / sizeof(Speed_Mode_Sdo[0]));
@@ -761,9 +778,9 @@ void ClassificationOfMotorMotionModes(uint16_t sport_mode)
 //  输入对应遥控器的通道值
 short LinearVelocityGet(void)
 {
-    uint16_t VelocityCoefficient = (pdu[rc_ch6_value] == pdu[rc_min_value]) ? pdu[linear_low] : //线速度系数
-                                   (pdu[rc_ch6_value] == pdu[rc_base_value]) ? pdu[linear_middle] : pdu[linear_high];
-    float VelocityTemp = pdu[robot_forward_direction] * (pdu[rc_ch3_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference];
+    uint16_t VelocityCoefficient = (myabs(pdu[GearPosition_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR) ? pdu[linear_low] : //线速度系数
+                (myabs(pdu[GearPosition_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR) ? pdu[linear_middle] : pdu[linear_high];
+    float VelocityTemp = pdu[robot_forward_direction] * (pdu[Forward_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference];
 
     switch(pdu[car_type])
     {
@@ -773,7 +790,7 @@ short LinearVelocityGet(void)
         case TwoWheel_Car: 	// 室内差速二驱车
         case Tank_Car:   	// 坦克车
         case RC_Car:   		// RC车
-            return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?//使能拨杆
+            return (myabs(pdu[Enable_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?//使能拨杆
                    (short)(VelocityCoefficient * VelocityTemp) : 0;
 
         default:
@@ -789,23 +806,23 @@ short LinearVelocityGet(void)
 //  输入对应遥控器的通道值
 short AngularVelocityGet(short linearValue)
 {
-    uint16_t YawCoefficient = (pdu[rc_ch6_value] == pdu[rc_min_value]) ? pdu[angular_low] : //角速度系数
-                              (pdu[rc_ch6_value] == pdu[rc_base_value]) ? pdu[angular_middle] : pdu[angular_high];
-    float YawTemp = -(pdu[robot_forward_direction] * (pdu[rc_ch1_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference]); //角速度与转向通道值正方向相反，归一法(-1,1)
+    uint16_t YawCoefficient = (pdu[GearPosition_value] == pdu[rc_min_value]) ? pdu[angular_low] : //角速度系数
+                              (pdu[GearPosition_value] == pdu[rc_base_value]) ? pdu[angular_middle] : pdu[angular_high];
+    float YawTemp = -(pdu[robot_forward_direction] * (pdu[Turn_value] - pdu[rc_base_value]) / (float)pdu[rc_gears_difference]); //角速度与转向通道值正方向相反，归一法(-1,1)
 
     switch(pdu[car_type])
     {
         case Akm_Car:		// 阿克曼
             pdu[target_angle] = round(YawTemp * DEGREE_MAX); //前轮转角
             Servo_pulse = YawTemp * MYHALF * ENCODER_LINES * CORRECTION_FACTOR * pdu[motor1_reduction_ratio];//脉冲
-            return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?
+            return (myabs(pdu[Enable_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?
                    (short)(linearValue * YawTemp / AKM_RAW_FACTOR) : 0; // Z轴角速度
 
         case Diff_Car:		// 差速车(圆形底盘)
         case FourWheel_Car:	// 室外差速四驱车
         case TwoWheel_Car: 	// 室内差速二驱车
         case Tank_Car :   	// 坦克车
-            return (myabs(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?
+            return (myabs(pdu[Enable_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) ?
                    (short)(YawCoefficient * YawTemp / PI * 4) : 0; // Z轴角速度
             //系数存疑
 

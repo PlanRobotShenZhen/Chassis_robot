@@ -34,11 +34,12 @@
 //SWB速度模式下的力矩挡位(VRA控制)系数
 #define SWB_LOW_GEAR 			33			//力矩低档位系数
 #define SWB_MIDDLE_GEAR 		66			//力矩中档位系数
-#define SWB_HIGH_GEAR 			99			//力矩高档位系数 
+#define SWB_HIGH_GEAR 			100			//力矩高档位系数 
 
 #define CHANNEL_VALUE_ERROR 	10			//手柄通道值允许误差
 
 #define TORQUE_COEFFICIENT_MAX 	3			//最大力矩档
+#define TORQUE_COEFFICIENT_BASE 2			//中等力矩档
 #define TORQUE_COEFFICIENT_MIN 	1			//最小力矩档
 
 extern float Move_X,Move_Y,Move_Z;   	//小车各个轴的速度

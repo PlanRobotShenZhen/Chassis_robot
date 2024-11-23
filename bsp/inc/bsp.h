@@ -50,6 +50,8 @@
 #define Chrg		8           // ³äµç×®
 
 #define CARMODE						Diff
+#define TIM 							50	//< 5ms
+#define DELAY_COUNT_1S 		(1000 / (TIM / 10))
 #define N32G45X_SRAM_SIZE           144
 #define N32G45X_SRAM_START          (0x20000000 + N32G45X_SRAM_SIZE/2 * 1024)
 #define N32G45X_SRAM_END            (0x20000000 + N32G45X_SRAM_SIZE * 1024)

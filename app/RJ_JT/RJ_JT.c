@@ -31,7 +31,7 @@ void RJJT_task(void *pvParameters)
 bool SWD_JT_Control(void)
 {
     //阿克曼旧电源板exio_input.bit.X0低电平时急停，基本已不用
-    if((Abs_int(pdu[rc_ch9_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) || (GPIO_ReadInputDataBit(ESTOP_SW_IN_GPIO, ESTOP_SW_IN_PIN) == RESET))
+    if((Abs_int(pdu[EmergencyStop_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) || (GPIO_ReadInputDataBit(ESTOP_SW_IN_GPIO, ESTOP_SW_IN_PIN) == RESET))
     {
         //GPIO_ResetBits(RJ_JT_GPIO,RJ_JT_Pin);
         return true;

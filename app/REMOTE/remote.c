@@ -19,7 +19,8 @@ void Remote_Task(void *pvParameters)
 {
     while (1)
     {
-        rt_thread_delay(50);   	//< 5ms
+        
+        rt_thread_delay(TIM);
         Usart3_Recv();			//串口3(ROS)接收数据
         Usart3_Send();    		//串口3(ROS)发送数据
         Sbus_Data_Parsing();	//解析航模数据
@@ -34,6 +35,7 @@ void Remote_Task(void *pvParameters)
 * 返 回 值：无
 **************************************************/
 uint16_t test_Data[16] = {0};
+int REMOTE_Count = 0;
 void Sbus_Data_Parsing(void)
 {
 //这里用的是SBUS协议，参考网址：https://os.mbed.com/users/Digixx/notebook/futaba-s-bus-controlled-by-mbed/
@@ -42,54 +44,84 @@ void Sbus_Data_Parsing(void)
     第2个字节~第23个字节为对应16个通道，每个通道11bit。22*8=16*11，每个通道取值范围为0~2^11-1=0-2047，本款取值240-1807。
     高位先发，ch1的11位=data2的低3位+data1的8位，依此类推。第24个字节为状态字flag，0代表所有数据正确，1代表失败。
     */
-    if(REMOTE_Count < 10000)	
+#if(REMOTE_TYPE == REMOTE_TYPE_FSi6)
+    if(REMOTE_Count < DELAY_COUNT_1S * 100)
     {
         REMOTE_Count++;
     }
-    if(Sbus_Data_Parsing_Flag)
-    {   //0起始字节为0F，23标志正常为00，24结束字节00
+#endif
+    if (Sbus_Data_Parsing_Flag)
+    {
+        Sbus_Data_Parsing_Flag = false;
+
+        //0起始字节为0F，23标志正常为00，24结束字节00
         //FS-i6S遥控器最多只支持到前10个通道
-        if(Uart5_Buffer[0] == 0x0F && Uart5_Buffer[23] == 0x03 && Uart5_Buffer[24] == 0x00)
+        // //HT-8A遥控器最多支持8通道
+        //Uart5_Buffer[23]理论正常应该为00，但HT-8A显示03
+        if (Uart5_Buffer[0] == 0x0F && Uart5_Buffer[24] == 0x00)
         {
-            pdu[rc_ch1_value] = ((int16_t)Uart5_Buffer[ 1] >> 0  | ((int16_t)Uart5_Buffer[ 2] << 8 )) & 0x07FF;
-            pdu[rc_ch2_value] = ((int16_t)Uart5_Buffer[ 2] >> 3  | ((int16_t)Uart5_Buffer[ 3] << 5 )) & 0x07FF;
-            pdu[rc_ch3_value] = ((int16_t)Uart5_Buffer[ 3] >> 6  | ((int16_t)Uart5_Buffer[ 4] << 2 ) | (int16_t)Uart5_Buffer[ 5] << 10 ) & 0x07FF;
-            pdu[rc_ch4_value] = ((int16_t)Uart5_Buffer[ 5] >> 1  | ((int16_t)Uart5_Buffer[ 6] << 7 )) & 0x07FF;
-            pdu[rc_ch5_value] = ((int16_t)Uart5_Buffer[ 6] >> 4  | ((int16_t)Uart5_Buffer[ 7] << 4 )) & 0x07FF;
-            pdu[rc_ch6_value] = ((int16_t)Uart5_Buffer[ 7] >> 7  | ((int16_t)Uart5_Buffer[ 8] << 1 ) | (int16_t)Uart5_Buffer[9] << 9 ) & 0x07FF;
-            pdu[rc_ch7_value] = ((int16_t)Uart5_Buffer[ 9] >> 2  | ((int16_t)Uart5_Buffer[10] << 6 )) & 0x07FF;
-            pdu[rc_ch8_value] = ((int16_t)Uart5_Buffer[10] >> 5  | ((int16_t)Uart5_Buffer[11] << 3 )) & 0x07FF;
-            pdu[rc_ch9_value] = ((int16_t)Uart5_Buffer[12] << 0  | ((int16_t)Uart5_Buffer[13] << 8 )) & 0x07FF;
-            pdu[rc_ch10_value] = ((int16_t)Uart5_Buffer[13] >> 3 | ((int16_t)Uart5_Buffer[14] << 5 )) & 0x07FF;
-            pdu[rc_ch11_value] = ((int16_t)Uart5_Buffer[14] >> 6 | ((int16_t)Uart5_Buffer[15] << 2 ) | (int16_t)Uart5_Buffer[16] << 10 ) & 0x07FF;
-            pdu[rc_ch12_value] = ((int16_t)Uart5_Buffer[16] >> 1 | ((int16_t)Uart5_Buffer[17] << 7 )) & 0x07FF;
-            pdu[rc_ch13_value] = ((int16_t)Uart5_Buffer[17] >> 4 | ((int16_t)Uart5_Buffer[18] << 4 )) & 0x07FF;
-            pdu[rc_ch14_value] = ((int16_t)Uart5_Buffer[18] >> 7 | ((int16_t)Uart5_Buffer[19] << 1 ) | (int16_t)Uart5_Buffer[20] << 9 ) & 0x07FF;
-            pdu[rc_ch15_value] = ((int16_t)Uart5_Buffer[20] >> 2 | ((int16_t)Uart5_Buffer[21] << 6 )) & 0x07FF;
-            pdu[rc_ch16_value] = ((int16_t)Uart5_Buffer[21] >> 5 | ((int16_t)Uart5_Buffer[22] << 3 )) & 0x07FF;
+            pdu[rc_ch1_value] = ((int16_t)Uart5_Buffer[1] >> 0 | ((int16_t)Uart5_Buffer[2] << 8)) & 0x07FF;
+            pdu[rc_ch2_value] = ((int16_t)Uart5_Buffer[2] >> 3 | ((int16_t)Uart5_Buffer[3] << 5)) & 0x07FF;
+            pdu[rc_ch3_value] = ((int16_t)Uart5_Buffer[3] >> 6 | ((int16_t)Uart5_Buffer[4] << 2) | (int16_t)Uart5_Buffer[5] << 10) & 0x07FF;
+            pdu[rc_ch4_value] = ((int16_t)Uart5_Buffer[5] >> 1 | ((int16_t)Uart5_Buffer[6] << 7)) & 0x07FF;
+            pdu[rc_ch5_value] = ((int16_t)Uart5_Buffer[6] >> 4 | ((int16_t)Uart5_Buffer[7] << 4)) & 0x07FF;
+            pdu[rc_ch6_value] = ((int16_t)Uart5_Buffer[7] >> 7 | ((int16_t)Uart5_Buffer[8] << 1) | (int16_t)Uart5_Buffer[9] << 9) & 0x07FF;
+            pdu[rc_ch7_value] = ((int16_t)Uart5_Buffer[9] >> 2 | ((int16_t)Uart5_Buffer[10] << 6)) & 0x07FF;
+            pdu[rc_ch8_value] = ((int16_t)Uart5_Buffer[10] >> 5 | ((int16_t)Uart5_Buffer[11] << 3)) & 0x07FF;
+            pdu[rc_ch9_value] = ((int16_t)Uart5_Buffer[12] << 0 | ((int16_t)Uart5_Buffer[13] << 8)) & 0x07FF;
+            pdu[rc_ch10_value] = ((int16_t)Uart5_Buffer[13] >> 3 | ((int16_t)Uart5_Buffer[14] << 5)) & 0x07FF;
+            pdu[rc_ch11_value] = ((int16_t)Uart5_Buffer[14] >> 6 | ((int16_t)Uart5_Buffer[15] << 2) | (int16_t)Uart5_Buffer[16] << 10) & 0x07FF;
+            pdu[rc_ch12_value] = ((int16_t)Uart5_Buffer[16] >> 1 | ((int16_t)Uart5_Buffer[17] << 7)) & 0x07FF;
+            pdu[rc_ch13_value] = ((int16_t)Uart5_Buffer[17] >> 4 | ((int16_t)Uart5_Buffer[18] << 4)) & 0x07FF;
+            pdu[rc_ch14_value] = ((int16_t)Uart5_Buffer[18] >> 7 | ((int16_t)Uart5_Buffer[19] << 1) | (int16_t)Uart5_Buffer[20] << 9) & 0x07FF;
+            pdu[rc_ch15_value] = ((int16_t)Uart5_Buffer[20] >> 2 | ((int16_t)Uart5_Buffer[21] << 6)) & 0x07FF;
+            pdu[rc_ch16_value] = ((int16_t)Uart5_Buffer[21] >> 5 | ((int16_t)Uart5_Buffer[22] << 3)) & 0x07FF;
             for (int i = 0; i < 16; i++)
             {
                 test_Data[i] = pdu[161 + i];
             }
-		}
-
-        //HT-8A遥控器最多支持8通道
-
-
-        Sbus_Data_Parsing_Flag = false;
-        pdu[control_mode] = control_mode_remote;
-        pdu[rc_connect_state] = rc_state_success;
-        REMOTE_Count = 0;
+#if(REMOTE_TYPE == REMOTE_TYPE_FSi6)
+            REMOTE_Count = 0;
+            pdu[control_mode] = control_mode_remote;
+            pdu[rc_connect_state] = rc_state_success;
+        }
     }
-    else if(REMOTE_Count > 200)//解码超时
+    else if (REMOTE_Count > 200)//解码超时
     {
         pdu[rc_connect_state] = rc_state_failed;
-
-        if(pdu[control_mode] != control_mode_ros)
+        if (pdu[control_mode] != control_mode_ros)
         {
             pdu[control_mode] = control_mode_unknown;
         }
     }
+
+#elif(REMOTE_TYPE == REMOTE_TYPE_HT8A)
+        }
+        //该遥控器的接收端未接收到信号时一直发待机状态，故只有remote和ros两种控制模式
+        //遥控器默认状态
+        if (pdu[Forward_value] == pdu[rc_base_value] && pdu[Turn_value] == pdu[rc_base_value] &&
+            pdu[Enable_value] == pdu[rc_min_value] && pdu[EmergencyStop_value] == pdu[rc_min_value])
+        {
+            //三秒默认状态视为失去遥控器控制
+            if (REMOTE_Count > (DELAY_COUNT_1S * 2))
+            {
+                pdu[control_mode] = control_mode_ros;
+                pdu[rc_connect_state] = rc_state_failed;
+
+            }
+            else if (REMOTE_Count < (DELAY_COUNT_1S * 100))
+            {
+                REMOTE_Count++;
+            }
+        }
+        else
+        {
+            pdu[control_mode] = control_mode_remote;
+            pdu[rc_connect_state] = rc_state_success;
+            REMOTE_Count = 0;
+        }
+    }
+#endif
 }
 
 /**************************************************
@@ -104,7 +136,7 @@ void MotorEnableFunction()
         uint16_t x_sw = motor1_state_word + count * pdu[ro_motor_gap];//电机状态字的Pdu地址
         uint16_t x_enstate = motor1_enable_state + count * pdu[ro_motor_gap];//电机使能状态的Pdu地址
         //遥控器使能或者ros下发电机使能
-        if ((Abs_int(pdu[rc_ch7_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) || (robot_control.bit.motor_en))
+        if ((Abs_int(pdu[Enable_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR) || (robot_control.bit.motor_en))
         {
             //电机未使能
             if(!pdu[x_enstate])
@@ -133,7 +165,7 @@ void MotorEnableFunction()
                 }
             }
         }
-        else if((pdu[rc_ch7_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR)
+        else if((pdu[Enable_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR)
         {
             if(pdu[x_enstate])
             {

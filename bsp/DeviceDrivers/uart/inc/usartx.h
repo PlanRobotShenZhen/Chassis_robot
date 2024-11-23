@@ -103,21 +103,33 @@ void Uart5_Dma_Config(void);
 #define RECEIVE_DATA_SIZE 		11
 
 /*—-------------航模模块--------------*/
-#define REMOTE_TPYE				2		//航模遥控器型号切换
-#define FS_i6					1
-#define HT_8A					2
-#if(REMOTE_TPYE == FS_i6)
+#define REMOTE_TYPE_FSi6		1
+#define REMOTE_TYPE_HT8A		2
+#define REMOTE_TYPE				REMOTE_TYPE_HT8A		//航模遥控器型号切换
+#if(REMOTE_TYPE == REMOTE_TYPE_FSi6)
 #define RC_MIN_VALUE        	240       	//定义三个速度挡位的基准值,swb控制，ch6通道
 #define RC_BASE_VALUE       	1023
 #define RC_MAX_VALUE        	1807
 #define RC_GEARS_DIFFERENCE     784
+#define Forward_value			rc_ch3_value
+#define Turn_value				rc_ch1_value
+#define GearPosition_value		rc_ch6_value
+#define Enable_value			rc_ch7_value
+#define EmergencyStop_value		rc_ch9_value
+#define Torque_value			rc_ch10_value
 
-
-#elif(REMOTE_TPYE == HT_8A)
-#define RC_MIN_VALUE        	200       	//定义三个速度挡位的基准值,swb控制，ch6通道
-#define RC_BASE_VALUE       	1000
-#define RC_MAX_VALUE        	1800
+#elif(REMOTE_TYPE == REMOTE_TYPE_HT8A)
+#define RC_MIN_VALUE        	192       	//定义三个速度挡位的基准值,swb控制，ch6通道
+#define RC_BASE_VALUE       	992
+#define RC_MAX_VALUE        	1792
 #define RC_GEARS_DIFFERENCE     800
+#define Forward_value			rc_ch3_value
+#define Turn_value				rc_ch1_value
+#define GearPosition_value		rc_ch5_value
+#define Enable_value			rc_ch6_value
+#define EmergencyStop_value		rc_ch7_value
+#define Torque_value			rc_ch8_value
+
 #endif
 
 
@@ -169,7 +181,6 @@ extern unsigned char Receive_Data[RECEIVE_DATA_SIZE];  //存放接收到的数据
 
 extern unsigned char Uart5_Buffer[Max_BUFF_Len];  //存放接收到的数据
 extern int ROS_Count;
-extern int REMOTE_Count;
 
 
 void DATA_task(void *pvParameters);
