@@ -2,7 +2,7 @@
 #define __FLASH_WR_H
 
 
-#define FINAL_PAGE_ADDRESS 0x0803F800
+#define FINAL_PAGE_ADDRESS 0x0803F800 //CCL7的Flash大小是256kb，擦除flash内存的最小单位是扇区，该扇区为2kb。取最后2kb作为数据储存区，而且Flash地址是从0x8000000开始的
 /**************************************************************************
 函数功能：向指定地址写入数据
 入口参数：addr 	写入的FLASH页的首地址

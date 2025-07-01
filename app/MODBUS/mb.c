@@ -63,8 +63,10 @@ static UCHAR    ucMBAddress;
 /* 私有变量 ------------------------------------------------------------------*/
 PDUData_TypeDef PduData;
 REG_VALUE R_value;
- uint16_t mbdata[MB_RTU_DATA_MAX_SIZE];
+uint16_t mbdata[MB_RTU_DATA_MAX_SIZE];
 uint16_t* pdu = mbdata;
+
+
 static enum
 {
     STATE_ENABLED,
@@ -304,24 +306,24 @@ uint8_t MB_JudgeNum(uint16_t _RegNum, uint8_t _FunCode, uint16_t _ByteNum)
     uint16_t _CoilNum = _RegNum; // 线圈(离散量)的数量
     switch (_FunCode)
     {
-    case FUN_CODE_01H:
+    case FUN_CODE_01H:// 读线圈 (0x01) / 读离散输入 (0x02)
     case FUN_CODE_02H:
-        if ((_CoilNum < 0x0001) || (_CoilNum > 0x07D0))
-            Excode = EX_CODE_03H;// 异常码03H;
+        if ((_CoilNum < 1) || (_CoilNum > 2000))
+            Excode = EX_CODE_03H;// 异常码03H; 非法数据值
         break;
     case FUN_CODE_03H:
     case FUN_CODE_04H:
-        if ((_RegNum < 0x0001) || (_RegNum > 0x007D))
+        if ((_RegNum < 1) || (_RegNum > 125))
             Excode = EX_CODE_03H;// 异常码03H;      
         break;
     case FUN_CODE_10H:
-        if ((_RegNum < 0x0001) || (_RegNum > 0x007B))
+        if ((_RegNum < 1) || (_RegNum > 123))//写多个寄存器
             Excode = EX_CODE_03H;// 异常码03H
-        if (_ByteNum != (_RegNum << 1))
+        if (_ByteNum != (_RegNum << 1))//字节数不匹配寄存器数量
             Excode = EX_CODE_03H;// 异常码03H
         break;
     case FUN_CODE_11H:
-        if ((_RegNum < 0x0001) || (_RegNum > 0x04CE))
+        if ((_RegNum < 0x0001) || (_RegNum > 1230))
             Excode = EX_CODE_03H;// 异常码03H
         //if (_ByteNum != (_RegNum << 1))
         //    Excode = EX_CODE_03H;// 异常码03H
@@ -344,7 +346,7 @@ uint8_t MB_JudgeAddr(uint16_t _Addr, uint16_t _RegNum)
     {
         Excode = EX_CODE_02H;// 异常码 02H
     }
-    return Excode;
+    return Excode; 
 }
 
 /**
@@ -471,11 +473,11 @@ static uint16_t MB_RSP_01H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Co
             49 CRC校验低字节
 
         例子1:
-        发送：	01 01 00 02 00 08   9C 0C	  --- 查询D02开始的8个继电器状态
+        发送：	01 01 00 02 00 08   9C 0C	  --- 查询pdu[2]开始的8个继电器状态
         返回：	01 01 01 01         90 48   --- 查询到8个状态为：0000 0001 第二个LED为亮
 
         例子2:
-        发送：	01 01 00 01 00 10   6C 06	  --- 查询D01开始的16个继电器状态
+        发送：	01 01 00 01 00 10   6C 06	  --- 查询pdu[1]开始的16个继电器状态
         返回：	01 01 02 FF FF      B8 4C   --- 查询到两个字节数据为0xFFFF
 
     */
@@ -511,7 +513,7 @@ static uint16_t MB_RSP_01H(uint16_t _TxCount, uint16_t _AddrOffset, uint16_t _Co
     //	}		
 
         /*----------------------------分割线----------------------------------*/
-    usart1_send_data[_TxCount++] = 2;
+    usart1_send_data[_TxCount++] = 2;//返回字节数
     /* 填充返回内容 */
     if (_AddrOffset == COIL_D01)
     {
@@ -1278,6 +1280,7 @@ eMBErrorCode eMBPoll(MBModify* modify)
             break;
 
         case EV_FRAME_RECEIVED:
+            //检测是否有接收长度错误、CRC校验错误，若无，赋值从站地址（数据帧数组的第一个字节）、数据帧长度（除去2位CRC）、pucFrame指向接收到的整个数据帧
             eStatus = peMBFrameReceiveCur( &ucRcvAddress, &ucMBFrame, &usLength );
             if( eStatus == MB_ENOERR )
             {
@@ -1337,3 +1340,7 @@ eMBErrorCode eMBPoll(MBModify* modify)
     return MB_ENOERR;
 }
 
+
+
+
+ 

@@ -219,8 +219,8 @@ enum address_485 {
     para_save,
 
     robot_acceleration,
-    robot_forward_direction,
-    robot_turning_direction,
+    robot_forward_direction,	//前进方向
+    robot_turning_direction,	//转弯方向
     max_linear_speed,
     max_yaw_speed,
     max_angle,
@@ -393,7 +393,15 @@ enum address_485 {
     undefined374,   
     Middle_battery_threshold = 375,
     Low_battery_threshold, 
-    Power_board_version, 
+    Power_board_version,
+	motor1_pulse_num,
+	motor1_pulse_num1,
+	motor2_pulse_num,
+	motor2_pulse_num1,
+	motor3_pulse_num,
+	motor3_pulse_num1,
+	motor4_pulse_num,
+	motor4_pulse_num1,	
 };
 
 

@@ -49,48 +49,28 @@ extern void  rt_application_init(void);
  */
 void rtthread_startup(void)
 {
-    /* init board */
-    rt_hw_board_init();
-
-    /* init scheduler system */
-    rt_system_scheduler_init();
-
-    /* initialize timer */
-    rt_system_timer_init();
-
+    rt_hw_board_init();           //初始化硬件板级资源。
+    rt_system_scheduler_init(); 	//初始化调度器系统
+    rt_system_timer_init();       //初始化系统定时器
 #ifdef RT_USING_HEAP
-    /* init memory system */
-    rt_system_heap_init((void *)N32G45X_SRAM_START, (void *)N32G45X_SRAM_END);
+    rt_system_heap_init((void *)N32G45X_SRAM_START, (void *)N32G45X_SRAM_END);    //初始化系统堆内存
 #endif //RT_USING_HEAP
-
-    /* init timer thread */
-    rt_system_timer_thread_init();
-
-    // 然后进行对应的参数初始化    
-    modbus_task_init();	
-	
-    /* init application */
-    rt_application_init();
-
-    /* init idle thread */
-    rt_thread_idle_init();
-
-    /* start scheduler */
-    rt_system_scheduler_start();
-
-    /* never reach here */
+    rt_system_timer_thread_init();    //初始化定时器线程
+    modbus_task_init();	          // 然后进行对应的参数初始化 
+    rt_application_init();        // 只是初始化和启动了线程，但此时调度器尚未启动，因此线程不会立即运行。
+    rt_thread_idle_init();        //初始化空闲线程
+    rt_system_scheduler_start();  //启动调度器，开始线程调度。
     return ;
 }
+
 /**
  * @brief  Main program.
  */
 int main(void)
 {
-	
     /* disable interrupt first */
     rt_hw_interrupt_disable();
 
-		//rt_application_init();
     /* startup RT-Thread RTOS */
     rtthread_startup();
 }

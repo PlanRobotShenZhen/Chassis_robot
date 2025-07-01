@@ -5,4 +5,5 @@ void RJJT_task(void *pvParameters);
 bool SWD_JT_Control(void);
 
 extern bool Soft_JT_Flag;
+extern bool soft_emergency_stop;
 

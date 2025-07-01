@@ -45,11 +45,15 @@
  */
 void NVIC_Configuration(void)
 {
+//RAM 中的向量表：通常用于调试阶段，方便动态修改中断服务程序。
 #ifdef  VECT_TAB_RAM
     /* Set the Vector Table base location at 0x20000000 */
     NVIC_SetVectorTable(NVIC_VectTab_RAM, 0x0);
+
+
 #else  /* VECT_TAB_FLASH  */
-    /* Set the Vector Table base location at 0x08000000 */
+//Flash 中的向量表：通常用于最终发布版本，中断服务程序固定不变。
+	/* Set the Vector Table base location at 0x08000000 */
     NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0000);
 #endif
 }
@@ -110,7 +114,6 @@ void rt_hw_board_init()
 #ifdef PRINT_RCC_FREQ_INFO
     print_rcc_freq_info();
 #endif
-
 }
 
 //设置向量表偏移地址

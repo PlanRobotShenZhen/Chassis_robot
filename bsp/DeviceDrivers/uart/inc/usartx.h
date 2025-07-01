@@ -32,7 +32,7 @@ extern uint8_t usart3_recv_data[USART3_RX_MAXBUFF]; // 接收数据缓冲区
 extern uint8_t usart3_recv_len;      // 接收的数据长度
 extern uint8_t usart3_recv_flag;     // 接收完成标志位
 
-#define USART3_TX_MAXBUFF   24 		// 发送数据最大缓冲区
+#define USART3_TX_MAXBUFF    50		// 发送数据最大缓冲区
 extern uint8_t usart3_send_data[USART3_TX_MAXBUFF]; // 发送数据缓冲区
 extern uint8_t usart3_send_len;      // 发送的数据长度
 extern uint8_t usart3_send_flag;     // 发送完成标志位
@@ -100,7 +100,7 @@ void Uart5_Dma_Config(void);
 #define FRAME_HEADER 			0X7B  		//发送数据的帧头,"{"
 #define FRAME_TAIL 				0X7D      	//发送数据的帧尾,"}"
 #define SEND_DATA_SIZE 			24
-#define RECEIVE_DATA_SIZE 		11
+#define RECEIVE_DATA_SIZE 		17
 
 /*—-------------航模模块--------------*/
 #define REMOTE_TYPE_FSi6		1
@@ -160,17 +160,34 @@ typedef union
 {
 	struct{
 	unsigned char Frame_Header;			//1个字节
-	unsigned char Motor_Enable_Flag;	//1个字节		
+	unsigned char Motor_Enable_Flag;	//1个字节
+	uint8_t car_error_messages;        //车辆错误信息 16
+	uint8_t car_state;				//机器人运行状态 15		
 	short X_speed;	           			//2个字节
+	short Y_speed;	           			//2个字节
 	short Z_speed;             			//2个字节
-	uint16_t Power_Quantity;      		//电池电量
 	uint16_t Power_Voltage;       		//电池电压		
-	uint16_t Power_Current;       		//电池电流
-	uint16_t Power_Temperature;   		//电池温度
-	uint16_t M1_current;       			//电机1电流
-	uint16_t M2_current;       			//电机2电流
+	short Power_Current;       		//电池电流
+	uint8_t Power_Quantity;      		//电池电量
+	char Power_Temperature;   		//电池温度
+	uint8_t motor1_node_state;       //电机1节点状态  39
+	uint8_t motor2_node_state;       //电机2节点状态	
+	uint8_t motor3_node_state;		//电机3节点状态
+	uint8_t motor4_node_state;		//电机4节点状态
+	uint16_t motor1_error_code;			//电机1错误代码  41
+	int16_t motor1_pulse;				//电机1脉冲数低字节
+	int16_t motor1_pulse1;				//电机1脉冲数高字节
+	uint16_t motor2_error_code;			//电机2错误代码
+	int16_t motor2_pulse;				//电机2脉冲数低字节
+	int16_t motor2_pulse1;				//电机2脉冲数高字节
+	uint16_t motor3_error_code;			//电机3错误代码
+	int16_t motor3_pulse;				//电机3脉冲数低字节
+	int16_t motor3_pulse1;				//电机3脉冲数高字节
+	uint16_t motor4_error_code;			//电机4错误代码
+	int16_t motor4_pulse;				//电机4脉冲数低字节
+	int16_t motor4_pulse1;				//电机4脉冲数高字节
 	uint16_t Odometry1;     			//里程计低字节
-	uint16_t Odometry2;     			//里程计高字节		
+	uint16_t Odometry2;     			//里程计高字节
 	unsigned char Check_SUM;   			//1个字节
 	unsigned char Frame_Tail;  			//1个字节
 	}d;	
@@ -189,13 +206,13 @@ void Uart5_Init(unsigned int unBound);              //串口5作为航模数据接收
 uint32_t Abs_int(int nValue);
 void JTAG_Set(uint8_t mode);
 
-unsigned char Check_Sum(unsigned char Count_Number,unsigned char Mode);
+unsigned char Check_Sum(unsigned char Count_Number, unsigned char Mode);
 void Data_transition(void);         //串口3发送给上位机数据转换
 
 void Jump_To_BOOT(void);
 void Pdu_Init(void);
-
-
+static u16 MDBcrc(u8* dataBuf, u8 len);
+extern  u8 ros_motor_en;
 
 #endif
 

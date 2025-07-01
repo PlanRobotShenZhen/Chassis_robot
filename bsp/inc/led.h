@@ -102,7 +102,7 @@ void JT_Light(void);
 void BatteryThresholdAlarm(void);
 void PWM_LED_Init(void);
 void RGB_SetColorDuty(Color color, uint16_t Compare);
-
+void SetLEDs(bool left, bool right);
 #define Front PAout(7)
 #define Rear PAout(12)
 #define Left PAout(8)

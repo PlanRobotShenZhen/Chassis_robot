@@ -52,8 +52,10 @@ void CAN_GPIO_Config(void)
 #if(CARMODE != Diff)
 	{
 		RCC_EnableAPB2PeriphClk(RCC_APB2_PERIPH_AFIO, ENABLE);
-		/* Remap CAN1 GPIOs */
+		/* Remap CAN GPIOs */
 		GPIO_ConfigPinRemap(GPIO_RMP2_CAN1, ENABLE);
+		GPIO_ConfigPinRemap(GPIO_RMP1_CAN2, ENABLE);
+		
 		/* Configure CAN1 RX pin */
 		GPIO_InitStructure.Pin = CANa_RxPin;
 		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
@@ -76,23 +78,28 @@ void CAN_GPIO_Config(void)
 	GPIO_InitPeripheral(CANb_GPIO, &GPIO_InitStructure);
 	//GPIO_ConfigPinRemap(GPIO_RMP3_CAN2, ENABLE);
 }
+
 /**
- * @brief  Configures CAN Filer.
+ * @brief  CAN1 过滤器初始化配置
+ * @note   配置CAN1接收过滤器的参数，设置过滤模式、ID掩码等
+ *         本函数将过滤器0配置为不过滤任何标准帧ID，所有消息均接收
  */
 void CAN1_Filter_Init(void)
 {
     CAN_FilterInitType CAN_FilterInitStructure;
-    /* CAN filter init */
-    CAN_FilterInitStructure.Filter_Num            = CAN_FILTERNUM0;
-    CAN_FilterInitStructure.Filter_Mode           = CAN_Filter_IdMaskMode;
-    CAN_FilterInitStructure.Filter_Scale          = CAN_Filter_32bitScale;
-    CAN_FilterInitStructure.Filter_HighId         = CAN_STD_ID_L_MASK_DONT_CARE;
-    CAN_FilterInitStructure.Filter_LowId          = CAN_STD_ID_L_MASK_DONT_CARE;
-    CAN_FilterInitStructure.FilterMask_HighId     = CAN_STD_ID_H_MASK_DONT_CARE;
-    CAN_FilterInitStructure.FilterMask_LowId      = CAN_STD_ID_L_MASK_DONT_CARE;
-    CAN_FilterInitStructure.Filter_FIFOAssignment = CAN_FIFO0;
-    CAN_FilterInitStructure.Filter_Act            = ENABLE;
+    /* CAN过滤器初始化结构体配置 */
+    CAN_FilterInitStructure.Filter_Num            = CAN_FILTERNUM0;        // 使用过滤器0
+    CAN_FilterInitStructure.Filter_Mode           = CAN_Filter_IdMaskMode; // 使用标识符屏蔽位模式
+    CAN_FilterInitStructure.Filter_Scale          = CAN_Filter_32bitScale; // 使用32位尺度
+    CAN_FilterInitStructure.Filter_HighId         = CAN_STD_ID_H_MASK_DONT_CARE; // 高16位ID不关心
+    CAN_FilterInitStructure.Filter_LowId          = CAN_STD_ID_L_MASK_DONT_CARE; // 低16位ID不关心
+    CAN_FilterInitStructure.FilterMask_HighId     = CAN_STD_ID_H_MASK_DONT_CARE; // 高16位掩码不关心
+    CAN_FilterInitStructure.FilterMask_LowId      = CAN_STD_ID_L_MASK_DONT_CARE; // 低16位掩码不关心
+    CAN_FilterInitStructure.Filter_FIFOAssignment = CAN_FIFO0;            // 接收到的消息存入FIFO0
+    CAN_FilterInitStructure.Filter_Act            = ENABLE;                // 使能该过滤器
+    /* 应用过滤器配置 */
     CAN1_InitFilter(&CAN_FilterInitStructure);
+    /* 使能FIFO0消息挂起中断 */
     CAN_INTConfig(CAN1, CAN_INT_FMP0, ENABLE);
 }
 
@@ -255,7 +262,7 @@ void ZLAC8015_PDO_Config(uint8_t id, uint8_t mode, uint8_t ah, uint8_t al, uint8
 {
 	uint8_t v[7];
 	v[0] = 0x80 + id;	//tpdo_id
-	v[1] = id;			//rpdo_id
+	v[1] = id;		//rpdo_id
 	v[2] = 0x32;		//定时器50ms
 	v[3] = 0xFF;		//速度模式地址
 	v[4] = 0x20;		//4字节		
@@ -389,40 +396,41 @@ void WANZER_PDO_Config(uint8_t id, uint8_t mode)// 万泽伺服
 	v[1] = id;			//rpdo_id
 	v[2] = 0x32;		//定时器50ms
 	v[3] = 0xFF;		//速度模式地址
-
+	
 	if(mode == position_mode){
 		v[2] = 0x14;		//20ms
 		v[3] = 0x7A;		//位置模式地址
 	}
-	uint8_t Init_sdo[][8]={ // 主站(单片机)，恢复从站的初始值 
+	uint8_t Init_sdo[][8]={ //主站(单片机)，恢复从站的初始值 
+	// AIMtor
 		// 读参数映射（TPDO0）
-		{0x23,0x00,0x18,0x01,v[0],0x01,0x00,0x80},  		//失能Tpdo0
-		{0x2B,0x00,0x18,0x05,v[2],0x00,0x00,0x00},    		//定时器触发时间 20/50ms(刷新率为50/20Hz)	
-		{0x2F,0x00,0x1A,0x00,0x00,0x00,0x00,0x00},  			//清除映射
-		{0x23,0x00,0x1A,0x01,0x10,0x00,0x41,0x60},  			//6041  状态字
-		{0x23,0x00,0x1A,0x02,0x20,0x00,0x64,0x60},  			//6064  当前位置
-		{0x23,0x00,0x1A,0x03,0x10,0x04,0x04,0x20},  			//2004  PCB温度	
+		{0x23,0x00,0x18,0x01,v[0],0x01,0x00,0x80},  	//失能Tpdo0
+		{0x2B,0x00,0x18,0x05,v[2],0x00,0x00,0x00},    	//定时器触发时间 20/50ms(刷新率为50/20Hz)	
+		{0x2F,0x00,0x1A,0x00,0x00,0x00,0x00,0x00},  	//清除映射
+		{0x23,0x00,0x1A,0x01,0x10,0x00,0x41,0x60},  	//6041  状态字
+		{0x23,0x00,0x1A,0x02,0x20,0x00,0x6C,0x60},  	//606C  速度反馈
+		{0x23,0x00,0x1A,0x03,0x10,0x00,0x77,0x60},  	//6077  实际转矩
 		{0x23,0x00,0x18,0x01,v[0],0x01,0x00,0x00}, 		//设置PDO的COB-ID
-		{0x2F,0x00,0x18,0x02,0xFF,0x00,0x00,0x00},    		//定时器触发
-		{0x2F,0x00,0x1A,0x00,0x03,0x00,0x00,0x00},    		//映射对象子索引个数
+		{0x2F,0x00,0x18,0x02,0xFF,0x00,0x00,0x00},    	//定时器触发
+		{0x2F,0x00,0x1A,0x00,0x03,0x00,0x00,0x00},    	//映射对象子索引个数
 		// 读参数映射（TPDO1）
-//		{0x23,0x01,0x18,0x01,v[0],0x02,0x00,0x80},  		//失能Tpdo1
-//		{0x2B,0x01,0x18,0x05,v[2],0x00,0x00,0x00},    		//定时器触发时间 50ms(刷新率为20Hz)
-//		{0x2F,0x01,0x1A,0x00,0x00,0x00,0x00,0x00},  			//清除映射
-//		{0x23,0x01,0x1A,0x01,0x20,0x00,0x6C,0x60},  			//606C  速度反馈
-//		{0x23,0x01,0x1A,0x02,0x10,0x02,0x04,0x20},  			//2004  母线电压
-//		{0x23,0x01,0x1A,0x03,0x10,0x03,0x04,0x20},  			//2004  母线电流	
-//		{0x23,0x01,0x18,0x01,v[0],0x02,0x00,0x00}, 		//设置PDO的COB-ID
-//		{0x2F,0x01,0x18,0x02,0xFF,0x00,0x00,0x00},    		//定时器触发
-//		{0x2F,0x01,0x1A,0x00,0x03,0x00,0x00,0x00},    		//映射对象子索引个数	
+		{0x23,0x01,0x18,0x01,v[0],0x02,0x00,0x80},  	//失能Tpdo1
+		{0x2B,0x01,0x18,0x05,v[2],0x00,0x00,0x00},    	//定时器触发时间 50ms(刷新率为20Hz)
+		{0x2F,0x01,0x1A,0x00,0x00,0x00,0x00,0x00},  	//清除映射
+		{0x23,0x01,0x1A,0x01,0x10,0x00,0x41,0x60},  	//6041  状态字
+		{0x23,0x01,0x1A,0x02,0x10,0x00,0x3F,0x60},  	//603F  错误代码
+		{0x23,0x01,0x1A,0x03,0x20,0x01,0x03,0x10},  	//1003  故障信息	
+		{0x23,0x01,0x18,0x01,v[0],0x02,0x00,0x00}, 		//设置PDO的COB-ID
+		{0x2F,0x01,0x18,0x02,0xFF,0x00,0x00,0x00},    	//定时器触发
+		{0x2F,0x01,0x1A,0x00,0x03,0x00,0x00,0x00},    	//映射对象子索引个数	
 		// 写参数映射（RPDO0）
-		{0x23,0x00,0x14,0x01,v[1],0x02,0x00,0x80},  				//失能Rpdo0
-		{0x2F,0x00,0x14,0x02,0xFE,0x00,0x00,0x00},    		//②Hex1400_02，传输形式：0xFE：事件触发；0xFF：定时器触发
-		{0x2F,0x00,0x16,0x00,0x00,0x00,0x00,0x00},  			//清除映射
-		{0x23,0x00,0x16,0x01,0x10,0x00,0x40,0x60},  			//6040 控制字
-    	{0x23,0x00,0x16,0x02,0x20,0x00,v[3],0x60},  			//60FF/7A 速度、位置模式
-		{0x2F,0x00,0x16,0x00,0x02,0x00,0x00,0x00},   		  //映射对象子索引个数
-		{0x23,0x00,0x14,0x01,v[1],0x02,0x00,0x00},  				// 设置PDO的COB-ID	
+		{0x23,0x00,0x14,0x01,v[1],0x02,0x00,0x80},  	//失能Rpdo0
+		{0x2F,0x00,0x14,0x02,0xFE,0x00,0x00,0x00},    	//②Hex1400_02，传输形式：0xFE：事件触发；0xFF：定时器触发
+		{0x2F,0x00,0x16,0x00,0x00,0x00,0x00,0x00},  	//清除映射
+		{0x23,0x00,0x16,0x01,0x10,0x00,0x40,0x60},  	//6040 控制字
+    	{0x23,0x00,0x16,0x02,0x20,0x00,v[3],0x60},  	//60FF/7A 速度、位置模式
+		{0x2F,0x00,0x16,0x00,0x02,0x00,0x00,0x00},   	//映射对象子索引个数
+		{0x23,0x00,0x14,0x01,v[1],0x02,0x00,0x00},  	// 设置PDO的COB-ID			
 	};
 	Add_Sdo_Linked_List(id, Init_sdo, sizeof(Init_sdo)/sizeof(Init_sdo[0]));
 	if(mode == position_mode){
@@ -435,13 +443,13 @@ void WANZER_PDO_Config(uint8_t id, uint8_t mode)// 万泽伺服
 			{0x23,0x84,0x60,0x00,0xD0,0x09,0x00,0x00},  // 6084 写入参数轮廓位置模式减速度 2512
 			{0x23,0xa4,0x60,0x01,0xD0,0x09,0x00,0x00},  // 60a4 01 写入参数轮廓加加速度 2512
 			{0x23,0xa4,0x60,0x02,0xD0,0x09,0x00,0x00},  // 60a4 02 写入参数轮廓加加速度 2512	
-		};																																//电机PDO配置															//反转电平	
+		};
 		Add_Sdo_Linked_List(id, init_sdo, sizeof(init_sdo)/sizeof(init_sdo[0]));
 	}else if(mode == speed_mode){
 		uint8_t init_sdo[][8]={
 			{0x2F,0x60,0x60,0x00,0x03,0x00,0x00,0x00},  //设置速度模式	
-			{0x23,0x83,0x60,0x00,0x10,0x27,0x00,0x00},  // 6083 写入参数轮廓位置模式加速度 10000
-			{0x23,0x84,0x60,0x00,0x10,0x27,0x00,0x00},  // 6084 写入参数轮廓位置模式减速度 10000
+			{0x23,0x83,0x60,0x00,0x30,0x75,0x00,0x00},  // 6083 写入参数轮廓位置模式加速度 30000
+			{0x23,0x84,0x60,0x00,0x30,0x75,0x00,0x00},  // 6084 写入参数轮廓位置模式减速度 30000
 			{0x23,0xa4,0x60,0x01,0xA0,0x86,0x01,0x00},  // 60a4 01 写入参数轮廓加加速度 100000
 			{0x23,0xa4,0x60,0x02,0xA0,0x86,0x01,0x00},  // 60a4 02 写入参数轮廓加加速度 100000
 		};
@@ -458,7 +466,7 @@ void PLAN_PDO_Config(uint8_t id, uint8_t mode, uint8_t ah, uint8_t al, uint8_t d
 {
 	uint8_t v[5];
 	v[0] = 0x80 + id;	//tpdo_id
-	v[1] = id;			//rpdo_id
+	v[1] =  id;		//rpdo_id
 	v[2] = 0x32;		//定时器50ms
 	v[3] = 0xFF;		//速度模式地址
 	v[4] = 0x20;		//4字节		
@@ -563,21 +571,15 @@ struct PointFrame* PointFramCereat(void)
 **************************************************************************/
 void Can_task(void* pvParameters)
 {
-	while (1)
-		{
+	while (1){
 		rt_thread_delay(20);   //< 2ms
 #if (CARMODE != Diff)
 		CAN_SDOSend(CAN1);
 		CAN_PDOSend(pdu[motor_number], CAN1);
-#else
+#endif
 		CAN_SDOSend(CAN2);
 		CAN_PDOSend(pdu[motor_number], CAN2);
-			
-			
-#endif
-		
 	}
-
 } 
 
 /**************************************************************************
@@ -589,7 +591,6 @@ void CAN_SDOSend(CAN_Module* CANx)
 {
 	//链表中有待发数据,打包报文
 	if (sdo_head != NULL){
-		
 		//设定帧格式
 		CanTxMessage pTxMessage;
 		int nIndex = 0;//链表单个节点中的数据索引
@@ -600,18 +601,15 @@ void CAN_SDOSend(CAN_Module* CANx)
 		pTxMessage.RTR = CAN_RTRQ_Data;
 		pTxMessage.IDE = CAN_Standard_Id;
 		pTxMessage.DLC = Data_Size;
-		
 		//数据帧赋值
 		for (nIndex = 0; nIndex < Data_Size; nIndex++){
 			pTxMessage.Data[nIndex] = sdo_head->data[nIndex];
 		}
-
 		//尝试写入邮箱
 		do{
 			nReturn = CAN_TransmitMessage(CANx, &pTxMessage); //发送成功，返回0~2(邮箱号)，失败返回0x04
 			errCount++;
-			if (errCount > 10)
-			{
+			if (errCount > 10){
 				break;
 			}
 		} while (nReturn == 0x04);
@@ -629,7 +627,7 @@ void CAN_SDOSend(CAN_Module* CANx)
  * 说明：     该函数必须在PDO配置完成之后运行。
  * 返回值：   发送成功数量
  **********************************************************/
-
+uint16_t test_c;
 void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 {
 	MOTOR_RPDO* rpdo;
@@ -639,7 +637,7 @@ void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 	CanTxMessage pTxMessage;
 	pTxMessage.RTR = CAN_RTRQ_Data;
 	pTxMessage.IDE = CAN_Standard_Id;
-	pTxMessage.DLC = 6;//< 存疑
+	pTxMessage.DLC = 6;//U16状态字+U32左右电机目标速度
 
 	do{
 		rpdo = &mrd[send_number];
@@ -647,7 +645,7 @@ void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 		uint16_t x_type = pdu[motor1_type + send_number * pdu[ro_motor_gap]];
 		uint16_t x_sport_mode = pdu[motor1_sport_mode + send_number * pdu[ro_motor_gap]];
 			pTxMessage.StdId = RPDO0_ID + x_id;
-			pTxMessage.Data[0] = rpdo->d.ctrl.cw & 0xFF;      // 写入控制字
+			test_c =  pTxMessage.Data[0] = rpdo->d.ctrl.cw & 0xFF;      // 写入控制字
 			pTxMessage.Data[1] = (rpdo->d.ctrl.cw >> 8) & 0xFF;
 			switch (x_type){
 				case servo_zlac:
@@ -665,19 +663,17 @@ void CAN_PDOSend(uint32_t number, CAN_Module* CANx)
 						case position_mode://默认单位相同
 							break;
 					}
-					pTxMessage.Data[2] = target_pos_pulse & 0xFF;       // 低八位写入 Data[2]
-					pTxMessage.Data[3] = (target_pos_pulse >> 8) & 0xFF; // 
-					pTxMessage.Data[4] = (target_pos_pulse >> 16) & 0xFF; // 
-					pTxMessage.Data[5] = (target_pos_pulse >> 24) & 0xFF; // 高八位写入 Data[5]
+					pTxMessage.Data[2] = target_pos_pulse & 0xFF;			// 低八位写入 Data[2]
+					pTxMessage.Data[3] = (target_pos_pulse >> 8) & 0xFF;	// 
+					pTxMessage.Data[4] = (target_pos_pulse >> 16) & 0xFF;	// 
+					pTxMessage.Data[5] = (target_pos_pulse >> 24) & 0xFF;	// 高八位写入 Data[5]
 					break;
 				case servo_zlacd:
 				
-					pTxMessage.Data[2] =    mrd[0].d.target_pos_vel & 0xFF;       	// 左电机目标速度，低八位写入 Data[2]
+					pTxMessage.Data[2] =  mrd[0].d.target_pos_vel & 0xFF;       // 左电机目标速度，低八位写入 Data[2]
 					pTxMessage.Data[3] = (mrd[0].d.target_pos_vel >> 8) & 0xFF; // 
-					pTxMessage.Data[4] = mrd[1].d.target_pos_vel & 0xFF; 		// 右电机目标速度，低八位写入 Data[2]
-					pTxMessage.Data[5] = (mrd[1].d.target_pos_vel >> 8) & 0xFF; // 高八位写入 Data[5]
-				
-				
+					pTxMessage.Data[4] =  mrd[1].d.target_pos_vel & 0xFF; 		// 右电机目标速度，低八位写入 Data[2]
+					pTxMessage.Data[5] = (mrd[1].d.target_pos_vel >> 8) & 0xFF; // 高八位写入 Data[5]				
 					break;
 				case servo_plan:
 					/* code */

@@ -58,12 +58,12 @@ typedef union MOTOR_TPDO__
     struct
     {
         CANOPEN_STATUSWORD status;						//状态字（2字节）
-        int current_pos;								//当前位置	
+        int current_pos;								//当前位置（4字节）	
         uint16_t error_code;							//错误代码
         uint16_t none_count;	        				//无TPDO相应次数，1次间隔20ms
         bool online;	        					    //在线状态 1：在线，0：掉线
     }d;
-    uint8_t data[21];//存疑，应该为11位
+    uint8_t data[8];
 }MOTOR_TPDO;
 
 typedef union MOTOR_RPDO__
@@ -75,10 +75,10 @@ typedef union MOTOR_RPDO__
         uint8_t mode;									//工作模式
         uint16_t target_torque;							//目标转矩
     }d;
-    uint8_t data[9];
+    uint8_t data[8];
 }MOTOR_RPDO;
 
-extern MOTOR_RPDO mrd[MAX_MOTOR_NUMBER];//< 发送pdo
+extern MOTOR_RPDO mrd[MAX_MOTOR_NUMBER];//< 发送pdo，只用到在线状态，数据在TPDOMessage
 extern MOTOR_TPDO mtd[MAX_MOTOR_NUMBER];//< 接收pdo
 
 typedef union MOTOR_PARA__

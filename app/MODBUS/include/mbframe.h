@@ -74,8 +74,8 @@ typedef struct {
     __IO uint16_t Num; 	            // 寄存器或者线圈的数量
     __IO uint16_t _CRC;       	      // CRC校验码
     __IO uint8_t* ValueReg; 	      // 10H功能码的数据
-    __IO uint16_t* PtrHoldingbase;  // HoldingReg内存首地址
-    __IO uint16_t* PtrHoldingOffset;// HoldingReg内存首地址
+    __IO uint16_t* PtrHoldingbase;  // HoldingReg内存首地址(pdu)
+    __IO uint16_t* PtrHoldingOffset;// HoldingReg偏移指向地址
 }PDUData_TypeDef;
 typedef struct
 {
@@ -113,10 +113,10 @@ typedef struct
                                  (code == FUN_CODE_10H)))
 
 #define EX_CODE_NONE           0x00  // 异常码 无异常
-#define EX_CODE_01H            0x01  // 异常码
-#define EX_CODE_02H            0x02  // 异常码
-#define EX_CODE_03H            0x03  // 异常码
-#define EX_CODE_04H            0x04  // 异常码
+#define EX_CODE_01H            0x01  // 异常码 从站不支持请求中的功能码。
+#define EX_CODE_02H            0x02  // 异常码 请求中指定的数据地址（寄存器/线圈地址）无效或超出从站支持范围。
+#define EX_CODE_03H            0x03  // 异常码 请求中数据域的值或格式不符合协议规范。
+#define EX_CODE_04H            0x04  // 异常码 从站处理请求时发生内部错误（如硬件故障、内存访问错误等）。
 
 #define COIL_D01		0x01
 #define COIL_D02		0x02

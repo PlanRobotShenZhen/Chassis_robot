@@ -40,6 +40,7 @@ extern "C" {
 #endif
 
 #include "n32g45x.h"
+#include "Charger.h"
 #ifdef __cplusplus
 }
 #endif

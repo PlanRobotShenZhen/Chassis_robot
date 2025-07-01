@@ -249,6 +249,57 @@ void GPIO_Init(void)
 
     PWM_LED_Init();
     rt_thread_delay(5000);   //< 2s
+	
+#elif(PLAN_CONTROL_BOARD_V==14)
+
+//    RCC_EnableAPB2PeriphClk(LED17_CLK | ESTOP_SOFT_CLK | MCU_CHARGE_ON_CLK | MCU_19VARM_PWR_ON_CLK |
+//        MCU_24VARM_PWR_ON_CLK | MCU_MT_PWR_ON_CLK | UNESTOP_SW_IN_CLK | ESTOP_SW_IN_CLK, ENABLE);
+	RCC_EnableAPB2PeriphClk(ESTOP_SW_IN_CLK, ENABLE);	
+
+//    GPIO_InitStructure.Pin = LED17_PIN;
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+//    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+//    GPIO_InitPeripheral(LED17_GPIO, &GPIO_InitStructure);
+//    GPIO_ResetBits(LED17_GPIO, LED17_PIN);
+
+//    /*软急停输出初始化*/
+//    GPIO_InitStructure.Pin = ESTOP_SOFT_PIN;
+//    GPIO_InitPeripheral(ESTOP_SOFT_GPIO, &GPIO_InitStructure);
+//    GPIO_SetBits(ESTOP_SOFT_GPIO, ESTOP_SOFT_PIN);
+
+//    /*自动充电控制*/
+//    GPIO_InitStructure.Pin = MCU_CHARGE_ON_PIN;
+//    GPIO_InitPeripheral(MCU_CHARGE_ON_GPIO, &GPIO_InitStructure);
+//    GPIO_ResetBits(MCU_CHARGE_ON_GPIO, MCU_CHARGE_ON_PIN);
+
+//    /*19V电源使能控制*/
+//    GPIO_InitStructure.Pin = MCU_19VARM_PWR_ON_PIN;
+//    GPIO_InitPeripheral(MCU_19VARM_PWR_ON_GPIO, &GPIO_InitStructure);
+//    GPIO_ResetBits(MCU_19VARM_PWR_ON_GPIO, MCU_19VARM_PWR_ON_PIN);
+
+//    /*24V电源使能控制*/
+//    GPIO_InitStructure.Pin = MCU_24VARM_PWR_ON_PIN;
+//    GPIO_InitPeripheral(MCU_24VARM_PWR_ON_GPIO, &GPIO_InitStructure);
+//    GPIO_ResetBits(MCU_24VARM_PWR_ON_GPIO, MCU_24VARM_PWR_ON_PIN);
+
+//    /*电机电源使能控制*/
+//    GPIO_InitStructure.Pin = MCU_MT_PWR_ON_PIN;
+//    GPIO_InitPeripheral(MCU_MT_PWR_ON_GPIO, &GPIO_InitStructure);
+//    GPIO_SetBits(MCU_MT_PWR_ON_GPIO, MCU_MT_PWR_ON_PIN);
+
+//    /*释放急停开关检测（解抱闸）*/
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+//    GPIO_InitStructure.Pin = UNESTOP_SW_IN_PIN;
+//    GPIO_InitPeripheral(UNESTOP_SW_IN_GPIO, &GPIO_InitStructure);
+
+    /*急停开关检测*/
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStructure.Pin = ESTOP_SW_IN_PIN;
+    GPIO_InitPeripheral(ESTOP_SW_IN_GPIO, &GPIO_InitStructure);
+
+		PWM_LED_Init();
+    rt_thread_delay(5000);   //< 2s
 #endif
 }
 
@@ -263,20 +314,30 @@ void LedBlink(GPIO_Module* GPIOx, uint16_t Pin)
 }
 
 /**************************************************************************
-函数功能：LED灯闪烁任务
+函数功能：LED灯任务
 入口参数：无 
 返回  值：无
 **************************************************************************/
 void Led_task(void *pvParameters)
 {
     while(1){                    
-			rt_thread_delay(200);   //< 20ms			
+			rt_thread_delay(200);  //< 20ms			
 			JT_Light();
 			Car_Light();
-			
-			
     }	
 }  
+static uint8_t blinkState = 0;          // 闪烁状态
+static uint8_t blinkCounter = 0;        // 闪烁计数器
+/**************************************************************************
+函数功能：左右灯引脚设置
+入口参数：无 
+返回  值：无
+**************************************************************************/
+void SetLEDs(bool left, bool right) 
+{
+    GPIO_WriteBit(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN, left);
+    GPIO_WriteBit(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN, right);
+}
 /**************************************************************************
 函数功能：根据状态控制车灯
 入口参数：无 
@@ -284,88 +345,109 @@ void Led_task(void *pvParameters)
 **************************************************************************/
 void Car_Light(void)
 {
-    if(!pdu[Power_board_version]){//旧电源板        
-        if((short)pdu[target_yaw_speed] > 3 && !Soft_JT_Flag){//左转
-            Right = 0;	
-            Left = ~Left;
-            rt_thread_delay(10000);	
-        }else if((short)pdu[target_yaw_speed] < -3 && !Soft_JT_Flag){//右转
-            Left = 0;	
-            Right = ~Right;
-            rt_thread_delay(10000);	
-        }else{//SWC
-            if(myabs(pdu[rc_ch8_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR){
-                Left = 0;
-                Right = 0;
-            }else if(myabs(pdu[rc_ch8_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR){
-                Left = 1;
-                Right = 1;	
-            }else{
-                Right = ~Right;
-                Left = ~Left;	
-                rt_thread_delay(5000);	
-                Right = ~Right;
-                Left = ~Left;	
-                rt_thread_delay(5000);	
-            }
-        }
-    }
-    else if(pdu[Power_board_version]){//新电源板       
-        switch(pdu[car_running_state]){
-            case car_emergency_stop://急停
-                light_time.t_cnt_Light_ALL ++;
-                if((exio_output.output != 0xFC) | (exio_output.output != 0x04)){//重置灯光           
-                    exio_output.output = 0xFC; //RGB中GB不亮
-                }
-                if(light_time.t_cnt_Light_ALL >= 25){   //500ms           
-                    exio_output.output ^= 0xF8; //除RGB灯外，其余灯闪烁
-                    light_time.t_cnt_Light_ALL = 0;
-                }  
-                break;
-            case car_error://故障
-                exio_output.output = 0xFC;  //红灯以及车灯常亮            
-                break;
-            case car_standby://待机
-            case car_running://运行
+//    if(!pdu[Power_board_version]){//旧电源板        
+//        if((short)pdu[target_yaw_speed] > 3 && !Soft_JT_Flag){//左转
+//            Right = 0;	
+//            Left = ~Left;
+//            rt_thread_delay(10000);	
+//        }else if((short)pdu[target_yaw_speed] < -3 && !Soft_JT_Flag){//右转
+//            Left = 0;	
+//            Right = ~Right;
+//            rt_thread_delay(10000);	
+//        }else{//SWC
+//            if(myabs(pdu[rc_ch8_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR){
+//                Left = 0;
+//                Right = 0;
+//            }else if(myabs(pdu[rc_ch8_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR){
+//                Left = 1;
+//                Right = 1;	
+//            }else{
+//                Right = ~Right;
+//                Left = ~Left;	
+//                rt_thread_delay(5000);	
+//                Right = ~Right;
+//                Left = ~Left;	
+//                rt_thread_delay(5000);	
+//            }
+//        }
+//    }
+//    else if(pdu[Power_board_version]){//新电源板       
+//        switch(pdu[car_running_state]){
+//            case car_emergency_stop://急停
+//                light_time.t_cnt_Light_ALL ++;
+//                if((exio_output.output != 0xFC) | (exio_output.output != 0x04)){//重置灯光           
+//                    exio_output.output = 0xFC; //RGB中GB不亮
+//                }
+//                if(light_time.t_cnt_Light_ALL >= 25){   //500ms           
+//                    exio_output.output ^= 0xF8; //除RGB灯外，其余灯闪烁
+//                    light_time.t_cnt_Light_ALL = 0;
+//                }  
+//                break;
+//            case car_error://故障
+//                exio_output.output = 0xFC;  //红灯以及车灯常亮            
+//                break;
+//            case car_standby://待机
+//            case car_running://运行
 #if(CARMODE != Diff)	
-                exio_output.bit.RGB_R = 1;      //RGB绿灯亮
-                exio_output.bit.Front_Red = 0;      //RGB红灯灭
-								BatteryThresholdAlarm();
-                if((short)pdu[target_yaw_speed] > 0){//左转 
-										light_time.t_cnt_RR_White ++;
-									exio_output.bit.LF_White = exio_output.bit.LR_White = 0;
-									if(light_time.t_cnt_RR_White >= 25){//500ms
-											exio_output.bit.RR_White = exio_output.bit.RF_White = ~exio_output.bit.RF_White;								                                     											
-                        light_time.t_cnt_RR_White = 0;
-                    }     	
-                }else if((short)pdu[target_yaw_speed] < 0){//右转
-										light_time.t_cnt_LR_White ++;								
-                    exio_output.bit.RR_White = exio_output.bit.RF_White = 0;                    
-                    if(light_time.t_cnt_LR_White >= 25){//500ms
-                        exio_output.bit.LF_White = exio_output.bit.LR_White = ~exio_output.bit.LR_White;							
-                        light_time.t_cnt_LR_White = 0;
-                    }     	
-                }else if((short)pdu[target_linear_speed] < 0){//倒车									
-                    exio_output.output |= 0xA0;//后车灯全亮
-					                    
-                }else{
-								
-									if(myabs(pdu[rc_ch8_value] - pdu[rc_min_value]) < CHANNEL_VALUE_ERROR){//常灭
-                        exio_output.output &= 0x0F; //灯全灭（除RGB、蜂鸣器）
-                        light_time.t_cnt_Light_ALL = 0;
-                    }else if(myabs(pdu[rc_ch8_value] - pdu[rc_base_value]) < CHANNEL_VALUE_ERROR){//常亮
-                        exio_output.output |= 0xF0; //灯全亮（除RGB、蜂鸣器）
-                        light_time.t_cnt_Light_ALL = 0;
-                    }else if(myabs(pdu[rc_ch8_value] - pdu[rc_max_value]) < CHANNEL_VALUE_ERROR){//闪烁
-                        light_time.t_cnt_Light_ALL ++;
-                        if(light_time.t_cnt_Light_ALL >= 25){//500ms
-                            exio_output.output ^= 0xF0; //除RGB灯外，其余灯闪烁
-                            light_time.t_cnt_Light_ALL = 0;
-                        }                
+
+                light_time.t_cnt_LF_White ++;//用同一个计数器保证同频率。
+                if ( Soft_JT_Flag == 0)//急停指示灯优先级最高
+                {
+								// 每500ms（假设系统时钟为20ms/次，25*20ms=500ms）更新一次闪烁状态
+					if (light_time.t_cnt_LF_White >= 25)
+						{
+									light_time.t_cnt_LF_White = 0;
+									blinkState = !blinkState;  // 切换闪烁状态
+						}
+                    if ((short)pdu[target_linear_speed] > 0) 
+                    {//倒车                       
+							if (blinkState) 
+							{
+									GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+									GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+							} 
+							else 
+							{
+									GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+									GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+							}
                     }
-		
+                    else if ((short)pdu[target_yaw_speed] < 0)
+                    {//左转 
+							if (blinkState) 				
+							{
+								GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+							} 
+							else 
+							{
+								GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+							}
+							GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+					}
+                    else if ((short)pdu[target_yaw_speed] > 0)
+                    {//右转 
+
+							GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+							if (blinkState)
+							{
+								GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+							} 
+							else 
+							{
+								GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+							}
+                    }
+					else if((short)pdu[target_linear_speed] < 0)
+                    {
+							GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+							GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+                    }
+                    else
+                    {//清空指示灯，包括急停结束后的熄灯
+	//                      GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+	//						GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+                    }
                 }
-                break;
 #else               
 
                 light_time.t_cnt_LF_White ++;//用同一个计数器保证同频率。
@@ -373,29 +455,32 @@ void Car_Light(void)
                 {//500ms
                     light_time.t_cnt_LF_White = 0;										
                     if ((short)pdu[target_linear_speed] > 0) 
-                    {//倒车                       
-                        LedBlink(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+                    {//倒车                       .
+                        
+						LedBlink(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
                         LedBlink(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
                     }
                     else if ((short)pdu[target_yaw_speed] < 0)
                     {//左转 
-                        LedBlink(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
-												GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+                       
+						LedBlink(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+						GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
                     }
                     else if ((short)pdu[target_yaw_speed] > 0)
                     {//右转 
-                        LedBlink(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
-												GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+                        
+						LedBlink(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+						GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
                     }
                     else
                     {//清空指示灯，包括急停结束后的熄灯
                         GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
-												GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+						GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
                     }
                 }
 #endif								
-        }                     
-    }
+                             
+    
 }
 
 /**************************************************************************
@@ -421,7 +506,9 @@ void BatteryThresholdAlarm(void)
         exio_output.bit.RGB_R = ~exio_output.bit.RGB_R; // 蜂鸣器响
     }
 }
-
+// 新增全局变量用于闪烁控制
+static uint8_t LightFlashState = 0; // 0-灭 1-亮
+static uint32_t FlashCounter = 0;   // 闪烁计数器
 /**************************************************************************
 函数功能：控制急停时候车灯闪烁
 入口参数：无 
@@ -429,25 +516,51 @@ void BatteryThresholdAlarm(void)
 **************************************************************************/
 void JT_Light(void)
 {
-    if(!pdu[Power_board_version]){
-        u8 YL7_Bit = GPIO_ReadInputDataBit(GPIOB, GPIO_PIN_12);
-        if(YL7_Bit){	
-            Left = 0;
-            Right = 0;
-            Right = ~Right;
-            Left = ~Left;	
-            rt_thread_delay(5000);	
-            Right = ~Right;
-            Left = ~Left;	
-            rt_thread_delay(5000);		
-        }
-    }else if(pdu[Power_board_version]){//新电源板     
-#if (CARMODE != Diff)
-			if(Soft_JT_Flag){
-					exio_output.output = 0xFC;  //红灯以及车灯常亮
 
-        }else{
-            exio_output.output = 0x00;  //灯全灭（除RGB、蜂鸣器）
+//    if(!pdu[Power_board_version]){
+//        u8 YL7_Bit = GPIO_ReadInputDataBit(GPIOB, GPIO_PIN_12);
+//        if(YL7_Bit){	
+//            Left = 0;
+//            Right = 0;
+//            Right = ~Right;
+//            Left = ~Left;	
+//            rt_thread_delay(5000);	
+//            Right = ~Right;
+//            Left = ~Left;	
+//            rt_thread_delay(5000);		
+//        }
+//    }else if(pdu[Power_board_version])
+	{//新电源板     
+#if (CARMODE != Diff)
+
+		if(Soft_JT_Flag) //急停
+		{ 
+			// 使用状态机实现闪烁
+            if(++FlashCounter >= 10) // 10个周期切换一次状态
+            {
+                FlashCounter = 0;
+                LightFlashState = !LightFlashState;
+                
+                if(LightFlashState)
+                {
+                    SetLEDs(true,true);
+                }
+                else
+                {
+//                    GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+//                    GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+					SetLEDs(false,false);
+                }
+            }
+
+		}
+        else
+        {
+            // 非急停状态，开灯并重置状态
+//            GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+//            GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+            LightFlashState = 0;
+            FlashCounter = 0;
         }
 #else
 				if(Soft_JT_Flag)
@@ -455,7 +568,7 @@ void JT_Light(void)
 					GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
 					GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);  //红灯以及车灯常亮
 
-        }
+				}
 
 	
 #endif			
@@ -468,84 +581,84 @@ void PWM_LED_Init(void)
     TIM_TimeBaseInitType TIM_TimeBaseInitStructure;
     OCInitType TIM_OCInitStructure;
     /*开启时钟*/
-    RCC_EnableAPB2PeriphClk(MCU_RGB_CLK | MCU_LED_CLK | RCC_APB2_PERIPH_AFIO, ENABLE);
+    RCC_EnableAPB2PeriphClk(MCU_RGB_CLK | MCU_LED_CLK | RCC_APB2_PERIPH_AFIO|RCC_APB2_PERIPH_GPIOB, ENABLE);
     RCC_EnableAPB1PeriphClk(MCU_RGB_TIM_CLK, ENABLE);
     /*GPIO初始化*/
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 
-    GPIO_InitStructure.Pin = MCU_RGB_RED_PIN;
-    GPIO_InitPeripheral(MCU_RGB_RED_GPIO, &GPIO_InitStructure);
+//    GPIO_InitStructure.Pin = MCU_RGB_RED_PIN;
+//    GPIO_InitPeripheral(MCU_RGB_RED_GPIO, &GPIO_InitStructure);
 
     GPIO_InitStructure.Pin = MCU_RGB_GREEN_PIN;
     GPIO_InitPeripheral(MCU_RGB_GREEN_GPIO, &GPIO_InitStructure);
 
-    GPIO_InitStructure.Pin = MCU_RGB_BLUE_PIN;
-    GPIO_InitPeripheral(MCU_RGB_BLUE_GPIO, &GPIO_InitStructure);
+//    GPIO_InitStructure.Pin = MCU_RGB_BLUE_PIN;
+//    GPIO_InitPeripheral(MCU_RGB_BLUE_GPIO, &GPIO_InitStructure);
     //转向灯重定义TIM引脚冲突，采用GPIO控制
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.Pin = MCU_LED_LEFT_PIN;
     GPIO_InitPeripheral(MCU_LED_LEFT_GPIO, &GPIO_InitStructure);
-    GPIO_ResetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
+    GPIO_SetBits(MCU_LED_LEFT_GPIO, MCU_LED_LEFT_PIN);
 
     GPIO_InitStructure.Pin = MCU_LED_RIGHT_PIN;
     GPIO_InitPeripheral(MCU_LED_RIGHT_GPIO, &GPIO_InitStructure);
-    GPIO_ResetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
+    GPIO_SetBits(MCU_LED_RIGHT_GPIO, MCU_LED_RIGHT_PIN);
     /*时基单元初始化*/
-    TIM_TimeBaseInitStructure.ClkDiv = TIM_CLK_DIV1;     		//时钟分频，选择不分频，此参数用于配置滤波器时钟，不影响时基单元功能
-    TIM_TimeBaseInitStructure.Prescaler = MCU_RGB_TIM_Prescaler - 1;	//预分频器，即PSC的值
-    TIM_TimeBaseInitStructure.RepetCnt = 1;
-    TIM_TimeBaseInitStructure.CntMode = TIM_CNT_MODE_UP; 		//计数器模式，选择向上计数
-    TIM_TimeBaseInitStructure.Period = MCU_RGB_TIM_Period - 1;		//计数周期，即ARR的值
-    TIM_InitTimeBase(MCU_RGB_TIM, &TIM_TimeBaseInitStructure);     	//将结构体变量交给TIM_TimeBaseInit，配置TIM3的时基单元
+//    TIM_TimeBaseInitStructure.ClkDiv = TIM_CLK_DIV1;     		//时钟分频，选择不分频，此参数用于配置滤波器时钟，不影响时基单元功能
+//    TIM_TimeBaseInitStructure.Prescaler = MCU_RGB_TIM_Prescaler - 1;	//预分频器，即PSC的值
+//    TIM_TimeBaseInitStructure.RepetCnt = 1;
+//    TIM_TimeBaseInitStructure.CntMode = TIM_CNT_MODE_UP; 		//计数器模式，选择向上计数
+//    TIM_TimeBaseInitStructure.Period = MCU_RGB_TIM_Period - 1;		//计数周期，即ARR的值
+//    TIM_InitTimeBase(MCU_RGB_TIM, &TIM_TimeBaseInitStructure);     	//将结构体变量交给TIM_TimeBaseInit，配置TIM3的时基单元
 
-    //TIM_TimeBaseInitStructure.CntMode = MCU_LED_TIM_Period;
-    //TIM_TimeBaseInitStructure.Period = MCU_LED_TIM_Prescaler - 1;
-    //TIM_InitTimeBase(MCU_LED_TIM, &TIM_TimeBaseInitStructure);
+//    //TIM_TimeBaseInitStructure.CntMode = MCU_LED_TIM_Period;
+//    //TIM_TimeBaseInitStructure.Period = MCU_LED_TIM_Prescaler - 1;
+//    //TIM_InitTimeBase(MCU_LED_TIM, &TIM_TimeBaseInitStructure);
 
-    /*输出比较初始化*/
-    TIM_InitOcStruct(&TIM_OCInitStructure);
-    TIM_OCInitStructure.OcMode = TIM_OCMODE_PWM1;				//输出比较模式，选择PWM模式1
-    TIM_OCInitStructure.OcPolarity = TIM_OC_POLARITY_HIGH;		//输出极性，选择为高，若选择极性为低，则输出高低电平取反
-    TIM_OCInitStructure.OutputState = TIM_OUTPUT_STATE_ENABLE;	//输出使能
-    TIM_OCInitStructure.Pulse = 0;								//初始的CCR值
+//    /*输出比较初始化*/
+//    TIM_InitOcStruct(&TIM_OCInitStructure);
+//    TIM_OCInitStructure.OcMode = TIM_OCMODE_PWM1;				//输出比较模式，选择PWM模式1
+//    TIM_OCInitStructure.OcPolarity = TIM_OC_POLARITY_HIGH;		//输出极性，选择为高，若选择极性为低，则输出高低电平取反
+//    TIM_OCInitStructure.OutputState = TIM_OUTPUT_STATE_ENABLE;	//输出使能
+//    TIM_OCInitStructure.Pulse = 0;								//初始的CCR值
 
-    MCU_RGB_RED_TIM_CHx_Init(MCU_RGB_TIM, &TIM_OCInitStructure);       //将结构体变量交给TIM_OC1Init，配置TIM1的输出比较通道1
-    MCU_RGB_RED_TIM_CHx_Preload(MCU_RGB_TIM, TIM_OC_PRE_LOAD_ENABLE); //启用TIM预加载功能，CCR被加载时不会影响当前PWM，下个更新时间时生效。
+//    MCU_RGB_RED_TIM_CHx_Init(MCU_RGB_TIM, &TIM_OCInitStructure);       //将结构体变量交给TIM_OC1Init，配置TIM1的输出比较通道1
+//    MCU_RGB_RED_TIM_CHx_Preload(MCU_RGB_TIM, TIM_OC_PRE_LOAD_ENABLE); //启用TIM预加载功能，CCR被加载时不会影响当前PWM，下个更新时间时生效。
 
-    MCU_RGB_GREEN_TIM_CHx_Init(MCU_RGB_TIM, &TIM_OCInitStructure);
-    MCU_RGB_GREEN_TIM_CHx_Preload(MCU_RGB_TIM, TIM_OC_PRE_LOAD_ENABLE);
+//    MCU_RGB_GREEN_TIM_CHx_Init(MCU_RGB_TIM, &TIM_OCInitStructure);
+//    MCU_RGB_GREEN_TIM_CHx_Preload(MCU_RGB_TIM, TIM_OC_PRE_LOAD_ENABLE);
 
-    MCU_RGB_BLUE_TIM_CHx_Init(MCU_RGB_TIM, &TIM_OCInitStructure);
-    MCU_RGB_BLUE_TIM_CHx_Preload(MCU_RGB_TIM, TIM_OC_PRE_LOAD_ENABLE);
+//    MCU_RGB_BLUE_TIM_CHx_Init(MCU_RGB_TIM, &TIM_OCInitStructure);
+//    MCU_RGB_BLUE_TIM_CHx_Preload(MCU_RGB_TIM, TIM_OC_PRE_LOAD_ENABLE);
 
-    //MCU_LED_LEFT_TIM_CHx_Init(MCU_LED_TIM, &TIM_OCInitStructure);
-    //MCU_LED_LEFT_TIM_CHx_Preload(MCU_LED_TIM, TIM_OC_PRE_LOAD_ENABLE);
+//    //MCU_LED_LEFT_TIM_CHx_Init(MCU_LED_TIM, &TIM_OCInitStructure);
+//    //MCU_LED_LEFT_TIM_CHx_Preload(MCU_LED_TIM, TIM_OC_PRE_LOAD_ENABLE);
 
-    //MCU_LED_RIGHT_TIM_CHx_Init(MCU_LED_TIM, &TIM_OCInitStructure);
-    //MCU_LED_RIGHT_TIM_CHx_Preload(MCU_LED_TIM, TIM_OC_PRE_LOAD_ENABLE);
+//    //MCU_LED_RIGHT_TIM_CHx_Init(MCU_LED_TIM, &TIM_OCInitStructure);
+//    //MCU_LED_RIGHT_TIM_CHx_Preload(MCU_LED_TIM, TIM_OC_PRE_LOAD_ENABLE);
 
-    TIM_ConfigArPreload(MCU_RGB_TIM, ENABLE);						//启用ARR	
-    /*TIM使能*/
-    TIM_Enable(MCU_RGB_TIM, ENABLE);
-    /*test*/
-    RGB_SetColorDuty(R, 50);
-    RGB_SetColorDuty(G, 50);
-    RGB_SetColorDuty(B, 50);
+//    TIM_ConfigArPreload(MCU_RGB_TIM, ENABLE);						//启用ARR	
+//    /*TIM使能*/
+//    TIM_Enable(MCU_RGB_TIM, ENABLE);
+//    /*test*/
+//    RGB_SetColorDuty(R, 50);
+//    RGB_SetColorDuty(G, 50);
+//    RGB_SetColorDuty(B, 50);
 }
 void RGB_SetColorDuty(Color color, uint16_t Compare)
 {
-    switch (color) {
-    case R:
-        MCU_RGB_RED_TIM_SetCmp(MCU_RGB_TIM, Compare);		//设置CCR的值
-        break;
-    case G:
-        MCU_RGB_GREEN_TIM_SetCmp(MCU_RGB_TIM, Compare);
-        break;
-    case B:
-        MCU_RGB_BLUE_TIM_SetCmp(MCU_RGB_TIM, Compare);
-        break;
+//    switch (color) {
+//    case R:
+//        MCU_RGB_RED_TIM_SetCmp(MCU_RGB_TIM, Compare);		//设置CCR的值
+//        break;
+//    case G:
+//        MCU_RGB_GREEN_TIM_SetCmp(MCU_RGB_TIM, Compare);
+//        break;
+//    case B:
+//        MCU_RGB_BLUE_TIM_SetCmp(MCU_RGB_TIM, Compare);
+//        break;
 
-    }
+//    }
 
 }

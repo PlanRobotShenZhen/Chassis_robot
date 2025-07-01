@@ -49,7 +49,7 @@
 #define RC          7		    // 竞赛小车
 #define Chrg		8           // 充电桩
 
-#define CARMODE						Diff
+#define CARMODE						FourWheel
 #define TIM 							50	//< 5ms
 #define DELAY_COUNT_1S 		(1000 / (TIM / 10))
 #define N32G45X_SRAM_SIZE           144
@@ -105,10 +105,12 @@ extern EXIO_INPUT exio_input;
 extern EXIO_OUTPUT exio_output;
 
 #if(CARMODE == Diff)
-/*圆形底盘小车引脚定义采用新版本*/
-#define PLAN_CONTROL_BOARD_V 13
+	/*圆形底盘小车引脚定义采用新版本*/
+	#define PLAN_CONTROL_BOARD_V 13
+#elif(CARMODE == FourWheel)
+	#define PLAN_CONTROL_BOARD_V 14
 #else
-#define PLAN_CONTROL_BOARD_V 12
+	#define PLAN_CONTROL_BOARD_V 12
 #endif
 
 #if(PLAN_CONTROL_BOARD_V==11)
@@ -545,6 +547,283 @@ extern unsigned char SPI_ReadWriteCycle;
 #define MCU_LED_RIGHT_TIM_IRQn 			TIM2_IRQn
 #define MCU_LED_RIGHT_TIM_CHx_Init 		TIM_InitOc4
 #define MCU_LED_RIGHT_TIM_CHx_Preload	TIM_ConfigOc4Preload
+
+#elif(PLAN_CONTROL_BOARD_V==14)
+#define PLAN_CONTROL_BOARD_VERSION "V1.4"
+//室外差速四驱PLC
+//LED6
+#define LED1_PORT				LED17_GPIO //端口命名统一
+#define RUN1					LED17_PIN
+#define LED1_PORT_RCC			LED17_CLK
+#define LED17_CLK				RCC_APB2_PERIPH_GPIOC
+#define LED17_GPIO				GPIOC
+#define LED17_PIN				GPIO_PIN_15
+
+////无
+//#define MCU_RGB_CLK				RCC_APB2_PERIPH_GPIOA
+//#define MCU_RGB_GPIO			GPIOA
+//#define MCU_RGB_RED_PIN			GPIO_PIN_1
+//#define MCU_RGB_GREEN_PIN		GPIO_PIN_2
+//#define MCU_RGB_BLUE_PIN		GPIO_PIN_3
+//
+////无
+//#define CS1_CLK					RCC_APB2_PERIPH_GPIOA
+//#define CS1_TIM_CLK				RCC_APB1_PERIPH_TIM3
+//#define CS1_TTIG_GPIO			GPIOA
+//#define CS1_TTIG_PIN			GPIO_PIN_6
+//#define CS1_ECON_GPIO			GPIOA
+//#define CS1_ECON_PIN			GPIO_PIN_7
+//#define CS1_ECON_TIM			TIM3
+//#define CS1_ECON_TIM_CCx		TIM_INT_UPDATE
+//#define CS1_ECON_Channel		TIM_CH_2
+//#define CS1_ECON_IRQn			TIM3_IRQn	//	EXTI7
+//#define CS1_ECON_EXTI_LINE		EXTI_LINE7
+//
+////无
+//#define CS2_CLK						RCC_APB2_PERIPH_GPIOB
+//#define CS2_TIM_CLK				RCC_APB1_PERIPH_TIM3 
+//#define CS2_TTIG_GPIO			GPIOB
+//#define CS2_TTIG_PIN			GPIO_PIN_0
+//#define CS2_ECON_GPIO			GPIOB
+//#define CS2_ECON_PIN			GPIO_PIN_1
+//#define CS2_ECON_TIM			TIM3
+//#define CS2_ECON_Channel	TIM_CH_4
+//#define CS2_ECON_IRQn			TIM3_IRQn
+//#define CS2_ECON_EXTI_LINE		EXTI_LINE1
+
+/*USART1 USB1 modbus RS485*/
+#define USB1					USART1
+#define USARTOne				USART1
+#define USARTOne_GPIO			GPIOA
+#define USARTOne_CLK			RCC_APB2_PERIPH_USART1
+#define USARTOne_GPIO_CLK		RCC_APB2_PERIPH_GPIOA
+#define USARTOne_TxPin			GPIO_PIN_9
+#define USARTOne_RxPin			GPIO_PIN_10
+#define USARTOne_DMAx_CLK		RCC_AHB_PERIPH_DMA1
+#define USARTOne_APBxClkCmd		RCC_EnableAPB2PeriphClk
+#define USARTOne_IRQHandler		USART1_IRQHandler
+#define USARTOne_IRQn			USART1_IRQn
+#define USARTOne_Tx_DMA_Channel	DMA1_CH4
+#define USARTOne_Rx_DMA_Channel	DMA1_CH5
+#define USARTOne_DR_Base		(USART1_BASE + 0x04)
+#define USARTOne_Tx_DMA_FLAG	DMA1_FLAG_TC4
+
+/*USART2 RS485*/
+//引脚统一命名
+#define UARTFour_485en_GPIO 		USARTTwo_GPIO
+#define UARTFour_485enPin			USARTTwo_CTS
+#define UARTFour_Tx_DMA_Channel		USARTTwo_Tx_DMA_Channel
+#define UARTFour_Rx_DMA_Channel		USARTTwo_Rx_DMA_Channel
+
+//改了引脚，复用，DMA等配置存疑。
+#define RS485						USART2
+#define USARTTwo					USART2
+#define USARTTwo_GPIO				GPIOD
+#define USARTTwo_CLK				RCC_APB1_PERIPH_USART2
+#define USARTTwo_GPIO_CLK			RCC_APB2_PERIPH_GPIOD
+#define USARTTwo_RxPin				GPIO_PIN_6
+#define USARTTwo_TxPin				GPIO_PIN_5
+#define USARTTwo_CTS				GPIO_PIN_3 //目前用它代替485en引脚
+#define USARTTwo_RTS				GPIO_PIN_4
+#define USARTTwo_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define USARTTwo_IRQn				USART2_IRQn
+#define USARTTwo_IRQHandler			USART2_IRQHandler
+#define USARTTwo_Tx_DMA_Channel		DMA1_CH7
+#define USARTTwo_Rx_DMA_Channel		DMA1_CH6
+#define USARTTwo_DR_Base			(USART2_BASE + 0x04)
+#define USARTTwo_Tx_DMA_FLAG		DMA1_FLAG_TC5
+
+/*USART3 RS232*/
+#define RS232						UART6
+#define USARTThree					UART6
+#define USARTThree_GPIO				GPIOC
+#define USARTThree_CLK				RCC_APB2_PERIPH_UART6
+#define USARTThree_GPIO_CLK			RCC_APB2_PERIPH_GPIOC
+#define USARTThree_RxPin			GPIO_PIN_1
+#define USARTThree_TxPin			GPIO_PIN_0
+#define USARTThree_DMAx_CLK			RCC_AHB_PERIPH_DMA2
+#define USARTThree_APBxClkCmd		RCC_EnableAPB2PeriphClk
+#define USARTThree_IRQHandler		UART6_IRQHandler
+#define USARTThree_IRQn				UART6_IRQn
+#define USARTThree_Tx_DMA_Channel	DMA2_CH2
+#define USARTThree_Rx_DMA_Channel	DMA2_CH1
+#define USARTThree_DR_Base			(UART6_BASE + 0x04)
+#define USARTThree_Tx_DMA_FLAG		DMA2_FLAG_TC2
+
+//#define UARTFour					USART2
+//#define UARTFour_GPIO				GPIOD
+//#define UARTFour_CLK				RCC_APB1_PERIPH_USART2
+//#define UARTFour_GPIO_CLK			RCC_APB2_PERIPH_GPIOD
+//#define UARTFour_RxPin				GPIO_PIN_6
+//#define UARTFour_TxPin				GPIO_PIN_5
+//#define UARTFour_CTS				GPIO_PIN_3 //目前用它代替485en引脚
+//#define UARTFour_RTS				GPIO_PIN_4
+//#define UARTFour_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+//#define UARTFour_IRQn				USART2_IRQn
+//#define UARTFour_IRQHandler			USART2_IRQHandler
+//#define UARTFour_Tx_DMA_Channel		DMA1_CH7
+//#define UARTFour_Rx_DMA_Channel		DMA1_CH6
+//#define UARTFour_DR_Base			(USART2_BASE + 0x04)
+//#define UARTFour_Tx_DMA_FLAG		DMA1_FLAG_TC5
+
+/*USART5 遥控器接收*/
+#define UARTFive					UART5
+#define UARTFive_GPIO				GPIOD
+#define UARTFive_CLK				RCC_APB1_PERIPH_UART5
+#define UARTFive_GPIO_CLK			RCC_APB2_PERIPH_GPIOD
+#define UARTFive_RxPin				GPIO_PIN_2
+//#define USARTe_TxPin				GPIO_PIN_10
+#define UARTFive_DMAx_CLK			RCC_AHB_PERIPH_DMA1
+#define UARTFive_APBxClkCmd			RCC_EnableAPB2PeriphClk
+#define UARTFive_IRQHandler			UART5_IRQHandler
+#define UARTFive_IRQn				UART5_IRQn
+//#define USARTe_Tx_DMA_Channel	DMA1_CH2
+#define UARTFive_Rx_DMA_Channel		DMA1_CH8
+#define UARTFive_DR_Base			(UART5_BASE + 0x04)
+#define UARTFive_Tx_DMA_FLAG		DMA1_FLAG_TC2
+
+/*CAN1 */
+#define CANa_GPIO		    GPIOB
+#define CANa_RxPin			GPIO_PIN_8
+#define CANa_TxPin			GPIO_PIN_9
+
+/*CAN2 电机驱动控制*/
+//PB12/13->PB5/6
+#define CANb				CAN2
+#define CANb_CLK			RCC_APB2_PERIPH_GPIOB
+#define CANb_GPIO		    GPIOB
+#define CANb_RxPin			GPIO_PIN_5
+#define CANb_TxPin			GPIO_PIN_6
+
+///*RJ_JT 软急停控制输出 output*/
+////无
+////此软急停为GPIO口控制，用于后续ros等上位机调用
+//#define RJ_JT_GPIO 				ESTOP_SOFT_GPIO //圆形底盘与其他车型统一名称
+//#define RJ_JT_Pin					ESTOP_SOFT_PIN
+//#define ESTOP_SOFT_CLK		RCC_APB2_PERIPH_GPIOB
+//#define ESTOP_SOFT_GPIO		GPIOB
+//#define ESTOP_SOFT_PIN		GPIO_PIN_3
+
+///*ADC2*/
+////电机电源电流采样
+//#define MCU_MT_CURR_ADC					ADC2
+//#define MCU_MT_CURR_ADC_GPIO		    GPIOC
+//#define MCU_MT_CURR_ADC_RxPin			GPIO_PIN_4
+//#define MCU_MT_CURR_ADC_Channel			ADC2_Channel_05_PC4
+////24V输出电流采样
+//#define MCU_ADC_24VARM_IOUT				ADC2
+//#define MCU_ADC_24VARM_IOUT_GPIO	    GPIOA
+//#define MCU_ADC_24VARM_IOUT_RxPin		GPIO_PIN_4
+//#define MCU_ADC_24VARM_IOUT_Channel		ADC2_Channel_01_PA4
+////19V输出电流采样
+//#define MCU_ADC_19V_IOUT				ADC2
+//#define MCU_ADC_19V_IOUT_GPIO		    GPIOC
+//#define MCU_ADC_19V_IOUT_RxPin			GPIO_PIN_5
+//#define MCU_ADC_19V_IOUT_Channel		ADC2_Channel_12_PC5
+////5V输出电流采样
+//#define MCU_ADC_5V_IOUT					ADC2
+//#define MCU_ADC_5V_IOUT_GPIO		    GPIOA
+//#define MCU_ADC_5V_IOUT_RxPin			GPIO_PIN_5
+//#define MCU_ADC_5V_IOUT_Channel			ADC2_Channel_02_PA5
+///*ADC4*/
+////12V输出电流采样
+//#define MCU_ADC_12VPC_IOUT				ADC4
+//#define MCU_ADC_12VPC_IOUT_GPIO		    GPIOB
+//#define	MCU_ADC_12VPC_IOUT_RxPin		GPIO_PIN_15
+//#define	MCU_ADC_12VPC_IOUT_Channel		ADC4_Channel_05_PB15
+//
+///*自动充电控制*/
+//#define MCU_CHARGE_ON_CLK				RCC_APB2_PERIPH_GPIOC
+//#define MCU_CHARGE_ON_GPIO				GPIOC
+//#define MCU_CHARGE_ON_PIN				GPIO_PIN_12
+//
+///*19V电源使能控制*/
+//#define MCU_19VARM_PWR_ON_CLK			RCC_APB2_PERIPH_GPIOA
+//#define MCU_19VARM_PWR_ON_GPIO			GPIOA
+//#define MCU_19VARM_PWR_ON_PIN			GPIO_PIN_15
+//
+///*24V电源使能控制*/
+//#define MCU_24VARM_PWR_ON_CLK			RCC_APB2_PERIPH_GPIOA
+//#define MCU_24VARM_PWR_ON_GPIO			GPIOA
+//#define MCU_24VARM_PWR_ON_PIN			GPIO_PIN_8
+//
+/*电机电源使能控制*/
+#define MCU_MT_PWR_ON_CLK				RCC_APB2_PERIPH_GPIOB
+#define MCU_MT_PWR_ON_GPIO				GPIOB
+#define MCU_MT_PWR_ON_PIN				GPIO_PIN_14
+
+/*释放急停开关检测（解抱闸）*/
+#define UNESTOP_SW_IN_CLK				RCC_APB2_PERIPH_GPIOC
+#define UNESTOP_SW_IN_GPIO				GPIOC
+#define UNESTOP_SW_IN_PIN				GPIO_PIN_13
+
+/*急停开关检测*/
+#define ESTOP_SW_IN_CLK					RCC_APB2_PERIPH_GPIOA
+#define ESTOP_SW_IN_GPIO				GPIOA
+#define ESTOP_SW_IN_PIN					GPIO_PIN_7
+
+/*红外对管1*/
+#define MCU_INF_CLK 					RCC_APB2_PERIPH_GPIOB
+#define MCU_INF_TIM_CLK 				RCC_APB1_PERIPH_TIM4
+
+#define MCU_INF_TX1_GPIO 				GPIOB
+#define MCU_INF_TX1_PIN 				GPIO_PIN_6
+//#define MCU_INF_TX1_TIM 				TIM4
+//#define MCU_INF_TX1_TIM_IRQn 			TIM4_IRQn
+//#define MCU_INF_TX1_TIM_CHx_Init 		TIM_InitOc1
+//#define MCU_INF_TX1_TIM_CHx_Preload 	TIM_ConfigOc1Preload
+
+#define MCU_INF_RX1_GPIO 				GPIOB
+#define MCU_INF_RX1_PIN 				GPIO_PIN_7
+//#define MCU_INF_RX1_TIM 				TIM4
+//#define MCU_INF_RX1_TIM_IRQn 			TIM4_IRQn
+//#define MCU_INF_RX1_TIM_CHx_Init 		TIM_InitOc2
+//#define MCU_INF_RX1_TIM_CHx_Preload 	TIM_ConfigOc2Preload
+
+
+/*RGB控制*/
+#define MCU_RGB_CLK 					RCC_APB2_PERIPH_GPIOA
+#define	MCU_RGB_TIM_CLK 				RCC_APB1_PERIPH_TIM5
+#define	MCU_RGB_TIM 					TIM5
+#define	MCU_RGB_TIM_IRQn 				TIM5_IRQn
+#define MCU_RGB_TIM_Period 				100					// 周期为1ms
+#define MCU_RGB_TIM_Prescaler 			720
+//red
+//#define MCU_RGB_RED_GPIO 				GPIOA
+//#define MCU_RGB_RED_PIN 				GPIO_PIN_1
+//#define MCU_RGB_RED_TIM_CHx_Init 		TIM_InitOc2
+//#define MCU_RGB_RED_TIM_CHx_Preload 	TIM_ConfigOc2Preload
+//#define MCU_RGB_RED_TIM_SetCmp 			TIM_SetCmp2
+//green
+#define MCU_RGB_GREEN_GPIO 				GPIOA
+#define MCU_RGB_GREEN_PIN 				GPIO_PIN_2
+#define MCU_RGB_GREEN_TIM_CHx_Init 		TIM_InitOc3
+#define MCU_RGB_GREEN_TIM_CHx_Preload	TIM_ConfigOc3Preload
+#define MCU_RGB_GREEN_TIM_SetCmp 		TIM_SetCmp3
+//blue
+#define MCU_RGB_BLUE_GPIO 				GPIOA
+#define MCU_RGB_BLUE_PIN 				GPIO_PIN_3
+#define MCU_RGB_BLUE_TIM_CHx_Init 		TIM_InitOc4
+#define MCU_RGB_BLUE_TIM_CHx_Preload 	TIM_ConfigOc4Preload
+#define MCU_RGB_BLUE_TIM_SetCmp 		TIM_SetCmp4
+/*转向灯控制*/
+#define MCU_LED_CLK 					RCC_APB2_PERIPH_GPIOD
+//左
+#define MCU_LED_LEFT_GPIO 				GPIOD
+#define MCU_LED_LEFT_PIN 				GPIO_PIN_12
+#define MCU_LED_LEFT_TIM 				TIM2
+#define MCU_LED_LEFT_TIM_IRQn 			TIM2_IRQn
+#define MCU_LED_LEFT_TIM_CHx_Init 		TIM_InitOc3
+#define MCU_LED_LEFT_TIM_CHx_Preload 	TIM_ConfigOc3Preload
+//右
+#define MCU_LED_RIGHT_GPIO 				GPIOD
+#define MCU_LED_RIGHT_PIN 				GPIO_PIN_13
+#define MCU_LED_RIGHT_TIM 				TIM2
+#define MCU_LED_RIGHT_TIM_IRQn 			TIM2_IRQn
+#define MCU_LED_RIGHT_TIM_CHx_Init 		TIM_InitOc4
+#define MCU_LED_RIGHT_TIM_CHx_Preload	TIM_ConfigOc4Preload
+
+
 
 #endif
 

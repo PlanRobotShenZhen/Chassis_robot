@@ -2,7 +2,7 @@
 #define __BALANCE_H			
 
 #include "stdint.h"
-
+#include"stdbool.h"
 
 #define BALANCE_TASK_PRIO 4	 //任务优先级
 #define BALANCE_STK_SIZE 512 //任务堆栈大小
@@ -32,9 +32,9 @@
 #define MINTOSEC 				60.0f		//分钟->秒钟
 
 //SWB速度模式下的力矩挡位(VRA控制)系数
-#define SWB_LOW_GEAR 			33			//力矩低档位系数
-#define SWB_MIDDLE_GEAR 		66			//力矩中档位系数
-#define SWB_HIGH_GEAR 			100			//力矩高档位系数 
+#define SWB_LOW_GEAR 			20			//力矩低档位系数
+#define SWB_MIDDLE_GEAR 		70			//力矩中档位系数
+#define SWB_HIGH_GEAR 			130			//力矩高档位系数 
 
 #define CHANNEL_VALUE_ERROR 	10			//手柄通道值允许误差
 
@@ -45,7 +45,7 @@
 extern float Move_X,Move_Y,Move_Z;   	//小车各个轴的速度
 extern float Voltage;
 extern float Z_Radian_Max; 				//弧度最大值
-
+extern bool ROS_JT_Flag;
 
 /*----------------------各小车速度宏定义--------------------------*/
 #define MAXDEGREE 300 		//前轮最大转角
@@ -105,7 +105,7 @@ void IrDA_Send0(void);
 void IrDA_Send1(void);
 void IrDA_SendData(uint8_t data);
 void IrDA_RX_Decode(void);
-void Relay_Switch(void);
+void Relay_Switch(void);								// 继电器开关控制函数，用于控制继电器的打开和关闭
 void ChargerBalanceInit(void);
 void SetReal_Velocity(void);                         //设置电机运行的速度       
 void ClassificationOfMotorMotionModes(uint16_t sport_mode);	   

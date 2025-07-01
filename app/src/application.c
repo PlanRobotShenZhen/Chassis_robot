@@ -83,6 +83,7 @@ static rt_uint8_t LED_stack[512];
 static rt_uint8_t RJJT_stack[512];
 static rt_uint8_t Charge_stack[512];
 static rt_uint8_t CircularCar_stack[512];
+static rt_uint8_t Motor_en_stack[512];
 static struct rt_thread Balance_thread;
 static struct rt_thread Motor_thread;
 static struct rt_thread Remote_thread;
@@ -93,6 +94,7 @@ static struct rt_thread Modbus_thread;
 static struct rt_thread ADC_thread;
 static struct rt_thread Charge_thread;
 static struct rt_thread CircularCar_thread;
+static struct rt_thread Motor_en_thread;
 
 
 
@@ -172,17 +174,17 @@ void DiyFunctionBasedCar(uint16_t data)
             break;
 
         case Diff_Car: //圆形底盘
-            Usart2_Init(9600);              //串口2初始化，圆形底盘用串口2代替串口4，用于读取电池信息
-            Ultrasonic_Init();
-            Adc_Init();
-            IR_Init();
-            ElectrodePad_Init();
-            //GPIO_SetBits(MCU_CHARGE_ON_GPIO, MCU_CHARGE_ON_PIN);    //圆形底盘充电电极片,对接成功后才开启，默认关闭
-            pdu[ros_chargingcommand] = 1;//圆形底盘没有电池SOC传感器，默认开启充电信号，红外一直工作。
+//            Usart2_Init(9600);              //串口2初始化，圆形底盘用串口2代替串口4，用于读取电池信息
+//            Ultrasonic_Init();
+//            Adc_Init();
+//            IR_Init();
+//            ElectrodePad_Init();
+//            //GPIO_SetBits(MCU_CHARGE_ON_GPIO, MCU_CHARGE_ON_PIN);    //圆形底盘充电电极片,对接成功后才开启，默认关闭
+//            pdu[ros_chargingcommand] = 1;//圆形底盘没有电池SOC传感器，默认开启充电信号，红外一直工作。
             break;
 
         case FourWheel_Car:
-            Adc_Init();
+            //Adc_Init();
             break;
 
         case RC_Car:
@@ -199,14 +201,13 @@ void DiyFunctionBasedCar(uint16_t data)
 
         default:
             break;
-    }
+    }	  
 }
 
 static void InitTask(void* parameter)
 {
     rt_err_t result;
     systemInit();
-
 
     /* init Balance thread */
 
@@ -240,14 +241,14 @@ static void InitTask(void* parameter)
         if (result == RT_EOK)
             rt_thread_startup(&CAN_thread);
 
-        /* init adc thread */
+        ///* init adc thread */
         result = rt_thread_init(&ADC_thread, "ADC", ADC_task, (void*)pdu, (rt_uint8_t*)&ADC_stack[0], sizeof(ADC_stack), 11, 12);
 
         if (result == RT_EOK)
-            rt_thread_startup(&ADC_thread);
+           rt_thread_startup(&ADC_thread);
 
         // init RJJT thread      //急停开关
-        result = rt_thread_init(&RJJT_thread, "RJJT_task", RJJT_task, (void*)pdu, (rt_uint8_t*)&RJJT_stack[0], sizeof(RJJT_stack), 2, 5);
+        result = rt_thread_init(&RJJT_thread, "RJJT_task", RJJT_task, (void*)pdu, (rt_uint8_t*)&RJJT_stack[0], sizeof(RJJT_stack), 1, 5);
 
         if (result == RT_EOK)
             rt_thread_startup(&RJJT_thread);
@@ -256,27 +257,8 @@ static void InitTask(void* parameter)
         result = rt_thread_init(&LED_thread, "Led_task", Led_task, (void*)pdu, (rt_uint8_t*)&LED_stack[0], sizeof(LED_stack), 9, 5);
 
         if (result == RT_EOK)
-            rt_thread_startup(&LED_thread);
-    }
-
-    if (pdu[car_type] == Diff_Car) //  圆形差速度底盘   与自动 充电相关，所以要增加这样一个函数
-    {
-        // init CircularCar thread
-        result = rt_thread_init(&CircularCar_thread, "CircularCar_task", CircularCar_task, (void*)pdu, (rt_uint8_t*)&CircularCar_stack[0], sizeof(CircularCar_stack), 8, 5);
-
-        if (result == RT_EOK)
-            rt_thread_startup(&CircularCar_thread);
-    }
-
-    if (pdu[car_type] == Charger)//充电桩与圆盘 两选一
-    {
-        // init ChargeStation thread
-        result = rt_thread_init(&Charge_thread, "Charge_task", Charge_task, (void*)pdu, (rt_uint8_t*)&Charge_stack[0], sizeof(Charge_stack), 10, 5);
-
-        if (result == RT_EOK)
-            rt_thread_startup(&Charge_thread);
-    }
-
+           rt_thread_startup(&LED_thread);
+	}
 }
 
 /**
@@ -296,3 +278,7 @@ void rt_application_init(void)
 }
 
 /*@}*/
+
+
+
+

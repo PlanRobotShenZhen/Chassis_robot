@@ -120,12 +120,12 @@ void Detect_Motor_Status(void)
     uint16_t type, sport_mode, state_word, temperature, voltage, current, error_code;
     uint16_t x_rpm_feedback, position1_feedback, position2_feedback, torgue_feedback;//后面有解释
     uint16_t mpl1, mpl2, mpr1, mpr2; //左右电机位置反馈
-    short msl, msr;//左右电机速度反馈
+	short msl, msr;//左右电机速度反馈
     int rpm_feedback_temp;//后面有解释
-    u32 motor_pulse_num;
-    u32 motor_pulse_num1;
-    uint16_t error_message=0;
-    //读取TPDO数据
+	u32 motor_pulse_num;
+	u32 motor_pulse_num1;
+	uint16_t error_message=0;
+	//读取TPDO数据
 
     for (i = 0; i < pdu[TpdoGroupCount]; i++)//圆形底盘驱动器1拖2，count = 1
     {
@@ -133,11 +133,11 @@ void Detect_Motor_Status(void)
         {
             if(*TPDOMessage_FLAG[i][j])
             {
-                *TPDOMessage_FLAG[i][j] = false;
+                *TPDOMessage_FLAG[i][j] = false; 
                 x_rpm_feedback = motor1_rpm_feedback + j * pdu[ro_motor_gap];
-                motor_pulse_num=motor1_pulse_num+j*2;
-                motor_pulse_num1=motor1_pulse_num1+j*2;
-                type = motor1_type + j * pdu[ro_motor_gap];
+				motor_pulse_num=motor1_pulse_num+j*2;
+				motor_pulse_num1=motor1_pulse_num1+j*2;
+                type = motor1_type + j * pdu[ro_motor_gap];                            
                 sport_mode = motor1_sport_mode + j * pdu[ro_motor_gap];
                 state_word = motor1_state_word + j * pdu[ro_motor_gap];
                 temperature = motor1_temperature + j * pdu[ro_motor_gap];
@@ -153,26 +153,26 @@ void Detect_Motor_Status(void)
 
                 switch (i)
                 {
-                case TPDO0:
-                    switch (pdu[type])
-                    {
-                    case servo_zlac:
-                    case servo_wanze:
-                        pdu[state_word]  = TPDOMessage[i][j]->Data[k++];					//状态字
-                        pdu[state_word] |= TPDOMessage[i][j]->Data[k++] << 8;
-                        rpm_feedback_temp  = TPDOMessage[i][j]->Data[k++];					//当前速度（脉冲）
-                        rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 8;
-                        rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 16;
-                        rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 24;
-                        pdu[motor_pulse_num]=rpm_feedback_temp& 0xFFFF;						//电机脉冲频率
-                        pdu[motor_pulse_num1]=(rpm_feedback_temp>>16)& 0xFFFF;
-                        rpm_feedback_temp = (int)(rpm_feedback_temp * MotorPulseWANZEToMotorSpeed);
-                        pdu[x_rpm_feedback]  = rpm_feedback_temp & 0xFFFF;;
-                        pdu[torgue_feedback]  = TPDOMessage[i][j]->Data[k++];				//力矩反馈
-                        pdu[torgue_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
-                        break;
+                    case TPDO0:
+                        switch (pdu[type])
+                        {
+                            case servo_zlac:
+                            case servo_wanze:
+                                pdu[state_word]  = TPDOMessage[i][j]->Data[k++];					//状态字
+                                pdu[state_word] |= TPDOMessage[i][j]->Data[k++] << 8;
+                                rpm_feedback_temp  = TPDOMessage[i][j]->Data[k++];					//当前速度（脉冲）
+                                rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 8;
+                                rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 16;
+                                rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 24;
+								pdu[motor_pulse_num]=rpm_feedback_temp& 0xFFFF;						//电机脉冲数
+								pdu[motor_pulse_num1]=(rpm_feedback_temp>>16)& 0xFFFF;
+                                rpm_feedback_temp = (int)(rpm_feedback_temp * MotorPulseWANZEToMotorSpeed);
+                                pdu[x_rpm_feedback]  = rpm_feedback_temp & 0xFFFF;;
+                                pdu[torgue_feedback]  = TPDOMessage[i][j]->Data[k++];				//力矩反馈
+                                pdu[torgue_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
+                                break;
 
-                    case servo_zlacd:
+                            case servo_zlacd:
 //                                pdu[motor1_state_word]  = TPDOMessage[i][j]->Data[k++];				//左电机状态字
 //                                pdu[motor1_state_word] |= TPDOMessage[i][j]->Data[k++] << 8;
 //                                pdu[motor2_state_word]  = TPDOMessage[i][j]->Data[k++];				//右电机状态字
@@ -181,118 +181,98 @@ void Detect_Motor_Status(void)
 //                                pdu[motor1_rpm_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
 //                                pdu[motor2_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];			//右电机速度反馈
 //                                pdu[motor2_rpm_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
+								 
+                                break;
 
-                        break;
-
-                    case servo_plan:
-                        /* code */
-                        break;
-                    }
-
-                    break;
-
-                case TPDO1:
-                    switch (pdu[type])
-                    {
-                    case servo_zlac:
-                        pdu[x_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];				//当前速度
-                        pdu[x_rpm_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
-                        k += 2;//舍去k = 2, k = 3数据
-
-                        switch (pdu[sport_mode])
-                        {
-                        case torque_mode:
-                            pdu[torgue_feedback]  = TPDOMessage[i][j]->Data[k++];		//当前转矩
-                            pdu[torgue_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
-                            break;
-
-                        default:
-                            pdu[voltage]  = TPDOMessage[i][j]->Data[k++];				//母线电压
-                            pdu[voltage] |= TPDOMessage[i][j]->Data[k++] << 8;
-                            break;
+                            case servo_plan:
+                                /* code */
+                                break;
                         }
 
-                        pdu[error_code]  = TPDOMessage[i][j]->Data[k++];					//错误代码
-                        pdu[error_code] |= TPDOMessage[i][j]->Data[k++] << 8;
                         break;
 
-                    case servo_wanze:
-                        error_message = TPDOMessage[i][j]->Data[2];	
-                        error_message|= TPDOMessage[i][j]->Data[3]<<8;				//电机错误代码
-                        error_temp = TPDOMessage[i][j]->Data[4];
-                        error_temp|= TPDOMessage[i][j]->Data[5]<<8;
-                        error_temp|= TPDOMessage[i][j]->Data[6]<<16;
-                        error_temp|= TPDOMessage[i][j]->Data[7]<<24;				//电机故障信息
+                    case TPDO1:
+                        switch (pdu[type])
+                        {
+                            case servo_zlac:
+                                pdu[x_rpm_feedback]  = TPDOMessage[i][j]->Data[k++];				//当前速度
+                                pdu[x_rpm_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
+                                k += 2;//舍去k = 2, k = 3数据
+
+                                switch (pdu[sport_mode])
+                                {
+                                    case torque_mode:
+                                        pdu[torgue_feedback]  = TPDOMessage[i][j]->Data[k++];		//当前转矩
+                                        pdu[torgue_feedback] |= TPDOMessage[i][j]->Data[k++] << 8;
+                                        break;
+
+                                    default:
+                                        pdu[voltage]  = TPDOMessage[i][j]->Data[k++];				//母线电压
+                                        pdu[voltage] |= TPDOMessage[i][j]->Data[k++] << 8;
+                                        break;
+                                }
+
+                                pdu[error_code]  = TPDOMessage[i][j]->Data[k++];					//错误代码
+                                pdu[error_code] |= TPDOMessage[i][j]->Data[k++] << 8;
+                                break;
+
+                            case servo_wanze:
+//                                rpm_feedback_temp  = TPDOMessage[i][j]->Data[k++];					//当前速度（脉冲）
+//                                rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 8;
+//                                rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 16;
+//                                rpm_feedback_temp |= TPDOMessage[i][j]->Data[k++] << 24;
+//                                rpm_feedback_temp = (int)(rpm_feedback_temp * MotorPulseWANZEToMotorSpeed);
+//                                pdu[x_rpm_feedback]  = rpm_feedback_temp & 0xFFFF;					//当前速度（0.1rpm）
+//                                pdu[voltage]  = TPDOMessage[i][j]->Data[k++];						//母线电压
+//                                pdu[voltage] |= TPDOMessage[i][j]->Data[k++] << 8;
+//                                pdu[current]  = TPDOMessage[i][j]->Data[k++];						//母线电流
+//                                pdu[current] |= TPDOMessage[i][j]->Data[k++] << 8;
+								  error_message = TPDOMessage[i][j]->Data[2];
+								  error_message|= TPDOMessage[i][j]->Data[3]<<8;
+								  error_temp = TPDOMessage[i][j]->Data[4];
+								  error_temp|= TPDOMessage[i][j]->Data[5]<<8;
+								  error_temp|= TPDOMessage[i][j]->Data[6]<<16;
+								  error_temp|= TPDOMessage[i][j]->Data[7]<<24;
+                                break;
+
+                            case servo_zlacd:
+                                /* NULL */
+                                break;
+
+                            case servo_plan:
+                                /* code */
+                                break;
+                        }
+
                         break;
 
-                    case servo_zlacd:
-                        /* NULL */
-                        break;
-
-                    case servo_plan:
+                    case TPDO2:
                         /* code */
                         break;
-                    }
-
-                    break;
-
-                case TPDO2:
-                    /* code */
-                    break;
                 }
-                if(error_message)
-                {
-                    switch(error_temp)
-                    {
-                    case ENCODERDATAABNORMAL:
-                        pdu[error_code]=0x1   			;
-                        break;
-                    case OVERVOLTAGE:
-                        pdu[error_code]=(0x1<<1)		;
-                        break;
-                    case HARDWAREOVERVCURRENT:
-                        pdu[error_code]=(0x1<<2)   		;
-                        break;
-                    case SOFTWAREOVERVCURRENT:
-                        pdu[error_code]=(0x1<<3)   		;
-                        break;
-                    case NOTOROVERLOADED:
-                        pdu[error_code]=(0x1<<4)		;
-                        break;
-                    case FLYINGCAR:
-                        pdu[error_code]=(0x1<<5)		;
-                        break;
-                    case WATCHDOGERROR:
-                        pdu[error_code]=(0x1<<6)		;
-                        break;
-                    case CANCORRESPONDENCE:
-                        pdu[error_code]=(0x1<<7)		;
-                        break;
-                    case UNDERVOLTAGE:
-                        pdu[error_code]=(0x1<<8)		;
-                        break;
-                    case POSITIVEOVERTRAVELWARNING:
-                        pdu[error_code]=(0x1<<9)    	;
-                        break;
-                    case NEGATIVEOVERTRAVELWARNING:
-                        pdu[error_code]=(0x1<<10)		;
-                        break;
-                    case POSITIONDEVIATIONLARGE:
-                        pdu[error_code]=(0x1<<11)		;
-                        break;
-                    case EMERGENCYSHUTDOWN:
-                        pdu[error_code]=(0x1<<12)		;
-                        break;
-                    case ENCODERCOUNTERROR:
-                        pdu[error_code]=(0x1<<13)		;
-                        break;
-                    case ENCODERCOUNTOVERFLOW:
-                        pdu[error_code]=(0x1<<14)		;
-                        break;
-                    }
-                    mtd[j].d.online = false;
-                }
-
+				if(error_message)
+				{
+					switch(error_temp)
+					{
+						case ENCODERDATAABNORMAL:  			pdu[error_code]=0x1   			;break;
+						case OVERVOLTAGE:     		 		pdu[error_code]=(0x1<<1)		;break;
+						case HARDWAREOVERVCURRENT:   		pdu[error_code]=(0x1<<2)   		;break;
+						case SOFTWAREOVERVCURRENT:   		pdu[error_code]=(0x1<<3)   		;break;
+						case NOTOROVERLOADED:     	 		pdu[error_code]=(0x1<<4)		;break;
+						case FLYINGCAR:     		 		pdu[error_code]=(0x1<<5)		;break;
+						case WATCHDOGERROR:     	 		pdu[error_code]=(0x1<<6)		;break;
+						case CANCORRESPONDENCE:      		pdu[error_code]=(0x1<<7)		;break;
+						case UNDERVOLTAGE:     		 		pdu[error_code]=(0x1<<8)		;break;
+						case POSITIVEOVERTRAVELWARNING: 	pdu[error_code]=(0x1<<9)    	;break;
+						case NEGATIVEOVERTRAVELWARNING:     pdu[error_code]=(0x1<<10)		;break;
+						case POSITIONDEVIATIONLARGE:     	pdu[error_code]=(0x1<<11)		;break;
+						case EMERGENCYSHUTDOWN:     		pdu[error_code]=(0x1<<12)		;break;
+						case ENCODERCOUNTERROR:     		pdu[error_code]=(0x1<<13)		;break;
+						case ENCODERCOUNTOVERFLOW:     		pdu[error_code]=(0x1<<14)		;break;
+					}
+					mtd[j].d.online = false;
+				}
+					
             }
         }
     }
@@ -327,24 +307,24 @@ void Detect_Motor_Status(void)
 //            msl = pdu[motor2_rpm_feedback];
 //            msr = pdu[motor3_rpm_feedback];
 //            break;
-    case FourWheel_Car:
-        mpl1 = pdu[motor2_position1_feedback];
-        mpl2 = pdu[motor2_position2_feedback];
-        mpr1 = pdu[motor3_position1_feedback];
-        mpr2 = pdu[motor3_position2_feedback];
-        msl = pdu[motor2_rpm_feedback];
-        msr = pdu[motor3_rpm_feedback];
-        break;
-    case Diff_Car:
-    case TwoWheel_Car:
-    case Tank_Car:
-        mpl1 = pdu[motor1_position1_feedback];  //无电机位置反馈
-        mpl2 = pdu[motor1_position2_feedback];
-        mpr1 = pdu[motor2_position1_feedback];
-        mpr2 = pdu[motor2_position2_feedback];
-        msl = pdu[motor1_rpm_feedback];
-        msr = pdu[motor2_rpm_feedback];
-        break;
+        case FourWheel_Car:
+			mpl1 = pdu[motor2_position1_feedback];
+            mpl2 = pdu[motor2_position2_feedback];
+            mpr1 = pdu[motor3_position1_feedback];
+            mpr2 = pdu[motor3_position2_feedback];
+            msl = pdu[motor2_rpm_feedback];
+            msr = pdu[motor3_rpm_feedback];
+			break;
+        case Diff_Car:
+        case TwoWheel_Car:
+        case Tank_Car:
+            mpl1 = pdu[motor1_position1_feedback];  //无电机位置反馈
+            mpl2 = pdu[motor1_position2_feedback];
+            mpr1 = pdu[motor2_position1_feedback];
+            mpr2 = pdu[motor2_position2_feedback];
+            msl = pdu[motor1_rpm_feedback];
+            msr = pdu[motor2_rpm_feedback];
+            break;
     }
 
     //电机反馈不能计算小车实际位移误差
@@ -362,50 +342,57 @@ void Detect_Motor_Status(void)
 //        LastPos_Right = NowPos_Right;
 //    }
 
-    //速度反馈单位换算
+	//速度反馈单位换算	
     if((short) msl > 0)
     {
         //根据电机的速度方向来判断运行方向
-        //v = (w1+w2)/2 * C / 60
-        linear_speed_feedbacktmp= (short)(((short)msl + ((short)(0xFFFF - msr + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> 10-3m/s)
-        //-msr也可，这么算是为了在处理溢出、类型一致性以及处理补码转换等问题时保证准确性
+         //pdu[linear_speed_feedback]
+            //v = (w1+w2)/2 * C / 60
+			linear_speed_feedbacktmp= (short)(((short)msl + ((short)(0xFFFF - msr + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> 10-3m/s)
+                //-msr也可，这么算是为了在处理溢出、类型一致性以及处理补码转换等问题时保证准确性
     }
     else
     {
-        linear_speed_feedbacktmp= (short)(((short)msr + ((short)(0xFFFF - msl + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> m/s)
+       //pdu[linear_speed_feedback]
+ 			linear_speed_feedbacktmp= (short)(((short)msr + ((short)(0xFFFF - msl + 1) & 0xFFFF)) / 2 * MAGNIFIC_10x_DOWN * MotorSpeedToLineSpeed * MAGNIFIC_1000x_UP);//线速度反馈(0.1rpm -> m/s)
     }
+		
 
+		if((linear_speed_feedbacktmp>3000)||(linear_speed_feedbacktmp<-3000))
+		{
+			
+			 linear_speed_feedbacktmp=0;
+		}                
+		//pdu[yaw_speed_feedback] w = r * (wr + wl) / H。 H为轮距，r为车轮半径,1 rpm = 2pi/60 rad/s
+		yaw_speed_feedbacktmp= -(short)((float)(pdu[wheel_radius] * (msl + msr) * MAGNIFIC_10x_DOWN * PI /30 *  MAGNIFIC_1000x_UP) / (float)pdu[car_tread] );//角速度反馈(0.1rpm -> 10-3rad/s)			
+        
+		if((yaw_speed_feedbacktmp > 3000))
+		{
+			yaw_speed_feedbacktmp = 3000;
+		}
+		else if(yaw_speed_feedbacktmp < -3000)
+		{
+			yaw_speed_feedbacktmp = -3000;
+		}
 
-    if((linear_speed_feedbacktmp>3000)||(linear_speed_feedbacktmp<-3000))
-    {
+		
+//		if((yaw_speed_feedbacktmp>3000)||(yaw_speed_feedbacktmp<-3000))
+//		{
+//			
+//			  yaw_speed_feedbacktmp=0;
+//		}
+		//速度反向		
+		pdu[linear_speed_feedback]=-linear_speed_feedbacktmp;	
+		pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp;
 
-        linear_speed_feedbacktmp=0;
-    }
-	
-    //pdu[yaw_speed_feedback] w = r * (wr + wl) / H。 H为轮距，r为车轮半径,1 rpm = 2pi/60 rad/s
-    yaw_speed_feedbacktmp= -(short)((float)(pdu[wheel_radius] * (msl + msr) * MAGNIFIC_10x_DOWN * PI /30 *  MAGNIFIC_1000x_UP) / (float)pdu[car_tread] );//角速度反馈(0.1rpm -> 10-3rad/s)
-
-    if((yaw_speed_feedbacktmp > 3000))
-    {
-        yaw_speed_feedbacktmp = 3000;
-    }
-    else if(yaw_speed_feedbacktmp < -3000)
-    {
-        yaw_speed_feedbacktmp = -3000;
-    }
-	
-    //速度反向
-    pdu[linear_speed_feedback]=-linear_speed_feedbacktmp;
-    pdu[yaw_speed_feedback]=-yaw_speed_feedbacktmp;
-
-    test_linear_feedback = pdu[linear_speed_feedback];
-    test_yaw_feedback = pdu[yaw_speed_feedback];
-    test_m1_fb = pdu[motor1_rpm_feedback];
-    test_m2_fb = pdu[motor2_rpm_feedback];
-
+		test_linear_feedback = pdu[linear_speed_feedback];
+		test_yaw_feedback = pdu[yaw_speed_feedback];
+		test_m1_fb = pdu[motor1_rpm_feedback];
+		test_m2_fb = pdu[motor2_rpm_feedback];
+    
 }
+    short diff_nMotor[MAX_MOTOR_NUMBER];
 
-short diff_nMotor[MAX_MOTOR_NUMBER];
 /**************************************************************************
 函数功能：设置电机速度
 入口参数：参数分别代表的是对应的can从机id和电机速度
@@ -414,7 +401,8 @@ short diff_nMotor[MAX_MOTOR_NUMBER];
 void Set_MotorVelocity(void)
 {
     uint16_t Car_Error_Label = 0; //电机错误标志
-	
+
+
     static short last_nMotor[MAX_MOTOR_NUMBER] = {0};
     for (int count = 0; count < pdu[motor_number]; count++)
     {
@@ -432,62 +420,62 @@ void Set_MotorVelocity(void)
         {
             switch (pdu[x_sport_mode])
             {
-            case position_mode:
-                /* code */
-                mrd[count].d.target_pos_vel = Servo_pulse;
-                break;
+                case position_mode:
+                    /* code */
+                    mrd[count].d.target_pos_vel = Servo_pulse;
+                    break;
 
-            case speed_mode:
-                if(pdu[x_enstate] && pdu[x_target_rpm])
-                {
-                    pdu[x_node_state] = node_running;//电机离线
-                }
-                else
-                {
-                    pdu[x_node_state] = node_standby;//电机待机
-                }
+                case speed_mode:
+                    if(pdu[x_enstate] && pdu[x_target_rpm])
+                    {
+                        pdu[x_node_state] = node_running;
+                    }
+                    else
+                    {
+                        pdu[x_node_state] = node_standby;
+                    }
 
-                if(pdu[car_type] == Diff_Car)
-                {
-                    diff_nMotor[0] = fmax(-x_velocity_limit, fmin(((short)pdu[motor1_target_rpm] - last_nMotor[0]), x_velocity_limit));//限制每次速度变化范围
-                    diff_nMotor[1] = fmax(-x_velocity_limit, fmin(((short)pdu[motor2_target_rpm] - last_nMotor[1]), x_velocity_limit));
-                    last_nMotor[0] = mrd[0].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[0];//方向调整
-                    last_nMotor[1] = mrd[1].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[1];//方向调整
-                }
-                else
-                {
-                    //diff_nMotor[count] = ((short)pdu[x_target_rpm] - last_nMotor[count]);
-                    diff_nMotor[count] = fmax(-x_velocity_limit, fmin(((short)pdu[x_target_rpm] - last_nMotor[count]), x_velocity_limit));
-                    last_nMotor[count] = mrd[count].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[count]; //方向调整
-                }
+                    if(pdu[car_type] == Diff_Car)
+                    {
+                        diff_nMotor[0] = fmax(-x_velocity_limit, fmin(((short)pdu[motor1_target_rpm] - last_nMotor[0]), x_velocity_limit));//限制每次速度变化范围
+                        diff_nMotor[1] = fmax(-x_velocity_limit, fmin(((short)pdu[motor2_target_rpm] - last_nMotor[1]), x_velocity_limit));
+                        last_nMotor[0] = mrd[0].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[0];//方向调整
+                        last_nMotor[1] = mrd[1].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[1];//方向调整
+                    }
+                    else
+                    {
+												//diff_nMotor[count] = ((short)pdu[x_target_rpm] - last_nMotor[count]);
+                        diff_nMotor[count] = fmax(-x_velocity_limit, fmin(((short)pdu[x_target_rpm] - last_nMotor[count]), x_velocity_limit));
+                        last_nMotor[count] = mrd[count].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[count]; //方向调整
+                    }
 
-                break;
+                    break;
 
-            case torque_mode:
-                if(pdu[x_enstate] && pdu[x_target_torque])
-                {
-                    pdu[x_node_state] = node_running;
-                }
-                else
-                {
-                    pdu[x_node_state] = node_standby;
-                }
+                case torque_mode:
+                    if(pdu[x_enstate] && pdu[x_target_torque])
+                    {
+                        pdu[x_node_state] = node_running;
+                    }
+                    else
+                    {
+                        pdu[x_node_state] = node_standby;
+                    }
 
-                if(pdu[car_type] == Diff_Car)
-                {
-                    diff_nMotor[0] = fmax(-x_velocity_limit, fmin(((short)pdu[motor1_target_torque] - last_nMotor[0]), x_velocity_limit));
-                    diff_nMotor[1] = fmax(-x_velocity_limit, fmin(((short)pdu[motor2_target_torque] - last_nMotor[1]), x_velocity_limit));
-                    last_nMotor[0] = mrd[0].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[0];//方向调整
-                    last_nMotor[1] = mrd[1].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[1];//方向调整
-                }
-                else
-                {
-                    //diff_nMotor[count] = ((short)pdu[x_target_torque] - last_nMotor[count]);
-                    diff_nMotor[count] = fmax(-x_velocity_limit, fmin(((short)pdu[x_target_torque] - last_nMotor[count]), x_velocity_limit));
-                    last_nMotor[count] = mrd[count].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[count]; //方向调整
-                }
+                    if(pdu[car_type] == Diff_Car)
+                    {
+                        diff_nMotor[0] = fmax(-x_velocity_limit, fmin(((short)pdu[motor1_target_torque] - last_nMotor[0]), x_velocity_limit));
+                        diff_nMotor[1] = fmax(-x_velocity_limit, fmin(((short)pdu[motor2_target_torque] - last_nMotor[1]), x_velocity_limit));
+                        last_nMotor[0] = mrd[0].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[0];//方向调整
+                        last_nMotor[1] = mrd[1].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[1];//方向调整
+                    }
+                    else
+                    {
+												//diff_nMotor[count] = ((short)pdu[x_target_torque] - last_nMotor[count]);  
+												diff_nMotor[count] = fmax(-x_velocity_limit, fmin(((short)pdu[x_target_torque] - last_nMotor[count]), x_velocity_limit));
+                        last_nMotor[count] = mrd[count].d.target_pos_vel += (short)pdu[x_direction] * diff_nMotor[count]; //方向调整
+                    }
 
-                break;
+                    break;
             }
         }
         else
@@ -519,17 +507,17 @@ enum enum_car_running_state Judge_CarState(uint16_t Car_Error_Label, bool Soft_J
 {
     switch(Car_Error_Label)
     {
-    case 0:
-        pdu[car_error_messages] = car_normal;
-        break;
+        case 0:
+            pdu[car_error_messages] = car_normal;
+            break;
 
-    case 1:
-        pdu[car_error_messages] = single_motor_error;
-        break;
+        case 1:
+            pdu[car_error_messages] = single_motor_error;
+            break;
 
-    default:
-        pdu[car_error_messages] = multiple_motor_errors;
-        break;
+        default:
+            pdu[car_error_messages] = multiple_motor_errors;
+            break;
     }
 
     if(Car_Error_Label)
@@ -549,16 +537,18 @@ enum enum_car_running_state Judge_CarState(uint16_t Car_Error_Label, bool Soft_J
  **********************************************************/
 void Motor_Init(int count)
 {
+    //兼容电机掉线重启功能
     uint16_t i_start = (count == pdu[motor_number]) ? 0 : count;
     uint16_t i_end = (count == pdu[motor_number]) ? pdu[motor_number] : (count + 1);
     uint16_t mode, id,
-             type,//驱动器型号
-             ah, //加速时间高位
-             al, //加速时间低位
-             dh, //减速时间高位
-             dl; //减速时间低位
-    for (int i = i_start; i < i_end; i++)
-    {
+        type,//驱动器型号
+        ah, //加速时间高位
+        al, //加速时间低位
+        dh, //减速时间高位
+        dl; //减速时间低位
+
+        for (int i = i_start; i < i_end; i++)
+        {
         //初始化MOTOR参数
         type = pdu[motor1_type + i * pdu[ro_motor_gap]];
         mode = pdu[motor1_sport_mode + i * pdu[ro_motor_gap]];
@@ -567,30 +557,35 @@ void Motor_Init(int count)
         al = pdu[motor1_acceleration_time + i * pdu[rw_motor_gap]] & 0x00FF;
         dh = (pdu[motor1_deceleration_time + i * pdu[rw_motor_gap]] >> 8) & 0x00FF;
         dl = pdu[motor1_deceleration_time + i * pdu[rw_motor_gap]] & 0x00FF;
+
         switch(type)
-        {
-			case servo_wanze:
-            NMT_Control(0x80, id); 			//预操作状态
-            WANZER_PDO_Config(id, mode);
-            NMT_Control(Start_Command, id); 			//启动命令
-            break;
-        //单片机为主站，驱动器为从站。
-        case servo_zlac:
-            ZLAC8015_PDO_Config(id, mode, ah, al, dh, dl);//电机PDO配置
-            Driver_JT_Inv(id);			//反转电平
-            NMT_Control(Start_Command, id); 			//启动命令
-            break;
-        case servo_zlacd:
-            ZLAC8015D_PDO_Config(id, mode, ah, al, dh, dl);
-            NMT_Control(Start_Command, id); 			//启动命令
-            break;
-        case servo_plan:
-            PLAN_PDO_Config(id, mode, ah, al, dh, dl);
-            NMT_Control(Start_Command, id); 			//启动命令
-            break;
-        default:
-            break;
-        }
+        {   
+            //单片机为主站，驱动器为从站。
+            case servo_zlac:
+                ZLAC8015_PDO_Config(id, mode, ah, al, dh, dl);//电机PDO配置
+                Driver_JT_Inv(id);			//反转电平
+						NMT_Control(Start_Command, id); 			//启动命令
+                break;
+
+            case servo_wanze:
+					      NMT_Control(0x80, id); 			//启动命令
+                WANZER_PDO_Config(id, mode);
+				        NMT_Control(Start_Command, id); 			//启动命令
+                break;
+
+            case servo_zlacd:
+                ZLAC8015D_PDO_Config(id, mode, ah, al, dh, dl);
+						NMT_Control(Start_Command, id); 			//启动命令
+                break;
+
+            case servo_plan:
+                PLAN_PDO_Config(id, mode, ah, al, dh, dl);
+						NMT_Control(Start_Command, id); 			//启动命令
+                break;
+
+            default:
+                break;
+        }      
     }
 
 }
@@ -634,22 +629,22 @@ bool CanIRQProcess(CAN_Module* CANx)
 {
     CanRxMessage RxMessage;
     CAN_ReceiveMessage(CANx, 0, &RxMessage);//调用该函数自动清零
-
-    for (int i = 0; i < pdu[TpdoGroupCount]; i++)
-    {
-        for (int j = 0; j < pdu[motor_number]; j++)
+        
+        for (int i = 0; i < pdu[TpdoGroupCount]; i++)
         {
-            uint16_t TPDOx_ID = TPDO0_ID + i * (TPDO1_ID - TPDO0_ID);
-            uint16_t Node_ID = pdu[motor1_CAN_id + j * pdu[rw_motor_gap]];
-
-            if (RxMessage.IDE == CAN_Standard_Id && RxMessage.StdId == TPDOx_ID + Node_ID)
+            for (int j = 0; j < pdu[motor_number]; j++)
             {
-                rt_memcpy(TPDOMessage[i][j], &RxMessage, sizeof(RxMessage));
-                *TPDOMessage_FLAG[i][j] = true;
-                return true;
+                uint16_t TPDOx_ID = TPDO0_ID + i * (TPDO1_ID - TPDO0_ID);
+                uint16_t Node_ID = pdu[motor1_CAN_id + j * pdu[rw_motor_gap]];
+
+                if (RxMessage.IDE == CAN_Standard_Id && RxMessage.StdId == TPDOx_ID + Node_ID)
+                {
+                    rt_memcpy(TPDOMessage[i][j], &RxMessage, sizeof(RxMessage));
+                    *TPDOMessage_FLAG[i][j] = true;
+                    return true;
+                }
             }
         }
-    }
     return false;
 }
 

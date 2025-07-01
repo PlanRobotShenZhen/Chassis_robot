@@ -122,59 +122,59 @@ void DebugMon_Handler(void)
 #if(CARMODE != Diff)
 /**
  * @brief  This function handles SPI1 interrupt request defined in main.h .
- */
-void SPI1_IRQHandler(void)
-{
-    if (SPI_I2S_GetStatus(SPI_MASTER, SPI_I2S_RNE_FLAG) != RESET)
-    {
-        SPI_Master_Rx_Buffer = SPI_MASTER->DAT;
-        SPI_ReadWriteCycle = 0;
-        GPIO_WriteBit(SPI_MASTER_GPIO, SPI_MASTER_PIN_NSS, Bit_RESET);
-    }
+// */
+//void SPI1_IRQHandler(void)
+//{
+//    if (SPI_I2S_GetStatus(SPI_MASTER, SPI_I2S_RNE_FLAG) != RESET)
+//    {
+//        SPI_Master_Rx_Buffer = SPI_MASTER->DAT;
+//        SPI_ReadWriteCycle = 0;
+//        GPIO_WriteBit(SPI_MASTER_GPIO, SPI_MASTER_PIN_NSS, Bit_RESET);
+//    }
 
-}
+//}
 
 
-void EXTI4_IRQHandler(void)
-{
-    if (RESET != EXTI_GetITStatus(EXTI_LINE4))
-    {
-        EXTI_ClrITPendBit(EXTI_LINE4);
-        TIM_ClrIntPendingBit(TIM3, TIM_INT_UPDATE);
-        if (GPIO_ReadInputDataBit(CS1_Econ_PORT, CS1_Econ_PIN))
-        {
-            ultrasonic_t1tig_time=0;
-            TIM_SetCnt(TIM3, 0);
-            TIM_Enable(TIM3, ENABLE);
-        }
-        else
-        {
-            ultrasonic_t1tig_time = TIM_GetCnt(TIM3);
-            TIM_Enable(TIM3, DISABLE);
-            ultrasonic_t1tig = 1;
-            UltrasonicSetEnable(1, 0);
-        }
-    }
-}
-void EXTI9_5_IRQHandler(void)
-{
-    if (RESET != EXTI_GetITStatus(EXTI_LINE5))
-    {
-        EXTI_ClrITPendBit(EXTI_LINE5);
-        if (GPIO_ReadInputDataBit(CS2_Econ_PORT, CS2_Econ_PIN))
-        {
-            ultrasonic_t2tig_time = 0;
-            TIM_SetCnt(TIM4, 0);
-            TIM_Enable(TIM4, ENABLE);
-        }
-        else
-        {
-            TIM_Enable(TIM4, DISABLE);
-            UltrasonicSetEnable(2, 0);
-            ultrasonic_t2tig = 1;
-        }
-    }
-}
+//void EXTI4_IRQHandler(void)
+//{
+//    if (RESET != EXTI_GetITStatus(EXTI_LINE4))
+//    {
+//        EXTI_ClrITPendBit(EXTI_LINE4);
+//        TIM_ClrIntPendingBit(TIM3, TIM_INT_UPDATE);
+//        if (GPIO_ReadInputDataBit(CS1_Econ_PORT, CS1_Econ_PIN))
+//        {
+//            ultrasonic_t1tig_time=0;
+//            TIM_SetCnt(TIM3, 0);
+//            TIM_Enable(TIM3, ENABLE);
+//        }
+//        else
+//        {
+//            ultrasonic_t1tig_time = TIM_GetCnt(TIM3);
+//            TIM_Enable(TIM3, DISABLE);
+//            ultrasonic_t1tig = 1;
+//            UltrasonicSetEnable(1, 0);
+//        }
+//    }
+//}
+//void EXTI9_5_IRQHandler(void)
+//{
+//    if (RESET != EXTI_GetITStatus(EXTI_LINE5))
+//    {
+//        EXTI_ClrITPendBit(EXTI_LINE5);
+//        if (GPIO_ReadInputDataBit(CS2_Econ_PORT, CS2_Econ_PIN))
+//        {
+//            ultrasonic_t2tig_time = 0;
+//            TIM_SetCnt(TIM4, 0);
+//            TIM_Enable(TIM4, ENABLE);
+//        }
+//        else
+//        {
+//            TIM_Enable(TIM4, DISABLE);
+//            UltrasonicSetEnable(2, 0);
+//            ultrasonic_t2tig = 1;
+//        }
+//    }
+//}
 #endif
 /**
  * @brief  This function handles TIM3 update interrupt request.

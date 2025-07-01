@@ -18,28 +18,30 @@ ROBOT_CONTROL robot_control = {0};
 * 参    数：无
 * 返 回 值：无
 **************************************************/
-		RCC_ClocksType RCC_Clocks;
+RCC_ClocksType RCC_Clocks;  
 void systemInit(void)
 {
+	RCC_GetClocksFreqValue(&RCC_Clocks);
 	rt_thread_delay(200);   //< 20ms
 	Usart1_Init(GetUsart1_baud(pdu[moddbus_485_baud]));		//=====串口初始化为，普通的串口，打印调试信息 DMA
+	Uart5_Init(100000);				//串口5初始化，用于航模控制
 	Usart3_Init(115200);									//上下位机通信初始化，串口3
 #if (CARMODE != Diff)
 	{
-		Uart4_Init(9600);									//串口4初始化，用于读取电池信息
-		ExioInit();
+		Usart2_Init(9600);
+		//Uart4_Init(9600);									//串口4初始化，用于读取电池信息
+		//ExioInit();
 	}
 #endif	
-    Uart5_Init(100000);				//串口5初始化，用于航模控制
+
 	Can_Driver_Init(pdu[CAN_baud]); //底层can协议初始化
     
 	GPIO_Init();                    //初始化与GPIO连接的硬件接口
 	rt_thread_delay(27000);   		//< 2700ms
 	Motor_Init(pdu[motor_number]);
+	
 	InitMotorParameters(); 
 	DiyFunctionBasedCar(pdu[car_type]);
-	//查看时钟
-	RCC_GetClocksFreqValue(&RCC_Clocks);
 	
 }
 
